@@ -1,0 +1,80 @@
+// Service to track sunrise, sunset and emit events when they occur on a daily basis.
+//
+// The order of events is:
+// sunrise -> light -> dark -> sunset
+//
+// sunrise/sunset correspond to official sunset times of the sun crossing the horizon.
+//
+// light/dark correspond to when the sun is 2° above the horizon, which
+// corresponds to being fairly light. These events are a better trigger for
+// internal house hold lights, because at sunrise/set it will likely still be
+// rather dark inside!
+package earth
+
+import (
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
+	"log"
+	"time"
+)
+
+func nextEvent(loc Location) (at time.Time, name string) {
+	now := time.Now()
+	if sunrise := loc.Sunrise(now, ZenithOfficial); now.Before(sunrise) {
+		at = sunrise
+		name = "sunrise"
+	} else if light := loc.Sunrise(now, ZenithLight); now.Before(light) {
+		at = light
+		name = "light"
+	} else if dark := loc.Sunset(now, ZenithLight); now.Before(dark) {
+		at = dark
+		name = "dark"
+	} else if sunset := loc.Sunset(now, ZenithOfficial); now.Before(sunset) {
+		at = sunset
+		name = "sunset"
+	} else if sunrise := loc.Sunrise(now.Add(time.Hour*24), ZenithOfficial); now.Before(sunrise) {
+		at = sunrise
+		name = "sunrise"
+	} else {
+		log.Println("This shouldn't happen")
+	}
+	return
+}
+
+type TimeEvent struct {
+	At    time.Time
+	Event string
+}
+
+func eventChannel(loc Location) chan TimeEvent {
+	ch := make(chan TimeEvent)
+	go func() {
+		for {
+			at, event := nextEvent(loc)
+			delay := at.Sub(time.Now())
+			log.Printf("Next: %s at %v (in %s)\n", event, at.Local(), delay)
+			time.Sleep(delay)
+			ch <- TimeEvent{at, event}
+		}
+	}()
+	return ch
+}
+
+type EarthService struct{}
+
+func (self *EarthService) Id() string {
+	return "earth"
+}
+
+func (self *EarthService) Run() error {
+	loc := Location{
+		Latitude:  services.Config.Earth.Latitude,
+		Longitude: services.Config.Earth.Longitude,
+	}
+	for tev := range eventChannel(loc) {
+		ev := pubsub.NewEvent("earth",
+			pubsub.Fields{"command": tev.Event, "source": "home"})
+		services.Publisher.Emit(ev)
+	}
+	return nil
+}

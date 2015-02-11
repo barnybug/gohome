@@ -1,0 +1,299 @@
+// Service providing an HTTP REST API to access gohome and control devices.
+//
+// The endpoints supported are:
+//
+// http://localhost:8723/query/{query} - query a service, e.g. http://localhost:8723/query/heating/status
+//
+// http://localhost:8723/voice - perform a voice query command
+//
+// http://localhost:8723/devices - list of devices
+//
+// http://localhost:8723/devices/events - list of device events
+//
+// http://localhost:8723/devices/control?id=device&control=0 - turn a device on or off
+//
+// http://localhost:8723/heating/status - get the status of heating
+//
+// http://localhost:8723/heating/set?temp=20&until=1h - set heating to 'temp' until 'until'
+//
+// http://localhost:8723/events/feed - continuous live stream of events (line delimited)
+//
+// http://localhost:8723/config?path=gohome/config - GET configuration or POST to update configuration
+package api
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/barnybug/gohome/config"
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"regexp"
+	"strings"
+	"time"
+
+	"github.com/gorilla/mux"
+)
+
+type ApiService struct {
+}
+
+func (self *ApiService) Id() string {
+	return "api"
+}
+
+func errorResponse(w http.ResponseWriter, err error) {
+	http.Error(w, err.Error(), 500)
+}
+
+func apiIndex(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "text/html")
+	fmt.Fprintf(w, "<html>Gohome is listening</html>")
+
+}
+
+func jsonResponse(w http.ResponseWriter, obj interface{}) {
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+	enc := json.NewEncoder(w)
+	err := enc.Encode(obj)
+	if err != nil {
+		errorResponse(w, err)
+	}
+}
+
+func query(endpoint string, q string, w http.ResponseWriter) {
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+
+	ch := services.QueryChannel(endpoint+" "+q, 100*time.Millisecond)
+
+	for ev := range ch {
+		fmt.Fprintf(w, ev.String()+"\r\n")
+		w.(http.Flusher).Flush()
+	}
+}
+
+func apiQuery(w http.ResponseWriter, r *http.Request) {
+	endpoint := r.URL.Path[len("/query/"):]
+	q := r.URL.Query().Get("q")
+	query(endpoint, q, w)
+}
+
+func apiVoice(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+
+	body := ""
+	for key, value := range services.Config.Voice {
+		re, err := regexp.Compile(key)
+		if err != nil {
+			continue
+		}
+		if re.MatchString(q) {
+			body = value
+		}
+	}
+	if body == "" {
+		fmt.Fprintf(w, "Not understood: '%s'", q)
+		return
+	}
+
+	resp, err := services.RPC(body)
+	if err == nil {
+		fmt.Fprintf(w, resp)
+	} else {
+		w.WriteHeader(500)
+		fmt.Fprintf(w, "error: %s", err)
+	}
+}
+
+type DeviceAndState struct {
+	config.DeviceConf
+	State interface{} `json:"state"`
+}
+
+func getDevicesState() map[string]interface{} {
+	// Get state from store
+	ret := make(map[string]interface{})
+	nodes, _ := services.Stor.GetRecursive("gohome/state/devices")
+	for _, node := range nodes {
+		ev := pubsub.Parse(node.Value)
+		name := node.Key[strings.LastIndex(node.Key, "/")+1:]
+		ret[name] = ev.Map()
+	}
+	return ret
+}
+
+func apiDevices(w http.ResponseWriter, r *http.Request) {
+	ret := make(map[string]DeviceAndState)
+	state := getDevicesState()
+
+	for name, dev := range services.Config.Devices {
+		ret[name] = DeviceAndState{dev, state[name]}
+	}
+
+	jsonResponse(w, ret)
+}
+
+func apiDevicesEvents(w http.ResponseWriter, r *http.Request) {
+	jsonResponse(w, getDevicesState())
+}
+
+func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	device := q.Get("id")
+	state := q.Get("control") == "1"
+	// send command
+	ev := pubsub.NewCommand(device, state, 0)
+	services.Publisher.Emit(ev)
+	jsonResponse(w, true)
+}
+
+func apiHeatingStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+	ch := services.QueryChannel("heating/status", 100*time.Millisecond)
+	ev := <-ch
+	ret := ev.Fields["json"]
+	jsonResponse(w, ret)
+}
+
+func apiHeatingSet(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	query("heating/ch", fmt.Sprintf("%s %s", q.Get("temp"), q.Get("until")), w)
+}
+
+func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json; boundary=NL")
+
+	ch := services.Subscriber.Channel()
+
+	for ev := range ch {
+		_, err := fmt.Fprintf(w, ev.String()+"\r\n")
+		if err != nil {
+			break
+		}
+		w.(http.Flusher).Flush()
+	}
+
+	services.Subscriber.Close(ch)
+}
+
+func convertJson(v interface{}) interface{} {
+	// convert json unfriendly types to json friendly.
+	switch t := v.(type) {
+	case map[interface{}]interface{}:
+		// convert all keys to strings
+		ret := map[string]interface{}{}
+		for k, v := range t {
+			ret[fmt.Sprint(k)] = convertJson(v)
+		}
+		return ret
+	case []interface{}:
+		// convert all elements of array
+		ret := []interface{}{}
+		for _, v := range t {
+			ret = append(ret, convertJson(v))
+		}
+		return ret
+	default:
+		return v
+	}
+}
+
+func apiConfig(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	path := q.Get("path")
+	if path == "" {
+		err := errors.New("path parameter required")
+		errorResponse(w, err)
+		return
+	}
+
+	// retrieve key from store
+	value, err := services.Stor.Get(q.Get("path"))
+	if err != nil {
+		errorResponse(w, err)
+		return
+	}
+
+	if r.Method == "GET" {
+		w.Header().Add("Content-Type", "application/yaml; charset=utf-8")
+		w.Write([]byte(value))
+	} else if r.Method == "POST" {
+		data, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			errorResponse(w, err)
+			return
+		}
+
+		sout := string(data)
+		if sout != value {
+			// set store
+			services.Stor.Set(path, sout)
+			// emit event
+			fields := pubsub.Fields{
+				"path": path,
+			}
+			ev := pubsub.NewEvent("config", fields)
+			services.Publisher.Emit(ev)
+			log.Printf("%s changed, emitted config event", path)
+		}
+	}
+}
+
+func router() *mux.Router {
+	router := mux.NewRouter()
+	router.Path("/").HandlerFunc(apiIndex)
+	router.PathPrefix("/query/").HandlerFunc(apiQuery)
+	router.Path("/voice").HandlerFunc(apiVoice)
+	router.Path("/devices").HandlerFunc(apiDevices)
+	router.Path("/devices/events").HandlerFunc(apiDevicesEvents)
+	router.Path("/devices/control").HandlerFunc(apiDevicesControl)
+	router.Path("/heating/status").HandlerFunc(apiHeatingStatus)
+	router.Path("/heating/set").HandlerFunc(apiHeatingSet)
+	router.Path("/events/feed").HandlerFunc(apiEventsFeed)
+	router.Path("/config").HandlerFunc(apiConfig)
+	return router
+}
+
+type LoggingHandler struct {
+	Handler http.Handler
+}
+
+func (self LoggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	log.Printf("%s %s\n", req.Method, req.RequestURI)
+	self.Handler.ServeHTTP(w, req)
+}
+
+func httpEndpoint() {
+	// disabled logger as this prevents ResponseWriter.Flush being accessed
+	// handler := handlers.LoggingHandler(os.Stdout, router())
+	var handler http.Handler = router()
+	handler = LoggingHandler{Handler: handler}
+	handler = CORSHandler{Handler: handler}
+	http.Handle("/", handler)
+	addr := ":8723"
+	log.Println("Listening on " + addr)
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func recordEvents() {
+	for ev := range services.Subscriber.Channel() {
+		// record to store
+		device := services.Config.LookupDeviceName(ev)
+		if device != "" {
+			key := "gohome/state/devices/" + device
+			services.Stor.Set(key, ev.String())
+		}
+	}
+}
+
+func (self *ApiService) Run() error {
+	go recordEvents()
+	httpEndpoint()
+	return nil
+}
