@@ -2,6 +2,7 @@
 
 Home automation for the geek home. Built in Go.
 
+[![Build Status](https://secure.travis-ci.org/barnybug/gohome.png)](http://travis-ci.org/barnybug/gohome)
 [![GoDoc](https://godoc.org/github.com/barnybug/gohome?status.svg)](http://godoc.org/github.com/barnybug/gohome)
 
 ## Features
@@ -83,7 +84,7 @@ Now start the gohome daemon:
 
     $ gohome start daemon
 
-This will start all the processes defined in the config and ensure they stay
+This will start all the services defined in the config and ensure they stay
 running.
 
 gohome runs as a set of distributed and independent processes/services. These

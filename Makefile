@@ -16,3 +16,7 @@ coverage:
 	goop go tool cover -func=/tmp/coverage.out
 	goop go tool cover -html=/tmp/coverage.out -o /tmp/coverage.html
 	xdg-open /tmp/coverage.html
+
+deps:
+	go get github.com/nitrous-io/goop
+	goop install
