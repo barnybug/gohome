@@ -4,13 +4,14 @@
 package datalogger
 
 import (
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
-	"github.com/barnybug/gohome/util"
 	"log"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
+	"github.com/barnybug/gohome/util"
 )
 
 var (
@@ -71,7 +72,7 @@ func (self *DataloggerService) ConfigUpdated(path string) {
 }
 
 func (self *DataloggerService) Run() error {
-	self.ConfigUpdated("github.com/barnybug/gohome/config")
+	self.ConfigUpdated("gohome/config")
 	for ev := range services.Subscriber.Channel() {
 		event(ev)
 	}

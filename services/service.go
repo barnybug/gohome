@@ -3,15 +3,16 @@ package services
 import (
 	"encoding/json"
 	"flag"
+	"log"
+	"net/url"
+	"os"
+	"time"
+
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/pubsub/mqtt"
 	"github.com/barnybug/gohome/pubsub/nanomsg"
 	"github.com/barnybug/gohome/pubsub/zeromq"
-	"log"
-	"net/url"
-	"os"
-	"time"
 )
 
 type Service interface {
@@ -51,7 +52,7 @@ func SetupConfigFile() {
 func ConfigWatcher() {
 	for ev := range Subscriber.FilteredChannel("config") {
 		path := ev.StringField("path")
-		if path == "github.com/barnybug/gohome/config" {
+		if path == "gohome/config" {
 			// reload config
 			err := loadConfigFromStore()
 			if err != nil {
@@ -99,7 +100,7 @@ func SetupStore() {
 }
 
 func loadConfigFromStore() error {
-	value, err := Stor.Get("github.com/barnybug/gohome/config")
+	value, err := Stor.Get("gohome/config")
 	if err != nil {
 		return err
 	}

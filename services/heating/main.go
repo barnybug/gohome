@@ -5,14 +5,15 @@ package heating
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/config"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
-	"github.com/barnybug/gohome/util"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/config"
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
+	"github.com/barnybug/gohome/util"
 )
 
 var Clock = func() time.Time {
@@ -345,7 +346,7 @@ func (self *HeatingService) Run() error {
 }
 
 func (self *HeatingService) ConfigUpdated(path string) {
-	if path == "github.com/barnybug/gohome/config" {
+	if path == "gohome/config" {
 		self.thermo.ConfigUpdated(services.Config.Heating)
 	}
 }
