@@ -2,7 +2,7 @@ code.google.com/p/go-uuid #35bc42037350f0078e3c974c6ea690f1926603ab
 code.google.com/p/go.net #937a34c9de13c766c814510f76bca091dee06028
 git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git #3e58ec10bf2da9ef3fc639d12a0eb2e3596c2df7
 github.com/barnybug/gofsm #965140687f1088ffb77ea5a178034bb0530105e2
-github.com/barnybug/gogsmmodem #1153e9a58bbce5383f9ad339b7e4136001c405b3
+github.com/barnybug/gogsmmodem #a25e5bb7f2bef9e62dab80c81ba87d9934a2b518
 github.com/barnybug/gorfxtrx #540f1b87293eaaa85c138d684b7e150ab20b0247
 github.com/droundy/goopt #ba8c48dd57ec277e879718f73dc7d97787204962
 github.com/garyburd/redigo/redis #cca3df8fa0670249a3f746bcc062c69aeba0517c
@@ -13,7 +13,7 @@ github.com/gorilla/mux #0ef595e787efa95d68151570ead5c85dc2e05f91
 github.com/kurrik/json #f63ef626c5ffbfcd5dd5430c18c8b2eb14593c38
 github.com/kurrik/oauth1a #fc2542bc5f2532ed4a437960d2d51ff6e18a5cb6
 github.com/kurrik/twittergo #7ce068b08f04d659d0c5c3a41aedd3266aa1024c
-github.com/mattn/go-gtk #f02444e71054de0513df84f89c434abc99ab75d8
+github.com/mattn/go-gtk #7acf6f728233d5af471f7c8e869ee2ef468a51b7
 github.com/mattn/go-xmpp #9276abaad937502bfbbdab6f3941c6ad64f9b587
 github.com/pebbe/zmq4 #a082a5f40b31599ed0aa72cdd2369154db701e85
 github.com/tarm/goserial #6517d24aa8722a7540ea13405f4559a5e68c9d19
