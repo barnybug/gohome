@@ -2,7 +2,7 @@ code.google.com/p/go-uuid #35bc42037350f0078e3c974c6ea690f1926603ab
 code.google.com/p/go.net #937a34c9de13c766c814510f76bca091dee06028
 git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git #3e58ec10bf2da9ef3fc639d12a0eb2e3596c2df7
 github.com/barnybug/gofsm #965140687f1088ffb77ea5a178034bb0530105e2
-github.com/barnybug/gogsmmodem #a25e5bb7f2bef9e62dab80c81ba87d9934a2b518
+github.com/barnybug/gogsmmodem #0d374684936b324849d168c46a06beed33d5e7c5
 github.com/barnybug/gorfxtrx #540f1b87293eaaa85c138d684b7e150ab20b0247
 github.com/droundy/goopt #ba8c48dd57ec277e879718f73dc7d97787204962
 github.com/garyburd/redigo/redis #cca3df8fa0670249a3f746bcc062c69aeba0517c
