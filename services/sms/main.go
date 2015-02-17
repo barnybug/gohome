@@ -8,10 +8,11 @@ package sms
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"path/filepath"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 
 	"github.com/barnybug/gogsmmodem"
 	"github.com/tarm/goserial"
@@ -57,6 +58,21 @@ func (self *SmsService) Run() error {
 		return err
 	}
 	log.Println("Connected")
+
+	log.Println("Checking message storage for unread")
+	msgs, err := modem.ListMessages("ALL")
+	if err == nil {
+		for _, msg := range *msgs {
+			if msg.Status == "REC UNREAD" {
+				fmt.Printf("Message from %s: %s\n", msg.Telephone, msg.Body)
+				services.SendQuery(msg.Body, "sms", msg.Telephone, "alert")
+			}
+			// delete - any unread have been read
+			modem.DeleteMessage(msg.Index)
+		}
+	}
+
+	log.Println("Ready")
 
 	events := services.Subscriber.FilteredChannel("alert")
 	for {
