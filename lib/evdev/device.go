@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"os"
+	"syscall"
 )
 
 type InputDevice struct {
@@ -21,7 +22,9 @@ func Open(devname string) (*InputDevice, error) {
 }
 
 func (self *InputDevice) Grab() error {
-	err := ioctl(self.fd.Fd(), EVIOCGRAB, 1)
+	// taken from linux/input.h - hardcoded to avoid needing cgo.
+	EVIOCGRAB := uintptr(0x40044590)
+	_, _, err := syscall.RawSyscall(syscall.SYS_IOCTL, self.fd.Fd(), EVIOCGRAB, 1)
 	return err
 }
 

@@ -1,4 +1,4 @@
-ARCH := $(shell uname -m)
+.PHONY: all build install test coverage deps release
 
 all: install
 
@@ -18,5 +18,8 @@ coverage:
 	xdg-open /tmp/coverage.html
 
 deps:
-	go get github.com/nitrous-io/goop
 	goop install
+
+release:
+	docker build -t gohome-crossbuild crossbuild
+	docker run --rm -v "$(PWD)":/go/src/github.com/barnybug/gohome -w /go/src/github.com/barnybug/gohome gohome-crossbuild

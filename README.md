@@ -44,10 +44,14 @@ Home automation for the geek home. Built in Go.
 
 ## Installation
 
-Installation is easy, just download the binary from:
-[gobuild.io](http://gobuild.io/download/github.com/barnybug/gohome).
+Installation is easy, just download the binary from the github releases page (builds are available for Linux 32-bit, 64-bit and ARM):
+https://github.com/barnybug/gohome/releases/
 
 For the raspberry pi, download the ARM build.
+
+Rename and make the download executable:
+
+    $ cp gohome-my-platform /usr/local/bin; chmod +x /usr/local/bin/gohome
 
 You also will need redis and mosquitto installed:
 
