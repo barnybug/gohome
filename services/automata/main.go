@@ -34,16 +34,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/barnybug/gohome/util"
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"regexp"
 	"sort"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/barnybug/gohome/util"
 
 	"github.com/barnybug/gofsm"
 
@@ -52,7 +52,7 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
-var eventsLogPath = path.Join(util.ExpandUser("~/go/log"), "events.log")
+var eventsLogPath = config.LogPath("events.log")
 var eventsLog = openLogFile()
 
 func openLogFile() *os.File {

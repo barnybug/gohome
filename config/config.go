@@ -1,14 +1,15 @@
 package config
 
 import (
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/util"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/util"
 
 	"gopkg.in/v1/yaml"
 )
@@ -276,4 +277,9 @@ func ConfigPath(p string) string {
 		config = path.Join(os.Getenv("HOME"), ".config")
 	}
 	return path.Join(config, "gohome", p)
+}
+
+// Get path to a log file
+func LogPath(p string) string {
+	return path.Join(util.ExpandUser("~/go/log"), p)
 }

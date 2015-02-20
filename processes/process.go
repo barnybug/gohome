@@ -2,9 +2,6 @@ package processes
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/config"
-	"github.com/barnybug/gohome/services"
-	"github.com/barnybug/gohome/util"
 	"io"
 	"log"
 	"os"
@@ -14,6 +11,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/config"
+	"github.com/barnybug/gohome/services"
 )
 
 type PidTime struct {
@@ -68,8 +68,8 @@ func processSpec(cf *config.ProcessConf) (fpath string, args []string, pattr *os
 }
 
 func logName(name string) (log string, err string) {
-	log = path.Join(util.ExpandUser("~/go/log"), name+".log")
-	err = path.Join(util.ExpandUser("~/go/log"), name+".err")
+	log = config.LogPath(name + ".log")
+	err = config.LogPath(name + ".err")
 	return log, err
 }
 

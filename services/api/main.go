@@ -22,18 +22,21 @@
 package api
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/barnybug/gohome/config"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/config"
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 
 	"github.com/gorilla/mux"
 )
@@ -242,6 +245,37 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func apiLogs(w http.ResponseWriter, r *http.Request) {
+	logs := []string{}
+	infos, err := ioutil.ReadDir(config.LogPath(""))
+	if err != nil {
+		errorResponse(w, err)
+		return
+	}
+
+	for _, info := range infos {
+		logs = append(logs, info.Name())
+	}
+	jsonResponse(w, logs)
+}
+
+func apiLogsLog(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	filename := config.LogPath(params["file"])
+	file, err := os.Open(filename)
+	if err != nil {
+		errorResponse(w, err)
+		return
+	}
+
+	scanner := bufio.NewScanner(file)
+	lines := []string{}
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	jsonResponse(w, lines)
+}
+
 func router() *mux.Router {
 	router := mux.NewRouter()
 	router.Path("/").HandlerFunc(apiIndex)
@@ -254,6 +288,8 @@ func router() *mux.Router {
 	router.Path("/heating/set").HandlerFunc(apiHeatingSet)
 	router.Path("/events/feed").HandlerFunc(apiEventsFeed)
 	router.Path("/config").HandlerFunc(apiConfig)
+	router.Path("/logs").HandlerFunc(apiLogs)
+	router.Path("/logs/{file}").HandlerFunc(apiLogsLog)
 	return router
 }
 
