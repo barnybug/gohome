@@ -2,9 +2,10 @@ package nanomsg
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
 	"log"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
 
 	"github.com/gdamore/mangos/transport/inproc"
 
@@ -55,9 +56,6 @@ func (self *Publisher) run() {
 
 	for ev := range self.Channel {
 		// format: topic\0data
-		//
-		// The zmq recommendation is to use a multipart message for this now,
-		// left unchanged as a legacy.
 		data := fmt.Sprintf("%s\000%s", ev.Topic, ev.String())
 		err := sock.Send([]byte(data))
 		if err != nil {

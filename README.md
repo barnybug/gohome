@@ -33,7 +33,6 @@ Home automation for the geek home. Built in Go.
 ## Services supported
 
 - MQTT
-- ZeroMQ
 - Nanomsg
 - Twitter
 - Jabber
@@ -90,7 +89,7 @@ running.
 gohome runs as a set of distributed and independent processes/services. These
 don't necessarily have to be gohome itself - you can add scripts to the system
 of your own crafting. Because they run as independent processes they can run
-across different hardware, with the pubsub bus (MQTT/Zeromq/Nanomsg) connecting
+across different hardware, with the pubsub bus (MQTT//Nanomsg) connecting
 all the components together.
 
 ## Building from source
@@ -99,13 +98,11 @@ To build yourself from source:
 
 ### Debian/Ubuntu/Raspbian:
 
-    $ apt-get install -y golang mercurial libzmq4
     $ go get github.com/nitrous-io/goop
     $ goop go install github.com/barnybug/gohome
 
 ### ArchLinux
 
-    $ pacman -S go libzmq4
     $ go get github.com/nitrous-io/goop
     $ goop go install github.com/barnybug/gohome
 

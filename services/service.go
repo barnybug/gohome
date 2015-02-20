@@ -12,7 +12,6 @@ import (
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/pubsub/mqtt"
 	"github.com/barnybug/gohome/pubsub/nanomsg"
-	"github.com/barnybug/gohome/pubsub/zeromq"
 )
 
 type Service interface {
@@ -136,8 +135,6 @@ func SetupEndpoints() {
 	if ep.Mqtt.Broker != "" {
 		broker = mqtt.NewBroker(ep.Mqtt.Broker)
 		Publisher = broker.Publisher()
-	} else if ep.Zeromq.Pub != "" {
-		Publisher = zeromq.NewPublisher(ep.Zeromq.Pub, true)
 	} else if ep.Nanomsg.Pub != "" {
 		Publisher = nanomsg.NewPublisher(ep.Nanomsg.Pub, true)
 	}
@@ -148,8 +145,6 @@ func SetupEndpoints() {
 	// create Subscriber
 	if ep.Mqtt.Broker != "" {
 		Subscriber = broker.Subscriber()
-	} else if ep.Zeromq.Sub != "" {
-		Subscriber = zeromq.NewSubscriber(ep.Zeromq.Sub, "", true)
 	} else if ep.Nanomsg.Sub != "" {
 		Subscriber = nanomsg.NewSubscriber(ep.Nanomsg.Sub, "", true)
 	}

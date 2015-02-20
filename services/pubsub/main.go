@@ -7,14 +7,14 @@ package pubsub
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/pubsub/mqtt"
-	"github.com/barnybug/gohome/pubsub/nanomsg"
-	"github.com/barnybug/gohome/pubsub/zeromq"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"sync"
 	"sync/atomic"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/pubsub/mqtt"
+	"github.com/barnybug/gohome/pubsub/nanomsg"
+	"github.com/barnybug/gohome/services"
 )
 
 type PubsubService struct {
@@ -33,10 +33,6 @@ func (self *PubsubService) Run() error {
 	// setup subscribers
 	var subscribers []pubsub.Subscriber
 	var publishers []pubsub.Publisher
-	if ep.Zeromq.Pub != "" {
-		sub := zeromq.NewSubscriber(ep.Zeromq.Pub, "", false)
-		subscribers = append(subscribers, sub)
-	}
 	if ep.Nanomsg.Pub != "" {
 		sub := nanomsg.NewSubscriber(ep.Nanomsg.Pub, "", false)
 		subscribers = append(subscribers, sub)
@@ -55,13 +51,6 @@ func (self *PubsubService) Run() error {
 	}
 
 	// setup publishers
-	if ep.Zeromq.Sub != "" {
-		pub := zeromq.NewPublisher(ep.Zeromq.Sub, false)
-		publishers = append(publishers, pub)
-		for _, sub := range subscribers {
-			routing[sub] = append(routing[sub], pub)
-		}
-	}
 	if ep.Nanomsg.Sub != "" {
 		pub := nanomsg.NewPublisher(ep.Nanomsg.Sub, false)
 		publishers = append(publishers, pub)

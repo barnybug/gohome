@@ -15,6 +15,5 @@ github.com/kurrik/oauth1a #fc2542bc5f2532ed4a437960d2d51ff6e18a5cb6
 github.com/kurrik/twittergo #7ce068b08f04d659d0c5c3a41aedd3266aa1024c
 github.com/mattn/go-gtk #7acf6f728233d5af471f7c8e869ee2ef468a51b7
 github.com/mattn/go-xmpp #9276abaad937502bfbbdab6f3941c6ad64f9b587
-github.com/pebbe/zmq4 #a082a5f40b31599ed0aa72cdd2369154db701e85
 github.com/tarm/goserial #6517d24aa8722a7540ea13405f4559a5e68c9d19
 gopkg.in/v1/yaml #9f9df34309c04878acc86042b16630b0f696e1de

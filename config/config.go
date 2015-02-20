@@ -56,10 +56,6 @@ type EarthConf struct {
 }
 
 type EndpointsConf struct {
-	Zeromq struct {
-		Pub string
-		Sub string
-	}
 	Nanomsg struct {
 		Pub string
 		Sub string
