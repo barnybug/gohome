@@ -22,10 +22,10 @@
 package api
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -268,12 +268,8 @@ func apiLogsLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scanner := bufio.NewScanner(file)
-	lines := []string{}
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	jsonResponse(w, lines)
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	io.Copy(w, file)
 }
 
 func router() *mux.Router {
