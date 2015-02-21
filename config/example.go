@@ -8,6 +8,12 @@ devices:
     group: downstairs
     name: Kitchen
     type: light
+endpoints:
+  nanomsg:
+    pub: tcp://127.0.0.1:8792
+    sub: tcp://127.0.0.1:8793
+  mqtt:
+    broker: tcp://127.0.0.1:1883
 processes:
   gohome:
     cmd: gohome service daemon
@@ -176,4 +182,3 @@ wunderground:
   url: http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php`
 
 var ExampleConfig, _ = OpenReader(strings.NewReader(ExampleYaml))
-
