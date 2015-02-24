@@ -97,11 +97,14 @@ func FriendlyDuration(d time.Duration) string {
 	case d.Seconds() >= 1:
 		secs := int(d.Seconds())
 		return plural(secs, "second")
-	default:
+	case d.Nanoseconds() >= 1000:
 		ms := int(d.Seconds() * 1000)
 		return plural(ms, "millisecond")
+	case d.Nanoseconds() > 0:
+		ns := d.Nanoseconds()
+		return plural(int(ns), "nanosecond")
 	}
-	return ""
+	return "0 seconds"
 }
 
 func ShortDuration(d time.Duration) string {
@@ -121,9 +124,9 @@ func ShortDuration(d time.Duration) string {
 	case d.Seconds() >= 1:
 		secs := int(d.Seconds())
 		return number(secs, "s")
-	default:
+	case d.Nanoseconds() >= 1000:
 		ms := int(d.Seconds() * 1000)
 		return number(ms, "ms")
 	}
-	return ""
+	return "0s"
 }

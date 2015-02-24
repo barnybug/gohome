@@ -33,6 +33,8 @@ func ExampleFriendlyDuration() {
 	d4, _ := time.ParseDuration("37m1s")
 	d5, _ := time.ParseDuration("1500ms")
 	d6, _ := time.ParseDuration("500ms")
+	d7, _ := time.ParseDuration("500ns")
+	d8, _ := time.ParseDuration("0ms")
 
 	fmt.Println(FriendlyDuration(d1))
 	fmt.Println(FriendlyDuration(d2))
@@ -40,6 +42,8 @@ func ExampleFriendlyDuration() {
 	fmt.Println(FriendlyDuration(d4))
 	fmt.Println(FriendlyDuration(d5))
 	fmt.Println(FriendlyDuration(d6))
+	fmt.Println(FriendlyDuration(d7))
+	fmt.Println(FriendlyDuration(d8))
 	// Output:
 	// 2 days
 	// 1 day 2 hours
@@ -47,6 +51,8 @@ func ExampleFriendlyDuration() {
 	// 37 minutes 1 second
 	// 1 second
 	// 500 milliseconds
+	// 500 nanoseconds
+	// 0 seconds
 }
 
 func ExampleShortDuration() {
@@ -56,6 +62,7 @@ func ExampleShortDuration() {
 	d4, _ := time.ParseDuration("37m1s")
 	d5, _ := time.ParseDuration("1500ms")
 	d6, _ := time.ParseDuration("500ms")
+	d7, _ := time.ParseDuration("500ns")
 
 	fmt.Println(ShortDuration(d1))
 	fmt.Println(ShortDuration(d2))
@@ -63,6 +70,7 @@ func ExampleShortDuration() {
 	fmt.Println(ShortDuration(d4))
 	fmt.Println(ShortDuration(d5))
 	fmt.Println(ShortDuration(d6))
+	fmt.Println(ShortDuration(d7))
 	// Output:
 	// 2d
 	// 1d 2h
@@ -70,4 +78,5 @@ func ExampleShortDuration() {
 	// 37m 1s
 	// 1s
 	// 500ms
+	// 0s
 }
