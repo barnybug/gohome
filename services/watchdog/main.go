@@ -15,6 +15,7 @@ import (
 )
 
 type WatchdogDevice struct {
+	Name        string
 	Timeout     time.Duration
 	Alerted     bool
 	LastAlerted time.Time
@@ -50,24 +51,24 @@ func checkEvent(ev *pubsub.Event) {
 	// recovered?
 	if w.Alerted {
 		w.Alerted = false
-		sendEmail(device, "RECOVERED", w.LastEvent)
+		sendEmail(w.Name, "RECOVERED", w.LastEvent)
 	}
 }
 
 func checkTimeouts() {
 	timeouts := []string{}
 	var lastEvent time.Time
-	for device, w := range devices {
+	for _, w := range devices {
 		if w.Alerted {
 			// check if should repeat
 			if time.Since(w.LastAlerted) > repeatInterval {
-				timeouts = append(timeouts, device)
+				timeouts = append(timeouts, w.Name)
 				lastEvent = w.LastEvent
 				w.LastAlerted = time.Now()
 			}
 		} else if time.Since(w.LastEvent) > w.Timeout {
 			// first alert
-			timeouts = append(timeouts, device)
+			timeouts = append(timeouts, w.Name)
 			lastEvent = w.LastEvent
 			w.Alerted = true
 			w.LastAlerted = time.Now()
@@ -95,7 +96,11 @@ func (self *WatchdogService) Run() error {
 			fmt.Println("Failed to parse:", timeout)
 		}
 		// give devices grace period for first event
-		devices[device] = &WatchdogDevice{Timeout: duration, LastEvent: now}
+		devices[device] = &WatchdogDevice{
+			Name:      services.Config.Devices[device].Name,
+			Timeout:   duration,
+			LastEvent: now,
+		}
 	}
 
 	// monitor gohome processes heartbeats
@@ -103,7 +108,11 @@ func (self *WatchdogService) Run() error {
 		if strings.HasPrefix(conf.Cmd, "gohome service") {
 			device := fmt.Sprintf("heartbeat.%s", process)
 			// if a process misses 2 heartbeats, mark as problem
-			devices[device] = &WatchdogDevice{Timeout: time.Second * 121, LastEvent: now}
+			devices[device] = &WatchdogDevice{
+				Name:      fmt.Sprintf("Process %s", process),
+				Timeout:   time.Second * 121,
+				LastEvent: now,
+			}
 		}
 	}
 
