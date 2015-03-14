@@ -51,7 +51,7 @@ func GetRunning() map[string]PidTime {
 	return ret
 }
 
-func processSpec(cf *config.ProcessConf) (fpath string, args []string, pattr *os.ProcAttr) {
+func processSpec(name string, cf *config.ProcessConf) (fpath string, args []string, pattr *os.ProcAttr) {
 	args = strings.Split(cf.Cmd, " ")
 	fpath = args[0]
 	if cf.Path != "" {
@@ -64,6 +64,10 @@ func processSpec(cf *config.ProcessConf) (fpath string, args []string, pattr *os
 		}
 	}
 	pattr = &os.ProcAttr{Dir: cf.Path}
+	// add ID to environ
+	environ := os.Environ()
+	environ = append(environ, "ID="+name)
+	pattr.Env = environ
 	return
 }
 
@@ -80,7 +84,7 @@ func Start(ps []string) []int {
 		if _, ok := running[name]; ok {
 			log.Println(name, "already running")
 		} else {
-			fpath, args, pattr := processSpec(&cf)
+			fpath, args, pattr := processSpec(name, &cf)
 			// open log file
 			logname, errname := logName(name)
 			logfile, err := os.OpenFile(logname, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
@@ -190,7 +194,7 @@ func Run(ps []string) {
 	IterateServices(ps, func(name string, cf config.ProcessConf) {
 		if running[name].Pid == 0 {
 			fmt.Print("Running ", name, "...\n")
-			fpath, args, pattr := processSpec(&cf)
+			fpath, args, pattr := processSpec(name, &cf)
 			pattr.Files = []*os.File{os.Stdin, os.Stdout, os.Stderr}
 			p, err := os.StartProcess(fpath, args, pattr)
 			if err == nil {
