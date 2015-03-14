@@ -5,12 +5,13 @@ package watchdog
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"net/smtp"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 )
 
 type WatchdogDevice struct {
@@ -95,6 +96,15 @@ func (self *WatchdogService) Run() error {
 		}
 		// give devices grace period for first event
 		devices[device] = &WatchdogDevice{Timeout: duration, LastEvent: now}
+	}
+
+	// monitor gohome processes heartbeats
+	for process, conf := range services.Config.Processes {
+		if strings.HasPrefix(conf.Cmd, "gohome service") {
+			device := fmt.Sprintf("heartbeat.%s", process)
+			// if a process misses 2 heartbeats, mark as problem
+			devices[device] = &WatchdogDevice{Timeout: time.Second * 121, LastEvent: now}
+		}
 	}
 
 	ticker := time.NewTicker(time.Minute)

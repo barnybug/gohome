@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"flag"
 	"log"
 	"net/url"
@@ -183,15 +182,21 @@ func Launch(ss []string) {
 }
 
 func Heartbeat(id string) {
-	prefix := "gohome/heartbeat/" + id
-	started := time.Now().Format(time.RFC3339)
-	data, _ := json.Marshal(map[string]interface{}{
+	started := time.Now()
+	fields := pubsub.Fields{
 		"pid":     os.Getpid(),
-		"started": started,
-	})
-	value := string(data)
+		"started": started.Format(time.RFC3339),
+		"source":  id,
+	}
+
+	// wait 5 seconds before heartbeating - if the process dies very soon
+	time.Sleep(time.Second * 5)
+
 	for {
-		Stor.SetWithTTL(prefix, value, 61)
+		uptime := int(time.Now().Sub(started).Seconds())
+		fields["uptime"] = uptime
+		ev := pubsub.NewEvent("heartbeat", fields)
+		Publisher.Emit(ev)
 		time.Sleep(time.Second * 60)
 	}
 }
