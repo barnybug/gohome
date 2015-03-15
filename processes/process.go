@@ -64,10 +64,15 @@ func processSpec(name string, cf *config.ProcessConf) (fpath string, args []stri
 		}
 	}
 	pattr = &os.ProcAttr{Dir: cf.Path}
-	// add ID to environ
-	environ := os.Environ()
-	environ = append(environ, "ID="+name)
-	pattr.Env = environ
+	// drop any existing ID and set in environment
+	envs := []string{}
+	for _, env := range os.Environ() {
+		if !strings.HasPrefix(env, "ID=") {
+			envs = append(envs, env)
+		}
+	}
+	envs = append(envs, "ID="+name)
+	pattr.Env = envs
 	return
 }
 
