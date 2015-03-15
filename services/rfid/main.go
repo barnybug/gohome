@@ -6,11 +6,11 @@
 package rfid
 
 import (
+	"log"
+
 	"github.com/barnybug/gohome/lib/evdev"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
-	"log"
-	"time"
 )
 
 func convertKeyCode(code uint16) uint16 {
@@ -36,14 +36,13 @@ func emit(code string) {
 	services.Publisher.Emit(event)
 }
 
-func readEvents(dev *evdev.InputDevice) {
+func readEvents(dev *evdev.InputDevice) error {
 	code := ""
 
 	for {
 		ev, err := dev.ReadOne()
 		if err != nil {
-			log.Fatal("Error reading: ", err)
-			break
+			return err
 		}
 
 		if ev.Type == 1 && ev.Value == 1 {
@@ -66,21 +65,18 @@ func (self *RfidService) Id() string {
 }
 
 func (self *RfidService) Run() error {
-	for {
-		devname := services.Config.Rfid.Device
-		dev, err := evdev.Open(devname)
-		if err != nil {
-			log.Fatalf("Error opening device %s: %s", devname, err)
-		}
-		dev.Grab()
-		log.Println("Connected")
-
-		readEvents(dev)
-
-		log.Println("Disconnected")
-		dev.Close()
-		time.Sleep(time.Second)
-		log.Println("Reconnecting...")
+	devname := services.Config.Rfid.Device
+	dev, err := evdev.Open(devname)
+	if err != nil {
+		return err
 	}
-	return nil
+	defer dev.Close()
+
+	err = dev.Grab()
+	if err != nil {
+		return err
+	}
+	log.Println("Connected")
+	err = readEvents(dev)
+	return err
 }

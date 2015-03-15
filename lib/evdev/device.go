@@ -25,7 +25,10 @@ func (self *InputDevice) Grab() error {
 	// taken from linux/input.h - hardcoded to avoid needing cgo.
 	EVIOCGRAB := uintptr(0x40044590)
 	_, _, err := syscall.RawSyscall(syscall.SYS_IOCTL, self.fd.Fd(), EVIOCGRAB, 1)
-	return err
+	if err != 0 {
+		return err
+	}
+	return nil
 }
 
 func (self *InputDevice) ReadOne() (*InputEvent, error) {
