@@ -53,7 +53,6 @@ import (
 )
 
 var eventsLogPath = config.LogPath("events.log")
-var eventsLog = openLogFile()
 
 func openLogFile() *os.File {
 	logfile, err := os.OpenFile(eventsLogPath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
@@ -69,6 +68,7 @@ type AutomataService struct {
 	timers        map[string]*time.Timer
 	automata      *gofsm.Automata
 	configUpdated chan bool
+	log           *os.File
 }
 
 func (self *AutomataService) Id() string {
@@ -306,6 +306,7 @@ func timeit(name string, fn func()) {
 }
 
 func (self *AutomataService) Run() error {
+	self.log = openLogFile()
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)
 	// load templated automata
@@ -385,7 +386,7 @@ func (self *AutomataService) Run() error {
 }
 
 func (self *AutomataService) appendLog(msg string) {
-	fmt.Fprintln(eventsLog, msg)
+	fmt.Fprintln(self.log, msg)
 }
 
 func (self EventAction) substitute(msg string) string {

@@ -6,7 +6,7 @@ build:
 	goop go install -v ./...
 
 install: build
-	goop exec bash -c 'cp -b $$GOBIN/* ~/go/bin'
+	goop exec bash -c 'cp $$GOBIN/* ~/go/bin'
 
 test:
 	goop go test ./...
