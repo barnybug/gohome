@@ -27,8 +27,8 @@ var repeatInterval, _ = time.ParseDuration("12h")
 
 func sendEmail(name, state string, since time.Time) {
 	log.Printf("Sending %s watchdog alert for: %s\n", state, name)
-	subject := fmt.Sprintf("** %s alert - watchdog for %s", state, name)
-	body := fmt.Sprintf("%s since %v", name, since)
+	subject := fmt.Sprintf("%s: %s", state, name)
+	body := fmt.Sprintf("since %s", since.Format(time.Stamp))
 
 	email := services.Config.General.Email
 	to := []string{email.Admin}
