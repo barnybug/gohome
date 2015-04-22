@@ -24,13 +24,13 @@ type PidTime struct {
 func GetRunning() map[string]PidTime {
 	ret := map[string]PidTime{}
 	// scan process list for matching processes
-	out, _ := exec.Command("ps", "x", "-o", "pid,start_time,command").Output()
+	out, _ := exec.Command("ps", "x", "-o", "pid,start,command").Output()
 	lines := strings.Split(string(out), "\n")
 	// ps pads and right aligns columns, so figure out position of next by
 	// position of previous header
 	header := lines[0]
 	startcol := strings.Index(header, "PID") + 4
-	commandcol := strings.Index(header, "START") + 6
+	commandcol := strings.Index(header, "STARTED") + 8
 
 	for _, line := range lines[1:] {
 		if len(line) < commandcol {
