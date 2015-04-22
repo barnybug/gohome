@@ -12,6 +12,7 @@ import (
 
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
+	"github.com/barnybug/gohome/util"
 )
 
 type WatchdogDevice struct {
@@ -28,7 +29,8 @@ var repeatInterval, _ = time.ParseDuration("12h")
 func sendEmail(name, state string, since time.Time) {
 	log.Printf("Sending %s watchdog alert for: %s\n", state, name)
 	subject := fmt.Sprintf("%s: %s", state, name)
-	body := fmt.Sprintf("since %s", since.Format(time.Stamp))
+	duration := time.Now().Sub(since)
+	body := fmt.Sprintf("since %s (%s ago)", since.Local().Format(time.Stamp), util.ShortDuration(duration))
 
 	email := services.Config.General.Email
 	to := []string{email.Admin}
@@ -47,12 +49,12 @@ func checkEvent(ev *pubsub.Event) {
 		return
 	}
 
-	w.LastEvent = ev.Timestamp
 	// recovered?
 	if w.Alerted {
 		w.Alerted = false
 		sendEmail(w.Name, "RECOVERED", w.LastEvent)
 	}
+	w.LastEvent = ev.Timestamp
 }
 
 func checkTimeouts() {
