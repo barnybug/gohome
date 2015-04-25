@@ -1,6 +1,7 @@
 package processes
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -220,10 +221,20 @@ func IterateServices(ps []string, fn func(string, config.ProcessConf)) {
 	}
 }
 
+func UpdateState(name string, pid PidTime) {
+	key := "gohome/state/process/" + name
+	value, _ := json.Marshal(pid)
+	err := services.Stor.Set(key, string(value))
+	if err != nil {
+		log.Println("Persisting process state to store failed:", err)
+	}
+}
+
 func Daemon() {
 	running := GetRunning()
 	for name, pid := range running {
 		log.Printf("Found %s (pid: %d)\n", name, pid.Pid)
+		UpdateState(name, pid)
 	}
 
 	for {
@@ -242,6 +253,10 @@ func Daemon() {
 				if len(pids) > 0 {
 					current[name] = PidTime{Pid: pids[0], Started: ""}
 				}
+			}
+			// update state
+			if current[name] != running[name] {
+				UpdateState(name, current[name])
 			}
 		}
 		running = current
