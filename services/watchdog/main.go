@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
+	"sort"
 	"strings"
 	"time"
 
@@ -21,6 +22,20 @@ type WatchdogDevice struct {
 	Alerted     bool
 	LastAlerted time.Time
 	LastEvent   time.Time
+}
+
+type WatchdogDevices []*WatchdogDevice
+
+func (self WatchdogDevices) Less(i, j int) bool {
+	return self[i].LastEvent.Before(self[j].LastEvent)
+}
+
+func (self WatchdogDevices) Len() int {
+	return len(self)
+}
+
+func (self WatchdogDevices) Swap(i, j int) {
+	self[i], self[j] = self[j], self[i]
 }
 
 var devices map[string]*WatchdogDevice
@@ -129,4 +144,32 @@ func (self *WatchdogService) Run() error {
 		}
 	}
 	return nil
+}
+
+func (self *WatchdogService) QueryHandlers() services.QueryHandlers {
+	return services.QueryHandlers{
+		"status": services.TextHandler(self.queryStatus),
+		"help":   services.StaticHandler("status: get status\n"),
+	}
+}
+
+func (self *WatchdogService) queryStatus(q services.Question) string {
+	var out string
+	var list WatchdogDevices
+	for _, device := range devices {
+		list = append(list, device)
+	}
+	// return oldest last
+	sort.Sort(sort.Reverse(list))
+
+	now := time.Now()
+	for _, w := range list {
+		problem := ""
+		if w.Alerted {
+			problem = "PROBLEM"
+		}
+		ago := util.ShortDuration(now.Sub(w.LastEvent))
+		out += fmt.Sprintf("- %-6s %s %s\n", ago, w.Name, problem)
+	}
+	return out
 }
