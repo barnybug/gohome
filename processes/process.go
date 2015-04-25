@@ -18,8 +18,8 @@ import (
 )
 
 type PidTime struct {
-	Pid     int
-	Started string
+	Pid     int    `json:"pid"`
+	Started string `json:"started"`
 }
 
 func GetRunning() map[string]PidTime {
