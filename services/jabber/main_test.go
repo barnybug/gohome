@@ -3,6 +3,6 @@ package jabber
 import "github.com/barnybug/gohome/services"
 
 func ExampleInterfaces() {
-	var _ services.Service = &JabberService{}
+	var _ services.Service = (*JabberService)(nil)
 	// Output:
 }

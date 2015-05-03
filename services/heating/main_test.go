@@ -181,8 +181,8 @@ func TestPartyMode(t *testing.T) {
 }
 
 func ExampleInterfaces() {
-	var _ services.Service = &HeatingService{}
-	var _ services.Queryable = &HeatingService{}
+	var _ services.Service = (*HeatingService)(nil)
+	var _ services.Queryable = (*HeatingService)(nil)
 	// Output:
 }
 

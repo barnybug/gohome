@@ -6,8 +6,8 @@ import (
 )
 
 func ExampleInterfaces() {
-	var _ services.Service = &PubsubService{}
-	var _ services.Queryable = &PubsubService{}
+	var _ services.Service = (*PubsubService)(nil)
+	var _ services.Queryable = (*PubsubService)(nil)
 	// Output:
 }
 
