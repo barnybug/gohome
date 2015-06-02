@@ -93,8 +93,12 @@ func apiVoice(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			continue
 		}
-		if re.MatchString(q) {
-			body = value
+		var match = re.FindStringSubmatchIndex(q)
+		if match != nil {
+			// Expand $1 matches in the command
+			var dst []byte
+			result := re.ExpandString(dst, value, q, match)
+			body = string(result)
 		}
 	}
 	if body == "" {
