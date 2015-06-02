@@ -37,6 +37,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -127,11 +128,13 @@ func (self *AutomataService) QueryHandlers() services.QueryHandlers {
 		"tag":    services.TextHandler(self.queryTag),
 		"switch": services.TextHandler(self.querySwitch),
 		"logs":   services.TextHandler(self.queryLogs),
+		"script": services.TextHandler(self.queryScript),
 		"help": services.StaticHandler("" +
 			"status: get status\n" +
 			"tag name: activate tag for name\n" +
 			"switch device on|off: switch device\n" +
-			"logs: get recent event logs\n"),
+			"logs: get recent event logs\n" +
+			"script: run a script\n"),
 	}
 }
 
@@ -217,6 +220,22 @@ func (self *AutomataService) querySwitch(q services.Question) string {
 		onoff = "on"
 	}
 	return fmt.Sprintf("Switched %s %s", matches[0], onoff)
+}
+
+func (self *AutomataService) queryScript(q services.Question) string {
+	args := strings.Split(q.Args, " ")
+	if len(args) == 0 {
+		return "Expected a script name argument"
+	}
+	progname := path.Base(args[0])
+	cmd := path.Join(util.ExpandUser("~/bin/gohome"), progname)
+	log.Println("Running script:", cmd)
+
+	output, err := exec.Command(cmd, args[1:]...).Output()
+	if err != nil {
+		return fmt.Sprintf("Command failed: %s", err)
+	}
+	return string(output)
 }
 
 func tail(filename string, lines int64) ([]byte, error) {
