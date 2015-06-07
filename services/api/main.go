@@ -307,8 +307,18 @@ func httpEndpoint() {
 	// handler := handlers.LoggingHandler(os.Stdout, router())
 	var handler http.Handler = router()
 	handler = LoggingHandler{Handler: handler}
-	handler = CORSHandler{Handler: handler}
-	http.Handle("/", handler)
+	// Allow CORS+http auth (so the api can be placed behind http auth)
+	corsHandler := CORSHandler{Handler: handler}
+	corsHandler.SupportsCredentials = true
+	corsHandler.AllowHeaders = func(headers []string) bool {
+		for _, header := range headers {
+			if header != "accept" && header != "authorization" {
+				return false
+			}
+		}
+		return true
+	}
+	http.Handle("/", corsHandler)
 	addr := ":8723"
 	log.Println("Listening on " + addr)
 	err := http.ListenAndServe(addr, nil)
