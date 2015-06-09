@@ -6,12 +6,13 @@ package weather
 
 import (
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
-	"log"
-	"time"
 )
 
 type T struct {
@@ -142,7 +143,7 @@ func (self *WeatherService) Run() error {
 	offset, _ := time.ParseDuration("8h")
 	repeat, _ := time.ParseDuration("24h")
 	ticker := util.NewScheduler(offset, repeat)
-	events := services.Subscriber.Channel()
+	events := services.Subscriber.FilteredChannel("rain", "temp", "wind")
 	for {
 		select {
 		case ev := <-events:

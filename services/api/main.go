@@ -174,6 +174,7 @@ func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json; boundary=NL")
 
 	ch := services.Subscriber.Channel()
+	defer services.Subscriber.Close(ch)
 
 	for ev := range ch {
 		_, err := fmt.Fprintf(w, ev.String()+"\r\n")
@@ -182,8 +183,6 @@ func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
 		}
 		w.(http.Flusher).Flush()
 	}
-
-	services.Subscriber.Close(ch)
 }
 
 func convertJson(v interface{}) interface{} {

@@ -22,7 +22,7 @@ func (self *Subscriber) replayEvents() <-chan *pubsub.Event {
 	return ch
 }
 
-func (self *Subscriber) FilteredChannel(string) <-chan *pubsub.Event {
+func (self *Subscriber) FilteredChannel(...string) <-chan *pubsub.Event {
 	return self.replayEvents()
 }
 

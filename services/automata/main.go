@@ -347,6 +347,7 @@ func (self *AutomataService) Run() error {
 	log.Printf("Initial states: %s", self.automata)
 
 	ch := services.Subscriber.Channel()
+	defer services.Subscriber.Close(ch)
 	for {
 		select {
 		case ev := <-ch:

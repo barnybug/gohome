@@ -7,7 +7,7 @@ type Publisher interface {
 
 type Subscriber interface {
 	Id() string
-	FilteredChannel(string) <-chan *Event
+	FilteredChannel(...string) <-chan *Event
 	Channel() <-chan *Event
 	Close(<-chan *Event)
 }

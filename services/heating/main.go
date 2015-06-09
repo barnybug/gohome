@@ -333,7 +333,7 @@ func (self *HeatingService) Id() string {
 func (self *HeatingService) Run() error {
 	self.thermo = NewThermostat(services.Config.Heating, services.Publisher)
 	ticker := util.NewScheduler(time.Duration(0), time.Minute)
-	events := services.Subscriber.Channel()
+	events := services.Subscriber.FilteredChannel("temp", "house", "command")
 	for {
 		select {
 		case ev := <-events:
