@@ -2,20 +2,21 @@ package mqtt
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
 	"log"
 	"math/rand"
 	"os"
 
 	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+	"github.com/barnybug/gohome/pubsub"
 )
 
 type Broker struct {
 	broker string
 	client *MQTT.MqttClient
+	opts   *MQTT.ClientOptions
 }
 
-func createClient(broker string) *MQTT.MqttClient {
+func createClient(broker string) (*MQTT.MqttClient, *MQTT.ClientOptions) {
 	// generate a client id
 	hostname, _ := os.Hostname()
 	pid := os.Getpid()
@@ -31,20 +32,20 @@ func createClient(broker string) *MQTT.MqttClient {
 	if err != nil {
 		log.Fatalln("Couldn't Start mqtt:", err)
 	}
-	return client
+	return client, opts
 }
 
 func NewBroker(broker string) *Broker {
-	client := createClient(broker)
-	return &Broker{broker, client}
+	client, opts := createClient(broker)
+	return &Broker{broker, client, opts}
+}
+
+func (self *Broker) Id() string {
+	return "mqtt: " + self.broker
 }
 
 func (self *Broker) Subscriber() pubsub.Subscriber {
-	// A bug in the MQTT libraries prevents us from using multiple subscriptions
-	// to handle listening to multiple topics, so instead listen to all under
-	// gohome, and filter client-side.
-	ch := run(self.client, self.broker)
-	return pubsub.NewFilteredSubscriber("mqtt: "+self.broker, ch)
+	return NewSubscriber(self)
 }
 
 func (self *Broker) Publisher() *Publisher {
