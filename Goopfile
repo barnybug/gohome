@@ -3,7 +3,7 @@ github.com/barnybug/gogsmmodem
 github.com/barnybug/gorfxtrx
 github.com/kurrik/oauth1a #fc2542bc5f2532ed4a437960d2d51ff6e18a5cb6
 github.com/kurrik/twittergo #7ce068b08f04d659d0c5c3a41aedd3266aa1024c
-github.com/mattn/go-xmpp #9276abaad937502bfbbdab6f3941c6ad64f9b587
+github.com/mattn/go-xmpp #8b13d0ad771420685f85ed09d8e9bf81757e7e20
 github.com/tarm/goserial #6517d24aa8722a7540ea13405f4559a5e68c9d19
 github.com/gorilla/mux #0ef595e787efa95d68151570ead5c85dc2e05f91
 github.com/gorilla/context #1f3e8a46c5bb4c29971d9867ede6e198ca5eddce
