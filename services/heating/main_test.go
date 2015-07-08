@@ -181,8 +181,8 @@ func TestPartyMode(t *testing.T) {
 }
 
 func ExampleInterfaces() {
-	var _ services.Service = (*HeatingService)(nil)
-	var _ services.Queryable = (*HeatingService)(nil)
+	var _ services.Service = (*Service)(nil)
+	var _ services.Queryable = (*Service)(nil)
 	// Output:
 }
 
@@ -201,7 +201,7 @@ func ExampleStatus() {
 func ExampleQueryStatusText() {
 	Setup()
 	Clock = func() time.Time { return evBorderline.Timestamp }
-	service := HeatingService{th}
+	service := Service{th}
 	th.Event(evCold)
 	q := services.Question{"status", "", ""}
 	fmt.Println(service.queryStatus(q).Text)
@@ -213,7 +213,7 @@ func ExampleQueryStatusText() {
 func ExampleQueryStatusJson() {
 	Setup()
 	Clock = func() time.Time { return evBorderline.Timestamp }
-	service := HeatingService{th}
+	service := Service{th}
 	th.Event(evCold)
 	q := services.Question{"status", "", ""}
 	data := service.queryStatus(q).Json
@@ -226,7 +226,7 @@ func ExampleQueryStatusJson() {
 func ExampleQueryCh() {
 	Setup()
 	Clock = func() time.Time { return evBorderline.Timestamp }
-	service := HeatingService{th}
+	service := Service{th}
 	th.Event(evCold)
 	fmt.Println(service.queryCh(
 		services.Question{"ch", "", ""}))

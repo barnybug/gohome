@@ -5,13 +5,14 @@
 package twitter
 
 import (
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 
 	"github.com/kurrik/oauth1a"
 	"github.com/kurrik/twittergo"
@@ -80,13 +81,14 @@ func tweet(client *twittergo.Client, ev *pubsub.Event) {
 	sendTweet(client, msg)
 }
 
-type TwitterService struct{}
+// Service twitter
+type Service struct{}
 
-func (self *TwitterService) Id() string {
+func (self *Service) ID() string {
 	return "twitter"
 }
 
-func (self *TwitterService) Run() error {
+func (self *Service) Run() error {
 	client := createClient()
 	for ev := range services.Subscriber.FilteredChannel("alert") {
 		if ev.Target() == "twitter" {

@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/barnybug/gohome/processes"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/services/api"
@@ -30,40 +33,38 @@ import (
 	"github.com/barnybug/gohome/services/weather"
 	"github.com/barnybug/gohome/services/wunderground"
 	"github.com/barnybug/gohome/services/xpl"
-	"log"
-	"os"
 )
 
 func registerServices() {
 	// register available services
-	services.Register(&api.ApiService{})
-	services.Register(&arduino.ArduinoService{})
-	services.Register(&automata.AutomataService{})
-	services.Register(&bills.BillsService{})
-	services.Register(&camera.CameraService{})
-	services.Register(&currentcost.CurrentcostService{})
-	services.Register(&datalogger.DataloggerService{})
-	services.Register(&daemon.DaemonService{})
-	services.Register(&earth.EarthService{})
-	services.Register(&espeaker.EspeakerService{})
-	services.Register(&graphite.GraphiteService{})
-	services.Register(&heating.HeatingService{})
-	services.Register(&irrigation.IrrigationService{})
-	services.Register(&jabber.JabberService{})
-	services.Register(&pubsub.PubsubService{})
-	services.Register(&rfid.RfidService{})
-	services.Register(&rfxtrx.RfxtrxService{})
-	services.Register(&script.ScriptService{})
-	services.Register(&sender.SenderService{})
-	services.Register(&sms.SmsService{})
-	services.Register(&twitter.TwitterService{})
-	services.Register(&watchdog.WatchdogService{})
-	services.Register(&weather.WeatherService{})
-	services.Register(&wunderground.WundergroundService{})
-	services.Register(&xpl.XplService{})
+	services.Register(&api.Service{})
+	services.Register(&arduino.Service{})
+	services.Register(&automata.Service{})
+	services.Register(&bills.Service{})
+	services.Register(&camera.Service{})
+	services.Register(&currentcost.Service{})
+	services.Register(&datalogger.Service{})
+	services.Register(&daemon.Service{})
+	services.Register(&earth.Service{})
+	services.Register(&espeaker.Service{})
+	services.Register(&graphite.Service{})
+	services.Register(&heating.Service{})
+	services.Register(&irrigation.Service{})
+	services.Register(&jabber.Service{})
+	services.Register(&pubsub.Service{})
+	services.Register(&rfid.Service{})
+	services.Register(&rfxtrx.Service{})
+	services.Register(&script.Service{})
+	services.Register(&sender.Service{})
+	services.Register(&sms.Service{})
+	services.Register(&twitter.Service{})
+	services.Register(&watchdog.Service{})
+	services.Register(&weather.Service{})
+	services.Register(&wunderground.Service{})
+	services.Register(&xpl.Service{})
 }
 
-func Usage() {
+func usage() {
 	fmt.Println("Usage: gohome COMMAND [PROCESS/SERVICE]")
 	fmt.Println()
 	fmt.Println("Commands:")
@@ -82,10 +83,10 @@ func Usage() {
 
 func main() {
 	log.SetOutput(os.Stdout)
-	flag.Usage = Usage
+	flag.Usage = usage
 	flag.Parse()
 	if flag.NArg() < 1 {
-		Usage()
+		usage()
 	}
 
 	ps := []string{}
@@ -105,7 +106,7 @@ func main() {
 	command := flag.Args()[0]
 	switch command {
 	default:
-		Usage()
+		usage()
 	case "start":
 		processes.Start(ps)
 	case "stop":

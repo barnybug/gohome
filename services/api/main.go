@@ -1,4 +1,4 @@
-// Service providing an HTTP REST API to access gohome and control devices.
+// Package api is a service providing an HTTP REST API to access gohome and control devices.
 //
 // The endpoints supported are:
 //
@@ -41,10 +41,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type ApiService struct {
+// Service api
+type Service struct {
 }
 
-func (self *ApiService) Id() string {
+// ID of the service
+func (service *Service) ID() string {
 	return "api"
 }
 
@@ -115,7 +117,7 @@ func apiVoice(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type DeviceAndState struct {
+type deviceAndState struct {
 	config.DeviceConf
 	State interface{} `json:"state"`
 }
@@ -133,11 +135,11 @@ func getDevicesState() map[string]interface{} {
 }
 
 func apiDevices(w http.ResponseWriter, r *http.Request) {
-	ret := make(map[string]DeviceAndState)
+	ret := make(map[string]deviceAndState)
 	state := getDevicesState()
 
 	for name, dev := range services.Config.Devices {
-		ret[name] = DeviceAndState{dev, state[name]}
+		ret[name] = deviceAndState{dev, state[name]}
 	}
 
 	jsonResponse(w, ret)
@@ -185,21 +187,21 @@ func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func convertJson(v interface{}) interface{} {
+func convertJSON(v interface{}) interface{} {
 	// convert json unfriendly types to json friendly.
 	switch t := v.(type) {
 	case map[interface{}]interface{}:
 		// convert all keys to strings
 		ret := map[string]interface{}{}
 		for k, v := range t {
-			ret[fmt.Sprint(k)] = convertJson(v)
+			ret[fmt.Sprint(k)] = convertJSON(v)
 		}
 		return ret
 	case []interface{}:
 		// convert all elements of array
 		ret := []interface{}{}
 		for _, v := range t {
-			ret = append(ret, convertJson(v))
+			ret = append(ret, convertJSON(v))
 		}
 		return ret
 	default:
@@ -292,20 +294,20 @@ func router() *mux.Router {
 	return router
 }
 
-type LoggingHandler struct {
+type loggingHandler struct {
 	Handler http.Handler
 }
 
-func (self LoggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (service loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	log.Printf("%s %s\n", req.Method, req.RequestURI)
-	self.Handler.ServeHTTP(w, req)
+	service.Handler.ServeHTTP(w, req)
 }
 
 func httpEndpoint() {
 	// disabled logger as this prevents ResponseWriter.Flush being accessed
 	// handler := handlers.LoggingHandler(os.Stdout, router())
 	var handler http.Handler = router()
-	handler = LoggingHandler{Handler: handler}
+	handler = loggingHandler{Handler: handler}
 	// Allow CORS+http auth (so the api can be placed behind http auth)
 	corsHandler := CORSHandler{Handler: handler}
 	corsHandler.SupportsCredentials = true
@@ -337,7 +339,8 @@ func recordEvents() {
 	}
 }
 
-func (self *ApiService) Run() error {
+// Run the service
+func (service *Service) Run() error {
 	go recordEvents()
 	httpEndpoint()
 	return nil

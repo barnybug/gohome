@@ -1,4 +1,4 @@
-// Service to alert a daily digest of the last day's weather conditions, and
+// Package weather is a service to alert a daily digest of the last day's weather conditions, and
 // actively alert on unusual conditions (heavy rain, strong winds).
 //
 // This requires the graphite service to be recording event data.
@@ -15,34 +15,34 @@ import (
 	"github.com/barnybug/gohome/util"
 )
 
-type T struct {
+type td struct {
 	temp float64
 	noun string
 }
 
-var lowTemperatures = []T{
-	T{-5, "a very cold"},
-	T{-2, "a rather cold"},
-	T{0, "a freezing"},
-	T{2, "a frosty"},
-	T{5, "a cold"},
-	T{7, "a moderate"},
-	T{10, "a pleasant"},
-	T{15, "a hot"},
-	T{25, "a scorching"},
+var lowTemperatures = []td{
+	td{-5, "a very cold"},
+	td{-2, "a rather cold"},
+	td{0, "a freezing"},
+	td{2, "a frosty"},
+	td{5, "a cold"},
+	td{7, "a moderate"},
+	td{10, "a pleasant"},
+	td{15, "a hot"},
+	td{25, "a scorching"},
 }
 
-var highTemperatures = []T{
-	T{1, "a very cold"},
-	T{4, "a rather cold"},
-	T{6, "a piercing"},
-	T{8, "a chilly"},
-	T{11, "a cool"},
-	T{15, "a moderate"},
-	T{18, "a reasonably warm"},
-	T{21, "a hot"},
-	T{31, "a scorching"},
-	T{36, "a sweltering"},
+var highTemperatures = []td{
+	td{1, "a very cold"},
+	td{4, "a rather cold"},
+	td{6, "a piercing"},
+	td{8, "a chilly"},
+	td{11, "a cool"},
+	td{15, "a moderate"},
+	td{18, "a reasonably warm"},
+	td{21, "a hot"},
+	td{31, "a scorching"},
+	td{36, "a sweltering"},
 }
 
 var lastRainTotal, lastOutsideTemp, lastOutsideHumd, avgWind float64
@@ -88,7 +88,7 @@ func checkEvent(ev *pubsub.Event) {
 }
 
 // Lookup descriptive text for given temperate range
-func getTempDesc(t float64, temps []T) string {
+func getTempDesc(t float64, temps []td) string {
 	for _, temp := range temps {
 		if t < temp.temp {
 			return temp.noun
@@ -105,11 +105,10 @@ func weatherStats() string {
 	lowestDesc := getTempDesc(lowest, lowTemperatures)
 	if lowest == 0 && highest == 0 {
 		return "Weather: I didn't get any outside temperature data yesterday!"
-	} else {
-		return fmt.Sprintf("Weather: Outside it got up to %s %.1f°C and went down to %s %.1f°C in the last 24 hours.",
-			highestDesc, highest,
-			lowestDesc, lowest)
 	}
+	return fmt.Sprintf("Weather: Outside it got up to %s %.1f°C and went down to %s %.1f°C in the last 24 hours.",
+		highestDesc, highest,
+		lowestDesc, lowest)
 }
 
 var gr graphite.IGraphite
@@ -131,13 +130,16 @@ func tick() {
 	tweet(msg, "daily", 0)
 }
 
-type WeatherService struct{}
+// Service weather
+type Service struct{}
 
-func (self *WeatherService) Id() string {
+// ID of the service
+func (service *Service) ID() string {
 	return "weather"
 }
 
-func (self *WeatherService) Run() error {
+// Run the service
+func (service *Service) Run() error {
 	gr = graphite.New(services.Config.Graphite.Host)
 	// schedule at 08:00
 	offset, _ := time.ParseDuration("8h")
@@ -152,5 +154,4 @@ func (self *WeatherService) Run() error {
 			tick()
 		}
 	}
-	return nil
 }

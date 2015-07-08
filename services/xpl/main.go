@@ -1,21 +1,22 @@
-// Service to integrate XPL device on/off messages. Basic XPL support.
+// Package xpl service to integrate XPL device on/off messages. Basic XPL support.
 //
 // For example, with the XPL plugin for Squeezebox this allows a squeezebox
 // device to switch on your hifi when it is turned on.
 package xpl
 
 import (
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"net"
 	"regexp"
 	"strings"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 )
 
-var re_parts = regexp.MustCompile(`(?s)([A-Za-z.-]+)\n{\n(.+?)\n}\n`)
+var reParts = regexp.MustCompile(`(?s)([A-Za-z.-]+)\n{\n(.+?)\n}\n`)
 
-func PairKeyValues(s string) map[string]string {
+func pairKeyValues(s string) map[string]string {
 	ret := make(map[string]string)
 	for _, pair := range strings.Split(s, "\n") {
 		kv := strings.SplitN(pair, "=", 2)
@@ -27,10 +28,10 @@ func PairKeyValues(s string) map[string]string {
 // Parse an XPL message.
 func Parse(body string) map[string]map[string]string {
 	parts := make(map[string]map[string]string)
-	for _, m := range re_parts.FindAllStringSubmatch(body, -1) {
+	for _, m := range reParts.FindAllStringSubmatch(body, -1) {
 		k := m[1]
 		v := m[2]
-		parts[k] = PairKeyValues(v)
+		parts[k] = pairKeyValues(v)
 		// parts[k] = dict(l.split('=', 1) for l in  v.split('\n'))
 	}
 	return parts
@@ -42,14 +43,17 @@ func Process(body string) (string, string) {
 	return res["xpl-stat"]["source"], res["audio.basic"]["POWER"]
 }
 
-type XplService struct {
+// Service xpl
+type Service struct {
 }
 
-func (self *XplService) Id() string {
+// ID of the service
+func (service *Service) ID() string {
 	return "xpl"
 }
 
-func (self *XplService) Run() error {
+// Run the service
+func (service *Service) Run() error {
 	addr, err := net.ResolveUDPAddr("udp", ":3865")
 	if err != nil {
 		return err
@@ -85,5 +89,4 @@ func (self *XplService) Run() error {
 			services.Publisher.Emit(event)
 		}
 	}
-	return nil
 }

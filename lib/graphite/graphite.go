@@ -32,23 +32,23 @@ func New(host string) *Graphite {
 	return &Graphite{host: host}
 }
 
-func (self *Graphite) Add(path string, timestamp int64, value float64) error {
+func (graphite *Graphite) Add(path string, timestamp int64, value float64) error {
 	line := fmt.Sprintf("%s %v %d\n", path, value, timestamp)
-	self.buffer += line
-	if len(self.buffer) > BatchSize {
-		return self.Flush()
+	graphite.buffer += line
+	if len(graphite.buffer) > BatchSize {
+		return graphite.Flush()
 	}
 	return nil
 }
 
-func (self *Graphite) Flush() error {
-	conn, err := dailer("tcp", self.host+":2003")
+func (graphite *Graphite) Flush() error {
+	conn, err := dailer("tcp", graphite.host+":2003")
 	if err != nil {
 		return err
 	}
-	conn.Write([]byte(self.buffer))
+	conn.Write([]byte(graphite.buffer))
 	conn.Close()
-	self.buffer = ""
+	graphite.buffer = ""
 	return nil
 }
 
@@ -57,14 +57,14 @@ type Datapoint struct {
 	Value float64
 }
 
-func (self *Datapoint) UnmarshalJSON(data []byte) error {
+func (graphite *Datapoint) UnmarshalJSON(data []byte) error {
 	var v []float64
 	json.Unmarshal(data, &v)
 	if len(v) != 2 {
 		return errors.New("Datapoint incorrect length")
 	}
-	self.Value = v[0]
-	self.At = time.Unix(int64(v[1]), 0)
+	graphite.Value = v[0]
+	graphite.At = time.Unix(int64(v[1]), 0)
 	return nil
 }
 
@@ -73,13 +73,13 @@ type Dataseries struct {
 	Datapoints []Datapoint
 }
 
-func (self *Graphite) Query(from, until, target string) ([]Dataseries, error) {
+func (graphite *Graphite) Query(from, until, target string) ([]Dataseries, error) {
 	vs := url.Values{
 		"from":   []string{from},
 		"until":  []string{until},
 		"target": []string{target},
 		"format": []string{"json"}}
-	uri := fmt.Sprintf("http://%s/graphite/render?%s", self.host, vs.Encode())
+	uri := fmt.Sprintf("http://%s/graphite/render?%s", graphite.host, vs.Encode())
 	resp, err := http.Get(uri)
 	if err != nil {
 		return nil, err

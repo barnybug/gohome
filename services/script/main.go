@@ -16,14 +16,14 @@ import (
 
 var espeakStdin io.WriteCloser
 
-type ScriptService struct {
+type Service struct {
 }
 
-func (self *ScriptService) Id() string {
+func (self *Service) ID() string {
 	return "script"
 }
 
-func (self *ScriptService) Run() error {
+func (self *Service) Run() error {
 	// start script
 	args := os.Args
 	// skip to script name and arguments

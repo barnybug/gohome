@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/pubsub/dummy"
 )
@@ -10,16 +11,18 @@ type MockService struct {
 	queryHandlers map[string]QueryHandler
 }
 
-func (self *MockService) Id() string {
+// ID of the service
+func (service *MockService) ID() string {
 	return "abc"
 }
 
-func (self *MockService) Run() error {
+// Run the service
+func (service *MockService) Run() error {
 	return nil
 }
 
-func (self *MockService) QueryHandlers() QueryHandlers {
-	return self.queryHandlers
+func (service *MockService) QueryHandlers() QueryHandlers {
+	return service.queryHandlers
 }
 
 func ExampleQuerySubscriber() {

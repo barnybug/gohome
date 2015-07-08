@@ -7,14 +7,15 @@ package irrigation
 
 import (
 	"fmt"
+	"log"
+	"math"
+	"time"
+
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
-	"log"
-	"math"
-	"time"
 )
 
 var (
@@ -83,13 +84,15 @@ func command(device string, state bool, repeat int) {
 	services.Publisher.Emit(ev)
 }
 
-type IrrigationService struct{}
+// Service irrigation
+type Service struct{}
 
-func (self *IrrigationService) Id() string {
+func (self *Service) ID() string {
 	return "irrigation"
 }
 
-func (self *IrrigationService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	gr = graphite.New(services.Config.Graphite.Host)
 	// schedule at given time and interval
 	ticker := util.NewScheduler(services.Config.Irrigation.At.Duration,

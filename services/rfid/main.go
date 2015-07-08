@@ -58,13 +58,14 @@ func readEvents(dev *evdev.InputDevice) error {
 	}
 }
 
-type RfidService struct{}
+// Service rfid
+type Service struct{}
 
-func (self *RfidService) Id() string {
+func (self *Service) ID() string {
 	return "rfid"
 }
 
-func (self *RfidService) Run() error {
+func (self *Service) Run() error {
 	devname := services.Config.Rfid.Device
 	dev, err := evdev.Open(devname)
 	if err != nil {

@@ -21,7 +21,7 @@ type QueryHandler func(q Question) Answer
 type QueryHandlers map[string]QueryHandler
 
 type Queryable interface {
-	Id() string
+	ID() string
 	QueryHandlers() QueryHandlers
 }
 
@@ -84,7 +84,7 @@ func QuerySubscriber() {
 	for _, service := range queryables {
 		for key, handler := range service.QueryHandlers() {
 			handlers[key] = append(handlers[key], handler)
-			handlers[service.Id()+"/"+key] = append(handlers[service.Id()+"/"+key], handler)
+			handlers[service.ID()+"/"+key] = append(handlers[service.ID()+"/"+key], handler)
 		}
 	}
 
@@ -102,7 +102,7 @@ func QuerySubscriber() {
 			if handlerList, ok := handlers[first]; ok {
 				for _, handler := range handlerList {
 					a := handler(q)
-					sendAnswer(ev, service.Id(), a)
+					sendAnswer(ev, service.ID(), a)
 				}
 			}
 		}

@@ -98,13 +98,14 @@ func checkTimeouts() {
 	}
 }
 
-type WatchdogService struct{}
+// Service watchdog
+type Service struct{}
 
-func (self *WatchdogService) Id() string {
+func (self *Service) ID() string {
 	return "watchdog"
 }
 
-func (self *WatchdogService) Run() error {
+func (self *Service) Run() error {
 	devices = map[string]*WatchdogDevice{}
 	now := time.Now()
 	for device, timeout := range services.Config.Watchdog.Devices {
@@ -146,14 +147,14 @@ func (self *WatchdogService) Run() error {
 	return nil
 }
 
-func (self *WatchdogService) QueryHandlers() services.QueryHandlers {
+func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status": services.TextHandler(self.queryStatus),
 		"help":   services.StaticHandler("status: get status\n"),
 	}
 }
 
-func (self *WatchdogService) queryStatus(q services.Question) string {
+func (self *Service) queryStatus(q services.Question) string {
 	var out string
 	var list WatchdogDevices
 	for _, device := range devices {

@@ -3,11 +3,12 @@ package bills
 
 import (
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
-	"log"
-	"time"
 )
 
 var (
@@ -61,13 +62,16 @@ func electricityBill() string {
 	return msg
 }
 
-type BillsService struct{}
+// Service bills
+type Service struct{}
 
-func (self *BillsService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "bills"
 }
 
-func (self *BillsService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	// initialise
 	gr = graphite.New(services.Config.Graphite.Host)
 
@@ -81,5 +85,5 @@ func (self *BillsService) Run() error {
 	return nil
 }
 
-func (self *BillsService) Publishes() {
+func (self *Service) Publishes() {
 }

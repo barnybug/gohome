@@ -12,10 +12,11 @@
 package earth
 
 import (
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 )
 
 func nextEvent(loc Location) (at time.Time, name string) {
@@ -60,13 +61,16 @@ func eventChannel(loc Location) chan TimeEvent {
 	return ch
 }
 
-type EarthService struct{}
+// Service earth
+type Service struct{}
 
-func (self *EarthService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "earth"
 }
 
-func (self *EarthService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	loc := Location{
 		Latitude:  services.Config.Earth.Latitude,
 		Longitude: services.Config.Earth.Longitude,

@@ -4,19 +4,21 @@ package sender
 import (
 	"bufio"
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"os"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 )
 
-type SenderService struct{}
+// Service sender
+type Service struct{}
 
-func (self *SenderService) Id() string {
+func (self *Service) ID() string {
 	return "sender"
 }
 
-func (self *SenderService) Run() error {
+func (self *Service) Run() error {
 	b := bufio.NewScanner(os.Stdin)
 	for b.Scan() {
 		ev := pubsub.Parse(b.Text())

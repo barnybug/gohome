@@ -6,13 +6,13 @@ import (
 )
 
 func ExampleInterfaces() {
-	var _ services.Service = (*PubsubService)(nil)
-	var _ services.Queryable = (*PubsubService)(nil)
+	var _ services.Service = (*Service)(nil)
+	var _ services.Queryable = (*Service)(nil)
 	// Output:
 }
 
 func ExampleQuery() {
-	var query services.Queryable = &PubsubService{}
+	var query services.Queryable = &Service{}
 	q := services.Question{"status", "", "jabber:123"}
 	h := query.QueryHandlers()["status"]
 	fmt.Println(h(q).Text)

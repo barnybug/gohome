@@ -2,8 +2,9 @@ package wunderground
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/config"
 	"time"
+
+	"github.com/barnybug/gohome/config"
 )
 
 func ExampleRequest() {

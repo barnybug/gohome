@@ -3,12 +3,13 @@ package graphite
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/lib/graphite"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/lib/graphite"
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 )
 
 var (
@@ -71,13 +72,16 @@ func sendToGraphite(ev *pubsub.Event) {
 	}
 }
 
-type GraphiteService struct{}
+// Service graphite
+type Service struct{}
 
-func (self *GraphiteService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "graphite"
 }
 
-func (self *GraphiteService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	gr = graphite.New(services.Config.Graphite.Host)
 	for ev := range services.Subscriber.Channel() {
 		sendToGraphite(ev)

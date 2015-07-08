@@ -17,15 +17,16 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
-type PubsubService struct {
+// Service pubsub
+type Service struct {
 	Processed uint64
 }
 
-func (self *PubsubService) Id() string {
+func (self *Service) ID() string {
 	return "pubsub"
 }
 
-func (self *PubsubService) Run() error {
+func (self *Service) Run() error {
 	ep := services.Config.Endpoints
 
 	routing := map[pubsub.Subscriber][]pubsub.Publisher{}
@@ -92,13 +93,13 @@ func (self *PubsubService) Run() error {
 	return nil
 }
 
-func (self *PubsubService) QueryHandlers() services.QueryHandlers {
+func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status": services.TextHandler(self.queryStatus),
 		"help":   services.StaticHandler("status: get status\n"),
 	}
 }
 
-func (self *PubsubService) queryStatus(q services.Question) string {
+func (self *Service) queryStatus(q services.Question) string {
 	return fmt.Sprintf("processed: %d", self.Processed)
 }

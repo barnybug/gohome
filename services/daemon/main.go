@@ -11,25 +11,27 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
-type DaemonService struct{}
+// Service daemon
+type Service struct{}
 
-func (self *DaemonService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "daemon"
 }
 
-func (self *DaemonService) Run() error {
+func (self *Service) Run() error {
 	processes.Daemon()
 	return nil
 }
 
-func (self *DaemonService) QueryHandlers() services.QueryHandlers {
+func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status": services.TextHandler(self.queryStatus),
 		"help":   services.StaticHandler("status: get status\n"),
 	}
 }
 
-func (self *DaemonService) queryStatus(q services.Question) string {
+func (self *Service) queryStatus(q services.Question) string {
 	running := processes.GetRunning()
 	var out string
 	var names []string

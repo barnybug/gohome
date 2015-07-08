@@ -5,11 +5,12 @@
 package espeaker
 
 import (
-	"github.com/barnybug/gohome/services"
 	"io"
 	"log"
 	"os/exec"
 	"strings"
+
+	"github.com/barnybug/gohome/services"
 )
 
 var espeakStdin io.WriteCloser
@@ -23,14 +24,17 @@ func say(msg string) {
 	}
 }
 
-type EspeakerService struct {
+// Service espeaker
+type Service struct {
 }
 
-func (self *EspeakerService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "espeaker"
 }
 
-func (self *EspeakerService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	// start espeak process
 	args := strings.Split(services.Config.Espeak.Args, " ")
 	cmd := exec.Command("espeak", args...)

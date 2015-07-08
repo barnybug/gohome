@@ -5,12 +5,13 @@ package rfxtrx
 import (
 	"errors"
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 
 	"github.com/barnybug/gorfxtrx"
 )
@@ -223,13 +224,14 @@ func defaultDevName() string {
 	return ""
 }
 
-type RfxtrxService struct{}
+// Service rfxtrx
+type Service struct{}
 
-func (self *RfxtrxService) Id() string {
+func (self *Service) ID() string {
 	return "rfxtrx"
 }
 
-func (self *RfxtrxService) Run() error {
+func (self *Service) Run() error {
 	devname := defaultDevName()
 	if devname == "" {
 		return errors.New("rfxtrx device not found")

@@ -322,15 +322,17 @@ func (self *Thermostat) Json(now time.Time) interface{} {
 	return data
 }
 
-type HeatingService struct {
+// Service heating
+type Service struct {
 	thermo *Thermostat
 }
 
-func (self *HeatingService) Id() string {
+func (self *Service) ID() string {
 	return "heating"
 }
 
-func (self *HeatingService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	self.thermo = NewThermostat(services.Config.Heating, services.Publisher)
 	ticker := util.NewScheduler(time.Duration(0), time.Minute)
 	events := services.Subscriber.FilteredChannel("temp", "house", "command")
@@ -345,13 +347,13 @@ func (self *HeatingService) Run() error {
 	return nil
 }
 
-func (self *HeatingService) ConfigUpdated(path string) {
+func (self *Service) ConfigUpdated(path string) {
 	if path == "gohome/config" {
 		self.thermo.ConfigUpdated(services.Config.Heating)
 	}
 }
 
-func (self *HeatingService) QueryHandlers() services.QueryHandlers {
+func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status": self.queryStatus,
 		"ch":     services.TextHandler(self.queryCh),
@@ -361,7 +363,7 @@ func (self *HeatingService) QueryHandlers() services.QueryHandlers {
 	}
 }
 
-func (self *HeatingService) queryStatus(q services.Question) services.Answer {
+func (self *Service) queryStatus(q services.Question) services.Answer {
 	now := Clock()
 	return services.Answer{
 		Text: self.thermo.Status(now),
@@ -369,7 +371,7 @@ func (self *HeatingService) queryStatus(q services.Question) services.Answer {
 	}
 }
 
-func (self *HeatingService) queryCh(q services.Question) string {
+func (self *Service) queryCh(q services.Question) string {
 	err := self.thermo.setParty(q.Args, Clock())
 	if err == nil {
 		return fmt.Sprintf("Set to %v°C until %s", self.thermo.PartyTemp, self.thermo.PartyUntil.Format(time.Stamp))

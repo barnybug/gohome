@@ -3,13 +3,14 @@ package wunderground
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/config"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/barnybug/gohome/config"
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 )
 
 var updateInterval, _ = time.ParseDuration("5m")
@@ -18,7 +19,7 @@ type Metrics map[string]interface{}
 
 type Wunderground struct {
 	Url        string
-	Id         string
+	ID         string
 	Password   string
 	batch      Metrics
 	lastUpdate time.Time
@@ -27,7 +28,7 @@ type Wunderground struct {
 func NewWunderground(conf config.WundergroundConf) *Wunderground {
 	w := &Wunderground{
 		Url:      conf.Url,
-		Id:       conf.Id,
+		ID:       conf.Id,
 		Password: conf.Password,
 		batch:    make(Metrics),
 	}
@@ -42,7 +43,7 @@ func (self *Wunderground) RequestUri(now time.Time) string {
 	// build api request
 	vs := url.Values{
 		"action":       []string{"updateraw"},
-		"ID":           []string{self.Id},
+		"ID":           []string{self.ID},
 		"PASSWORD":     []string{self.Password},
 		"dateutc":      []string{dateutc},
 		"softwaretype": []string{"gohome"},
@@ -113,13 +114,14 @@ func processEvent(ev *pubsub.Event, w *Wunderground) {
 	}
 }
 
-type WundergroundService struct{}
+// Service wunderground
+type Service struct{}
 
-func (self *WundergroundService) Id() string {
+func (self *Service) ID() string {
 	return "wunderground"
 }
 
-func (self *WundergroundService) Run() error {
+func (self *Service) Run() error {
 	w := NewWunderground(services.Config.Wunderground)
 	for ev := range services.Subscriber.Channel() {
 		processEvent(ev, w)

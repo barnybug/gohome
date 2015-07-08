@@ -61,17 +61,19 @@ func event(ev *pubsub.Event) {
 	writeToLogFile(ev)
 }
 
-type DataloggerService struct{}
+// Service datalogger
+type Service struct{}
 
-func (self *DataloggerService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "datalogger"
 }
 
-func (self *DataloggerService) ConfigUpdated(path string) {
+func (self *Service) ConfigUpdated(path string) {
 	logDir = util.ExpandUser(services.Config.Datalogger.Path)
 }
 
-func (self *DataloggerService) Run() error {
+func (self *Service) Run() error {
 	self.ConfigUpdated("gohome/config")
 	for ev := range services.Subscriber.Channel() {
 		event(ev)

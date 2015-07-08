@@ -3,14 +3,15 @@ package currentcost
 
 import (
 	"bufio"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"io"
 	"log"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 
 	"github.com/tarm/goserial"
 )
@@ -36,13 +37,15 @@ func parse(msg string) *pubsub.Event {
 	return nil
 }
 
-type CurrentcostService struct{}
+// Service currentcost
+type Service struct{}
 
-func (self *CurrentcostService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "currentcost"
 }
 
-func (self *CurrentcostService) Run() error {
+func (self *Service) Run() error {
 	device := services.Config.Currentcost.Device
 	c := &serial.Config{Name: device, Baud: 2400}
 	s, err := serial.OpenPort(c)

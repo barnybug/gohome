@@ -11,7 +11,7 @@ import (
 )
 
 func ExampleInterfaces() {
-	var _ services.Service = (*ApiService)(nil)
+	var _ services.Service = (*Service)(nil)
 	// Output:
 }
 

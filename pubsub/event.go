@@ -34,53 +34,53 @@ func NewCommand(device string, state bool, repeat int) *Event {
 
 const TimeFormat = "2006-01-02 15:04:05.000000"
 
-func (self *Event) Map() map[string]interface{} {
+func (event *Event) Map() map[string]interface{} {
 	data := make(map[string]interface{})
-	data["topic"] = self.Topic
-	data["timestamp"] = self.Timestamp.Format(TimeFormat)
-	for k, v := range self.Fields {
+	data["topic"] = event.Topic
+	data["timestamp"] = event.Timestamp.Format(TimeFormat)
+	for k, v := range event.Fields {
 		data[k] = v
 	}
 	return data
 }
 
-func (self *Event) Bytes() []byte {
-	v, _ := json.Marshal(self.Map())
+func (event *Event) Bytes() []byte {
+	v, _ := json.Marshal(event.Map())
 	return v
 }
 
-func (self *Event) String() string {
-	return string(self.Bytes())
+func (event *Event) String() string {
+	return string(event.Bytes())
 }
 
-func (self *Event) StringField(name string) string {
-	ret, _ := self.Fields[name].(string)
+func (event *Event) StringField(name string) string {
+	ret, _ := event.Fields[name].(string)
 	return ret
 }
 
-func (self *Event) IntField(name string) int64 {
-	ret, _ := self.Fields[name].(float64)
+func (event *Event) IntField(name string) int64 {
+	ret, _ := event.Fields[name].(float64)
 	return int64(ret)
 }
 
-func (self *Event) Target() string {
-	return self.StringField("target")
+func (event *Event) Target() string {
+	return event.StringField("target")
 }
 
-func (self *Event) Device() string {
-	return self.StringField("device")
+func (event *Event) Device() string {
+	return event.StringField("device")
 }
 
-func (self *Event) Source() string {
-	return self.StringField("source")
+func (event *Event) Source() string {
+	return event.StringField("source")
 }
 
-func (self *Event) Command() string {
-	return self.StringField("command")
+func (event *Event) Command() string {
+	return event.StringField("command")
 }
 
-func (self *Event) State() string {
-	return self.StringField("state")
+func (event *Event) State() string {
+	return event.StringField("state")
 }
 
 func Parse(msg string) *Event {

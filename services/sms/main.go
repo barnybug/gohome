@@ -39,13 +39,14 @@ func sendMessage(ev *pubsub.Event) {
 	}
 }
 
-type SmsService struct{}
+// Service sms
+type Service struct{}
 
-func (self *SmsService) Id() string {
+func (self *Service) ID() string {
 	return "sms"
 }
 
-func (self *SmsService) Run() error {
+func (self *Service) Run() error {
 	// connect to modem
 	devname := expandDevName()
 	if devname == "" {

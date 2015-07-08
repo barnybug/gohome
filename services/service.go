@@ -13,8 +13,9 @@ import (
 	"github.com/barnybug/gohome/pubsub/nanomsg"
 )
 
+// Service interface
 type Service interface {
-	Id() string
+	ID() string
 	Run() error
 }
 
@@ -177,11 +178,11 @@ func Launch(ss []string) {
 	}
 
 	for _, service := range enabled {
-		log.Printf("Starting %s\n", service.Id())
+		log.Printf("Starting %s\n", service.ID())
 		// run heartbeater
 		err := service.Run()
 		if err != nil {
-			log.Fatalf("Error running service %s: %s", service.Id(), err.Error())
+			log.Fatalf("Error running service %s: %s", service.ID(), err.Error())
 		}
 	}
 }
@@ -213,8 +214,8 @@ func Setup() {
 }
 
 func Register(service Service) {
-	if _, exists := serviceMap[service.Id()]; exists {
-		log.Fatalf("Duplicate service registered: %s", service.Id())
+	if _, exists := serviceMap[service.ID()]; exists {
+		log.Fatalf("Duplicate service registered: %s", service.ID())
 	}
-	serviceMap[service.Id()] = service
+	serviceMap[service.ID()] = service
 }

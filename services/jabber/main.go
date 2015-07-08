@@ -7,20 +7,22 @@ package jabber
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/services"
 	"log"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/barnybug/gohome/services"
+
 	xmpp "github.com/mattn/go-xmpp"
 )
 
-type JabberService struct {
+// Service jabber
+type Service struct {
 	talk *xmpp.Client
 }
 
-func (self *JabberService) Id() string {
+func (self *Service) ID() string {
 	return "jabber"
 }
 
@@ -95,7 +97,8 @@ func (self *JabberClient) Send(chat xmpp.Chat) {
 	self.send <- chat
 }
 
-func (self *JabberService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	client, err := NewClient()
 	if err != nil {
 		log.Fatal(err)

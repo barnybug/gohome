@@ -65,21 +65,23 @@ func openLogFile() *os.File {
 	return logfile
 }
 
-type AutomataService struct {
+// Service automata
+type Service struct {
 	timers        map[string]*time.Timer
 	automata      *gofsm.Automata
 	configUpdated chan bool
 	log           *os.File
 }
 
-func (self *AutomataService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "automata"
 }
 
 var reAction = regexp.MustCompile(`(\w+)\((.+)\)`)
 
 type EventAction struct {
-	service *AutomataService
+	service *Service
 	event   *pubsub.Event
 	change  gofsm.Change
 }
@@ -99,14 +101,14 @@ func (self EventWrapper) String() string {
 	return s
 }
 
-func (self *AutomataService) ConfigUpdated(path string) {
+func (self *Service) ConfigUpdated(path string) {
 	if path == "gohome/config/automata" {
 		// trigger reload in main loop
 		self.configUpdated <- true
 	}
 }
 
-func (self *AutomataService) RestoreFile(automata *gofsm.Automata) {
+func (self *Service) RestoreFile(automata *gofsm.Automata) {
 	r, err := os.Open(config.ConfigPath("automata.state"))
 	if err != nil {
 		log.Println("Restoring automata state failed:", err)
@@ -122,7 +124,7 @@ func (self *AutomataService) RestoreFile(automata *gofsm.Automata) {
 	automata.Restore(p)
 }
 
-func (self *AutomataService) QueryHandlers() services.QueryHandlers {
+func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status": services.TextHandler(self.queryStatus),
 		"tag":    services.TextHandler(self.queryTag),
@@ -138,7 +140,7 @@ func (self *AutomataService) QueryHandlers() services.QueryHandlers {
 	}
 }
 
-func (self *AutomataService) queryStatus(q services.Question) string {
+func (self *Service) queryStatus(q services.Question) string {
 	var out string
 	now := time.Now()
 	var keys []string
@@ -167,7 +169,7 @@ func (self *AutomataService) queryStatus(q services.Question) string {
 	return out
 }
 
-func (self *AutomataService) queryTag(q services.Question) string {
+func (self *Service) queryTag(q services.Question) string {
 	tagName := strings.ToLower(q.Args)
 	if _, ok := services.Config.Devices["rfid."+tagName]; !ok {
 		return fmt.Sprintf("Tag %s not found", tagName)
@@ -181,7 +183,7 @@ func (self *AutomataService) queryTag(q services.Question) string {
 	return fmt.Sprintf("Emitted tag for %s", tagName)
 }
 
-func (self *AutomataService) querySwitch(q services.Question) string {
+func (self *Service) querySwitch(q services.Question) string {
 	if q.Args == "" {
 		// return a list of the devices
 		devices := []string{}
@@ -222,7 +224,7 @@ func (self *AutomataService) querySwitch(q services.Question) string {
 	return fmt.Sprintf("Switched %s %s", matches[0], onoff)
 }
 
-func (self *AutomataService) queryScript(q services.Question) string {
+func (self *Service) queryScript(q services.Question) string {
 	args := strings.Split(q.Args, " ")
 	if len(args) == 0 {
 		return "Expected a script name argument"
@@ -243,7 +245,7 @@ func tail(filename string, lines int64) ([]byte, error) {
 	return exec.Command("tail", n, filename).Output()
 }
 
-func (self *AutomataService) queryLogs(q services.Question) string {
+func (self *Service) queryLogs(q services.Question) string {
 	data, err := tail(eventsLogPath, 25)
 	if err != nil {
 		return fmt.Sprintf("Couldn't retrieve logs:", err)
@@ -251,7 +253,7 @@ func (self *AutomataService) queryLogs(q services.Question) string {
 	return string(data)
 }
 
-func (self *AutomataService) PersistFile(automata *gofsm.Automata) {
+func (self *Service) PersistFile(automata *gofsm.Automata) {
 	w, err := os.Create(config.ConfigPath("automata.state"))
 	if err != nil {
 		log.Fatalln("Persisting automata state failed:", err)
@@ -261,7 +263,7 @@ func (self *AutomataService) PersistFile(automata *gofsm.Automata) {
 	enc.Encode(automata.Persist())
 }
 
-func (self *AutomataService) PersistStore(automata *gofsm.Automata, automaton string) {
+func (self *Service) PersistStore(automata *gofsm.Automata, automaton string) {
 	state := automata.Persist()
 	v := state[automaton]
 	key := "gohome/state/automata/" + automaton
@@ -272,7 +274,7 @@ func (self *AutomataService) PersistStore(automata *gofsm.Automata, automaton st
 	}
 }
 
-func (self *AutomataService) RestoreStore(automata *gofsm.Automata) {
+func (self *Service) RestoreStore(automata *gofsm.Automata) {
 	p := gofsm.AutomataState{}
 	for name := range automata.Automaton {
 		key := "gohome/state/automata/" + name
@@ -324,7 +326,8 @@ func timeit(name string, fn func()) {
 	log.Printf("%s took: %s", name, t2.Sub(t1))
 }
 
-func (self *AutomataService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	self.log = openLogFile()
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)
@@ -405,7 +408,7 @@ func (self *AutomataService) Run() error {
 	return nil
 }
 
-func (self *AutomataService) appendLog(msg string) {
+func (self *Service) appendLog(msg string) {
 	fmt.Fprintln(self.log, msg)
 }
 

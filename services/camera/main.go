@@ -9,12 +9,13 @@ package camera
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
-	"github.com/barnybug/gohome/util"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
+	"github.com/barnybug/gohome/util"
 )
 
 var cameras map[string]Camera
@@ -114,18 +115,21 @@ func setupCameras() {
 	}
 }
 
-type CameraService struct {
+// Service camera
+type Service struct {
 }
 
-func (self *CameraService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "camera"
 }
 
-func (self *CameraService) ConfigUpdated(path string) {
+func (self *Service) ConfigUpdated(path string) {
 	setupCameras()
 }
 
-func (self *CameraService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	setupCameras()
 
 	for ev := range services.Subscriber.FilteredChannel("command") {

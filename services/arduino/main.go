@@ -9,10 +9,11 @@ package arduino
 
 import (
 	"flag"
-	"github.com/barnybug/gohome/services"
 	"io"
 	"log"
 	"path/filepath"
+
+	"github.com/barnybug/gohome/services"
 
 	"github.com/tarm/goserial"
 )
@@ -34,15 +35,18 @@ func command(dev io.Writer, code string, state bool) {
 	dev.Write([]byte(code))
 }
 
-type ArduinoService struct {
+// Service arduino
+type Service struct {
 	devname string
 }
 
-func (self *ArduinoService) Id() string {
+// ID of the service
+func (self *Service) ID() string {
 	return "arduino"
 }
 
-func (self *ArduinoService) Run() error {
+// Run the service
+func (self *Service) Run() error {
 	c := &serial.Config{Name: self.devname, Baud: 9600}
 	dev, err := serial.OpenPort(c)
 	if err != nil {
@@ -59,6 +63,6 @@ func (self *ArduinoService) Run() error {
 	return nil
 }
 
-func (self *ArduinoService) Flags() {
+func (self *Service) Flags() {
 	flag.StringVar(&self.devname, "d", defaultDevName(), "arduino device")
 }

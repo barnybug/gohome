@@ -13,7 +13,7 @@ import (
 
 func query(args []string) {
 	if len(args) == 0 {
-		Usage()
+		usage()
 	}
 	q := strings.Join(args[1:], " ")
 	u := url.Values{"q": {q}}
