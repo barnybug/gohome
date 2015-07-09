@@ -13,28 +13,32 @@ import (
 	"github.com/gdamore/mangos/transport/tcp"
 )
 
+// Publisher for nanomsg
 type Publisher struct {
 	Channel  chan *pubsub.Event
 	Endpoint string
 	Connect  bool
 }
 
-func (self *Publisher) Id() string {
-	return "nanomsg: " + self.Endpoint
+// ID of Publisher
+func (publ *Publisher) ID() string {
+	return "nanomsg: " + publ.Endpoint
 }
 
+// NewPublisher creates a new publisher
 func NewPublisher(endpoint string, connect bool) *Publisher {
 	ch := make(chan *pubsub.Event)
-	self := Publisher{ch, endpoint, connect}
-	go self.run()
-	return &self
+	publ := Publisher{ch, endpoint, connect}
+	go publ.run()
+	return &publ
 }
 
-func (self *Publisher) Emit(ev *pubsub.Event) {
-	self.Channel <- ev
+// Emit an event
+func (publ *Publisher) Emit(ev *pubsub.Event) {
+	publ.Channel <- ev
 }
 
-func (self *Publisher) run() {
+func (publ *Publisher) run() {
 	sock, err := pub.NewSocket()
 	if err != nil {
 		log.Fatalln("pub.NewSocket error:", err)
@@ -42,10 +46,10 @@ func (self *Publisher) run() {
 	sock.AddTransport(inproc.NewTransport())
 	sock.AddTransport(tcp.NewTransport())
 	defer sock.Close()
-	if self.Connect {
-		err = sock.Dial(self.Endpoint)
+	if publ.Connect {
+		err = sock.Dial(publ.Endpoint)
 	} else {
-		err = sock.Listen(self.Endpoint)
+		err = sock.Listen(publ.Endpoint)
 	}
 	if err != nil {
 		log.Fatalln("sock connect failed:", err)
@@ -54,7 +58,7 @@ func (self *Publisher) run() {
 	// sending on a socket straight away silently fails, so wait 20ms. ugh.
 	time.Sleep(time.Millisecond * 20)
 
-	for ev := range self.Channel {
+	for ev := range publ.Channel {
 		// format: topic\0data
 		data := fmt.Sprintf("%s\000%s", ev.Topic, ev.String())
 		err := sock.Send([]byte(data))

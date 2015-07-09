@@ -1,12 +1,14 @@
 package pubsub
 
+// Publisher interface
 type Publisher interface {
-	Id() string
+	ID() string
 	Emit(ev *Event)
 }
 
+// Subscriber interface
 type Subscriber interface {
-	Id() string
+	ID() string
 	FilteredChannel(...string) <-chan *Event
 	Channel() <-chan *Event
 	Close(<-chan *Event)

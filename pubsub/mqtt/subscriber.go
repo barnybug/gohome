@@ -15,7 +15,7 @@ type eventChannel struct {
 	topics []string
 }
 
-// A subscriber filtered client-side.
+// Subscriber struct
 type Subscriber struct {
 	broker       *Broker
 	channels     []eventChannel
@@ -29,7 +29,7 @@ func NewSubscriber(broker *Broker) pubsub.Subscriber {
 	return self
 }
 
-func (self *Subscriber) Id() string {
+func (self *Subscriber) ID() string {
 	return self.broker.Id()
 }
 

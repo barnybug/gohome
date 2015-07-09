@@ -62,11 +62,11 @@ func (self *Service) Run() error {
 
 	log.Println("Subscriber endpoints:")
 	for _, sub := range subscribers {
-		log.Println("-", sub.Id())
+		log.Println("-", sub.ID())
 	}
 	log.Println("Publisher endpoints:")
 	for _, pub := range publishers {
-		log.Println("-", pub.Id())
+		log.Println("-", pub.ID())
 	}
 
 	// Copy from subscribers to publishers
