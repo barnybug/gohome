@@ -7,7 +7,7 @@ type Publisher struct {
 	Events []*pubsub.Event
 }
 
-func (self *Publisher) Id() string {
+func (self *Publisher) ID() string {
 	return "dummy"
 }
 

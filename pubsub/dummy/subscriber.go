@@ -2,19 +2,20 @@ package dummy
 
 import "github.com/barnybug/gohome/pubsub"
 
-// Dummy Subscriber for testing
+// Subscriber for testing
 type Subscriber struct {
 	Events []*pubsub.Event
 }
 
-func (self *Subscriber) Id() string {
+// ID of Subscriber
+func (sub *Subscriber) ID() string {
 	return "dummy"
 }
 
-func (self *Subscriber) replayEvents() <-chan *pubsub.Event {
+func (sub *Subscriber) replayEvents() <-chan *pubsub.Event {
 	ch := make(chan *pubsub.Event)
 	go func() {
-		for _, ev := range self.Events {
+		for _, ev := range sub.Events {
 			ch <- ev
 		}
 		close(ch)
@@ -22,13 +23,16 @@ func (self *Subscriber) replayEvents() <-chan *pubsub.Event {
 	return ch
 }
 
-func (self *Subscriber) FilteredChannel(...string) <-chan *pubsub.Event {
-	return self.replayEvents()
+// FilteredChannel by topic
+func (sub *Subscriber) FilteredChannel(...string) <-chan *pubsub.Event {
+	return sub.replayEvents()
 }
 
-func (self *Subscriber) Channel() <-chan *pubsub.Event {
-	return self.replayEvents()
+// Channel with all events
+func (sub *Subscriber) Channel() <-chan *pubsub.Event {
+	return sub.replayEvents()
 }
 
-func (self *Subscriber) Close(<-chan *pubsub.Event) {
+// Close the channel
+func (sub *Subscriber) Close(<-chan *pubsub.Event) {
 }
