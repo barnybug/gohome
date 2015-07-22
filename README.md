@@ -100,14 +100,9 @@ all the components together.
 
 To build yourself from source:
 
-### Debian/Ubuntu/Raspbian:
-
     $ go get github.com/nitrous-io/goop
-    $ goop go install github.com/barnybug/gohome
+    $ go install github.com/barnybug/gohome
+    $ cd ~/go/src/github.com/barnybug/gohome
+    $ goop install
 
-### ArchLinux
-
-    $ go get github.com/nitrous-io/goop
-    $ goop go install github.com/barnybug/gohome
-
-This will produce a binary `gohome', after this follow the steps as above.
+This will produce a binary `gohome' under `.vendor/bin`, after this follow the steps as above.
