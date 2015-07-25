@@ -15,8 +15,8 @@ endpoints:
   mqtt:
     broker: tcp://127.0.0.1:1883
 processes:
-  gohome:
-    cmd: gohome service daemon
+  nonexistent:
+    cmd: gohome service nonexistent
 bill:
   electricity:
     primary_rate: 8.89
