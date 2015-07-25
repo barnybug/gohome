@@ -151,7 +151,7 @@ protocols:
     0393BDEA: letterbox.front
     00123451: light.bedside
     00123452: light.hallway
-    00123453: light.glowworm
+    00123453: light.living
     00123454: heater.blanket
     00123455: heater.boiler
     00123456: amp.living
@@ -180,7 +180,7 @@ protocols:
   x10:
     b01: light.bedside
     b02: heater.blanket
-    b03: light.glowworm
+    b03: light.living
     b04: pump.garden
     b06: light.kitchen
     b07: pir.upstairs
@@ -201,9 +201,9 @@ twitter:
     token_secret: bbb
 voice:
   'lights? on':
-    switch glowworm on
+    switch living on
   'lights? off':
-    switch glowworm off
+    switch living off
   'blanket on':
     switch blanket on
   'blanket off':

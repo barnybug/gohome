@@ -75,7 +75,7 @@ You also will need redis and mosquitto installed:
 Redis is used to store config.
 
 An example configuration is at:
-http://github.com/barnybug/gohome/config.yml
+https://github.com/barnybug/gohome/blob/master/config.yml
 
 Edit this to match your setup and upload to redis:
 
