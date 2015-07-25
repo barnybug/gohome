@@ -1,5 +1,4 @@
 code.google.com/p/go-uuid #35bc42037350f0078e3c974c6ea690f1926603ab
-code.google.com/p/go.net #937a34c9de13c766c814510f76bca091dee06028
 git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git #3e58ec10bf2da9ef3fc639d12a0eb2e3596c2df7
 github.com/barnybug/gofsm #965140687f1088ffb77ea5a178034bb0530105e2
 github.com/barnybug/gogsmmodem #0d374684936b324849d168c46a06beed33d5e7c5
