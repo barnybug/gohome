@@ -78,7 +78,6 @@ func usage() {
 	fmt.Println("   stop    Stop a process")
 	fmt.Println("   query   Query services")
 	fmt.Println()
-	os.Exit(0)
 }
 
 func main() {
@@ -87,6 +86,7 @@ func main() {
 	flag.Parse()
 	if flag.NArg() < 1 {
 		usage()
+		os.Exit(1)
 	}
 
 	ps := []string{}
