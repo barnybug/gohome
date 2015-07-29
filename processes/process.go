@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -147,52 +146,12 @@ func Restart(ps []string) {
 	Start(ps)
 }
 
-func printTable(table [][]string) {
-	lengths := map[int]int{}
-	for _, row := range table {
-		for i, value := range row {
-			if len(value) > lengths[i] {
-				lengths[i] = len(value)
-			}
-		}
-	}
-
-	for _, row := range table {
-		for i, value := range row {
-			format := fmt.Sprintf("%%-%ds", lengths[i]+1)
-			fmt.Printf(format, value)
-		}
-		fmt.Println()
-	}
-}
-
 func allProcesses() []string {
 	var ret []string
 	for key, _ := range services.Config.Processes {
 		ret = append(ret, key)
 	}
 	return ret
-}
-
-func Status(ps []string) {
-	if len(ps) == 0 {
-		ps = allProcesses()
-	}
-	sort.Strings(ps)
-
-	running := GetRunning()
-	table := [][]string{
-		[]string{"Process", "Status", "PID", "Started"},
-	}
-	for _, name := range ps {
-		pinfo := running[name]
-		if pinfo.Pid == 0 {
-			table = append(table, []string{name, "stopped", "", ""})
-		} else {
-			table = append(table, []string{name, "running", fmt.Sprint(pinfo.Pid), pinfo.Started})
-		}
-	}
-	printTable(table)
 }
 
 func Run(ps []string) {

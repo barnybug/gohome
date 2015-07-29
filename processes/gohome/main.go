@@ -78,7 +78,7 @@ func usage() {
 	fmt.Println("   stop    Stop a process")
 	fmt.Println("   query   Query services")
 	fmt.Println()
-	os.Exit(1)
+	os.Exit(0)
 }
 
 func main() {
@@ -114,7 +114,7 @@ func main() {
 	case "restart":
 		processes.Restart(ps)
 	case "status", "ps":
-		processes.Status(ps)
+		query([]string{"daemon/status"})
 	case "service":
 		service(ps)
 	case "run":

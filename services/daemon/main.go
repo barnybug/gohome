@@ -31,18 +31,50 @@ func (self *Service) QueryHandlers() services.QueryHandlers {
 	}
 }
 
-func (self *Service) queryStatus(q services.Question) string {
-	running := processes.GetRunning()
+func writeTable(table [][]string) string {
 	var out string
-	var names []string
-	for k := range running {
-		names = append(names, k)
+	lengths := map[int]int{}
+	for _, row := range table {
+		for i, value := range row {
+			if len(value) > lengths[i] {
+				lengths[i] = len(value)
+			}
+		}
 	}
-	sort.Strings(names)
 
-	for _, name := range names {
-		pid := running[name]
-		out += fmt.Sprintf("- %s [%d] since %s\n", name, pid.Pid, pid.Started)
+	for _, row := range table {
+		for i, value := range row {
+			format := fmt.Sprintf("%%-%ds", lengths[i]+1)
+			out += fmt.Sprintf(format, value)
+		}
+		out += "\n"
 	}
 	return out
+}
+
+func allProcesses() []string {
+	var ret []string
+	for key, _ := range services.Config.Processes {
+		ret = append(ret, key)
+	}
+	return ret
+}
+
+func (self *Service) queryStatus(q services.Question) string {
+	ps := allProcesses()
+	sort.Strings(ps)
+
+	running := processes.GetRunning()
+	table := [][]string{
+		[]string{"Process", "Status", "PID", "Started"},
+	}
+	for _, name := range ps {
+		pinfo := running[name]
+		if pinfo.Pid == 0 {
+			table = append(table, []string{name, "stopped", "", ""})
+		} else {
+			table = append(table, []string{name, "running", fmt.Sprint(pinfo.Pid), pinfo.Started})
+		}
+	}
+	return writeTable(table)
 }

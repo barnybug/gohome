@@ -1,17 +1,15 @@
 package main
 
-import (
-	"os"
-	"testing"
-)
+import "os"
 
 // func ExampleQuery() {
 // 	query([]string{""})
 // 	// Output:
 // }
 
-func TestStatus(t *testing.T) {
-	os.Setenv("GOHOME_STORE", "mock:")
-	os.Args = []string{"gohome", "status"}
+func ExampleHelp() {
+	os.Args = []string{"gohome", "help"}
 	main()
+	// Output:
+	// abc
 }
