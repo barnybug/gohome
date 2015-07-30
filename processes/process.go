@@ -82,7 +82,12 @@ func logName(name string) (log string, err string) {
 	return log, err
 }
 
-func Start(ps []string) []int {
+type Logger interface {
+	Println(args ...interface{})
+	Printf(format string, args ...interface{})
+}
+
+func Start(ps []string, log Logger) []int {
 	running := GetRunning()
 	pids := []int{}
 	IterateServices(ps, func(name string, cf config.ProcessConf) {
@@ -120,7 +125,7 @@ func Start(ps []string) []int {
 	return pids
 }
 
-func Stop(ps []string) {
+func Stop(ps []string, logger Logger) {
 	if len(ps) == 0 {
 		ps = allProcesses()
 	}
@@ -141,9 +146,9 @@ func Stop(ps []string) {
 	})
 }
 
-func Restart(ps []string) {
-	Stop(ps)
-	Start(ps)
+func Restart(ps []string, logger Logger) {
+	Stop(ps, logger)
+	Start(ps, logger)
 }
 
 func allProcesses() []string {
@@ -189,6 +194,16 @@ func UpdateState(name string, pid PidTime) {
 	}
 }
 
+type LogLogger struct{}
+
+func (l LogLogger) Println(args ...interface{}) {
+	log.Println(args...)
+}
+
+func (l LogLogger) Printf(format string, args ...interface{}) {
+	log.Printf(format, args...)
+}
+
 func Daemon() {
 	running := GetRunning()
 	for name, pid := range running {
@@ -208,7 +223,7 @@ func Daemon() {
 		for name := range services.Config.Processes {
 			// start any missing
 			if running[name].Pid == 0 {
-				pids := Start([]string{name})
+				pids := Start([]string{name}, LogLogger{})
 				if len(pids) > 0 {
 					current[name] = PidTime{Pid: pids[0], Started: ""}
 				}

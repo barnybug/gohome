@@ -1,8 +1,9 @@
 package services
 
 import (
-	"github.com/barnybug/gohome/pubsub"
 	"strings"
+
+	"github.com/barnybug/gohome/pubsub"
 )
 
 type Question struct {
@@ -67,6 +68,11 @@ func StaticHandler(msg string) QueryHandler {
 	}
 }
 
+func splitLast(s string, sep string) string {
+	bits := strings.Split(s, sep)
+	return bits[len(bits)-1]
+}
+
 func QuerySubscriber() {
 	var queryables []Queryable
 	for _, service := range enabled {
@@ -95,8 +101,9 @@ func QuerySubscriber() {
 			args = parts[1]
 		}
 		first := strings.ToLower(parts[0])
+		verb := splitLast(first, "/")
 		from := ev.StringField("source") + ":" + ev.StringField("remote")
-		q := Question{first, args, from}
+		q := Question{Verb: verb, Args: args, From: from}
 
 		for _, service := range queryables {
 			if handlerList, ok := handlers[first]; ok {

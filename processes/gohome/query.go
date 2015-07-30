@@ -2,14 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
 )
+
+func queryArgs(first string, rest ...string) {
+	query(append([]string{first}, rest...))
+}
 
 func query(args []string) {
 	if len(args) == 0 {

@@ -6,6 +6,7 @@ package daemon
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/barnybug/gohome/processes"
 	"github.com/barnybug/gohome/services"
@@ -26,8 +27,15 @@ func (self *Service) Run() error {
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
-		"status": services.TextHandler(self.queryStatus),
-		"help":   services.StaticHandler("status: get status\n"),
+		"status":  services.TextHandler(self.queryStatus),
+		"start":   services.TextHandler(self.queryStartStopRestart),
+		"stop":    services.TextHandler(self.queryStartStopRestart),
+		"restart": services.TextHandler(self.queryStartStopRestart),
+		"help": services.StaticHandler("" +
+			"status: get status\n" +
+			"start process: start a process\n" +
+			"stop process: stop a process\n" +
+			"restart process: restart a process\n"),
 	}
 }
 
@@ -77,4 +85,34 @@ func (self *Service) queryStatus(q services.Question) string {
 		}
 	}
 	return writeTable(table)
+}
+
+type StringLogger struct {
+	output string
+}
+
+func (logger *StringLogger) Println(args ...interface{}) {
+	logger.output += fmt.Sprintln(args...)
+}
+
+func (logger *StringLogger) Printf(format string, args ...interface{}) {
+	logger.output += fmt.Sprintf(format, args...)
+}
+
+func (self *Service) queryStartStopRestart(q services.Question) string {
+	args := strings.Split(q.Args, " ")
+	if len(args) == 0 {
+		return "Expected a process argument"
+	}
+
+	out := &StringLogger{}
+	switch q.Verb {
+	case "start":
+		processes.Start(args, out)
+	case "stop":
+		processes.Stop(args, out)
+	case "restart":
+		processes.Restart(args, out)
+	}
+	return fmt.Sprintf(out.output)
 }

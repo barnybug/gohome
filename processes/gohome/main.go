@@ -108,13 +108,13 @@ func main() {
 	default:
 		usage()
 	case "start":
-		processes.Start(ps)
+		queryArgs("daemon/start", ps...)
 	case "stop":
-		processes.Stop(ps)
+		queryArgs("daemon/stop", ps...)
 	case "restart":
-		processes.Restart(ps)
+		queryArgs("daemon/restart", ps...)
 	case "status", "ps":
-		query([]string{"daemon/status"})
+		queryArgs("daemon/status")
 	case "service":
 		service(ps)
 	case "run":
