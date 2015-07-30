@@ -108,11 +108,11 @@ func main() {
 	default:
 		usage()
 	case "start":
-		queryArgs("daemon/start", ps...)
+		start(ps)
 	case "stop":
-		queryArgs("daemon/stop", ps...)
+		stop(ps)
 	case "restart":
-		queryArgs("daemon/restart", ps...)
+		restart(ps)
 	case "status", "ps":
 		queryArgs("daemon/status")
 	case "service":
@@ -132,4 +132,26 @@ func main() {
 func service(ss []string) {
 	registerServices()
 	services.Launch(ss)
+}
+
+func start(ps []string) {
+	if len(ps) == 1 && ps[0] == "daemon" {
+		// daemon can't start itself, so this one must run locally
+		processes.Start(ps, processes.LogLogger{})
+	} else {
+		queryArgs("daemon/start", ps...)
+	}
+}
+
+func stop(ps []string) {
+	queryArgs("daemon/stop", ps...)
+}
+
+func restart(ps []string) {
+	if len(ps) == 1 && ps[0] == "daemon" {
+		// daemon can't start itself, so this one must run locally
+		processes.Restart(ps, processes.LogLogger{})
+	} else {
+		queryArgs("daemon/restart", ps...)
+	}
 }
