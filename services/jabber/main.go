@@ -6,6 +6,7 @@
 package jabber
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"sort"
@@ -47,11 +48,17 @@ func recvChannel(talk *xmpp.Client, ch chan interface{}) {
 }
 
 func NewClient() (*JabberClient, error) {
-	debug := false
-	talk, err := xmpp.NewClient("talk.google.com:443",
-		services.Config.Jabber.Jid,
-		services.Config.Jabber.Pass,
-		debug)
+	tlsConfig := tls.Config{}
+	tlsConfig.ServerName = "talk.google.com"
+	options := xmpp.Options{
+		Host:      "talk.google.com:443",
+		User:      services.Config.Jabber.Jid,
+		Password:  services.Config.Jabber.Pass,
+		Debug:     false,
+		Session:   false,
+		TLSConfig: &tlsConfig,
+	}
+	talk, err := options.NewClient()
 	if err != nil {
 		return nil, err
 	}
@@ -71,10 +78,7 @@ func NewClient() (*JabberClient, error) {
 			select {
 			case <-keepalive.C:
 				talk.Close()
-				talk, err = xmpp.NewClient("talk.google.com:443",
-					services.Config.Jabber.Jid,
-					services.Config.Jabber.Pass,
-					debug)
+				talk, err = options.NewClient()
 				if err != nil {
 					log.Fatal(err)
 				}
