@@ -179,7 +179,16 @@ func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
 	defer services.Subscriber.Close(ch)
 
 	for ev := range ch {
-		_, err := fmt.Fprintf(w, ev.String()+"\r\n")
+		data := ev.Map()
+		device := services.Config.LookupDeviceName(ev)
+		if device != "" {
+			data["device"] = device
+		}
+		encoder := json.NewEncoder(w)
+		err := encoder.Encode(data)
+		if err == nil {
+			w.Write([]byte("\r\n")) // separator
+		}
 		if err != nil {
 			break
 		}
