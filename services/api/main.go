@@ -173,9 +173,17 @@ func apiHeatingSet(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	topics := q.Get("topics")
 	w.Header().Add("Content-Type", "application/json; boundary=NL")
 
-	ch := services.Subscriber.Channel()
+	var ch <-chan *pubsub.Event
+	if topics != "" {
+		topics := strings.Split(topics, ",")
+		ch = services.Subscriber.FilteredChannel(topics...)
+	} else {
+		ch = services.Subscriber.Channel()
+	}
 	defer services.Subscriber.Close(ch)
 
 	for ev := range ch {
