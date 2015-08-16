@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 
 	"github.com/barnybug/gohome/services"
-
 	"github.com/tarm/goserial"
 )
 
@@ -57,7 +56,8 @@ func (self *Service) Run() error {
 		p := services.Config.LookupDeviceProtocol(ev.Device())
 		code, ok := p["arduino"]
 		if ok {
-			command(dev, code, ev.Fields["state"].(bool))
+			on := ev.Command() == "on"
+			command(dev, code, on)
 		}
 	}
 	return nil

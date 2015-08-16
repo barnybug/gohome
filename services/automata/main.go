@@ -195,11 +195,9 @@ func (self *Service) querySwitch(q services.Question) string {
 	}
 	args := strings.Split(q.Args, " ")
 	name := args[0]
-	state := true
+	command := "on"
 	if len(args) > 1 {
-		if args[1] == "off" {
-			state = false
-		}
+		command = args[1]
 	}
 	matches := []string{}
 	for dev, _ := range services.Config.Devices {
@@ -215,13 +213,9 @@ func (self *Service) querySwitch(q services.Question) string {
 		return fmt.Sprintf("device %s is ambiguous", strings.Join(matches, ", "))
 	}
 	device := matches[0]
-	ev := pubsub.NewCommand(device, state, 0)
+	ev := pubsub.NewCommand(device, command, 0)
 	services.Publisher.Emit(ev)
-	onoff := "off"
-	if state {
-		onoff = "on"
-	}
-	return fmt.Sprintf("Switched %s %s", matches[0], onoff)
+	return fmt.Sprintf("Switched %s %s", matches[0], command)
 }
 
 func (self *Service) queryScript(q services.Question) string {
@@ -439,7 +433,7 @@ func (self EventAction) Video(device string, preset int64, secs float64, ir bool
 	log.Printf("Video: %s at %d for %.1fs (ir: %v)", device, preset, secs, ir)
 	fields := pubsub.Fields{
 		"device":  device,
-		"state":   "video",
+		"command": "video",
 		"timeout": secs,
 		"preset":  preset,
 		"ir":      ir,
@@ -487,7 +481,11 @@ func (self EventAction) Alert(message string, target string) {
 }
 
 func command(device string, state bool) {
-	ev := pubsub.NewCommand(device, state, 0)
+	command := "off"
+	if state {
+		command = "on"
+	}
+	ev := pubsub.NewCommand(device, command, 0)
 	services.Publisher.Emit(ev)
 }
 

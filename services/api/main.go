@@ -152,9 +152,14 @@ func apiDevicesEvents(w http.ResponseWriter, r *http.Request) {
 func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	device := q.Get("id")
-	state := q.Get("control") == "1"
+	var command string
+	if q.Get("control") == "1" {
+		command = "on"
+	} else {
+		command = "off"
+	}
 	// send command
-	ev := pubsub.NewCommand(device, state, 0)
+	ev := pubsub.NewCommand(device, command, 0)
 	services.Publisher.Emit(ev)
 	jsonResponse(w, true)
 }

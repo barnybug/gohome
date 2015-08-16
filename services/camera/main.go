@@ -41,7 +41,7 @@ func eventCommand(ev *pubsub.Event) {
 	p, _ := ev.Fields["preset"].(float64)
 	preset := int(p)
 
-	switch ev.Fields["state"] {
+	switch ev.Fields["command"] {
 	case "position":
 		log.Printf("%s going to preset %d", ev.Device(), preset)
 		cam.GotoPreset(preset)

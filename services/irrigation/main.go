@@ -80,7 +80,11 @@ func tick(t time.Time) {
 }
 
 func command(device string, state bool, repeat int) {
-	ev := pubsub.NewCommand(device, state, repeat)
+	command := "off"
+	if state {
+		command = "on"
+	}
+	ev := pubsub.NewCommand(device, command, repeat)
 	services.Publisher.Emit(ev)
 }
 

@@ -266,7 +266,11 @@ func (self *Thermostat) Check(now time.Time) {
 }
 
 func (self *Thermostat) Command() {
-	ev := pubsub.NewCommand(self.HeatingDevice, self.State, 0)
+	command := "off"
+	if self.State {
+		command = "on"
+	}
+	ev := pubsub.NewCommand(self.HeatingDevice, command, 0)
 	self.Publisher.Emit(ev)
 }
 

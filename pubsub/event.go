@@ -21,10 +21,10 @@ func NewEvent(topic string, fields map[string]interface{}) *Event {
 	return &Event{Topic: topic, Timestamp: timestamp, Fields: fields}
 }
 
-func NewCommand(device string, state bool, repeat int) *Event {
+func NewCommand(device string, command string, repeat int) *Event {
 	fields := map[string]interface{}{
-		"device": device,
-		"state":  state,
+		"device":  device,
+		"command": command,
 	}
 	if repeat > 0 {
 		fields["repeat"] = repeat

@@ -136,12 +136,10 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 // Translate command messages into rfxtrx packets
 func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 	device := ev.Device()
-	var command string
-	switch ev.Fields["state"] {
-	case true:
-		command = "on"
-	case false:
-		command = "off"
+	command := ev.Command()
+	if command != "off" && command != "on" {
+		log.Println("Command not recognised:", command)
+		return nil, nil
 	}
 
 	pids := services.Config.LookupDeviceProtocol(device)
