@@ -138,7 +138,7 @@ jabber:
   pass: password
 protocols:
   arduino:
-    A: door.front
+    A: lock.front
     C: alarm.bell
   chime:
     byronsx.0001: bell.front

@@ -489,16 +489,6 @@ func command(device string, state bool) {
 	services.Publisher.Emit(ev)
 }
 
-func (self EventAction) UnlockDoor() {
-	log.Println("Unlocking door")
-	command("door.front", true)
-}
-
-func (self EventAction) LockDoor() {
-	log.Println("Locking door")
-	command("door.front", false)
-}
-
 func (self EventAction) Switch(device string, state bool) {
 	on := "off"
 	if state {
