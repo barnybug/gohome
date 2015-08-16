@@ -237,6 +237,10 @@ func OpenRaw(data []byte) (*Config, error) {
 
 // Find the device name
 func (self *Config) LookupDeviceName(ev *pubsub.Event) string {
+	// silly question: is device set on the event
+	if ev.Device() != "" {
+		return ev.Device()
+	}
 	topic := ev.Topic
 	source := ev.Source()
 	// try: protocol.id
