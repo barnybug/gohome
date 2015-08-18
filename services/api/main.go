@@ -200,7 +200,7 @@ func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
 		encoder := json.NewEncoder(w)
 		err := encoder.Encode(data)
 		if err == nil {
-			w.Write([]byte("\r\n")) // separator
+			_, err = w.Write([]byte("\r\n")) // separator
 		}
 		if err != nil {
 			break
