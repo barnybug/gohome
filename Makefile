@@ -10,7 +10,7 @@ install:
 	go install -v $(exe)
 
 test:
-	go test ./config/... ./lib/... ./processes/... ./pubsub/... ./services/... ./util/... .
+	go test ./config/... ./lib/... ./processes/... ./pubsub/... ./services/... ./util/...
 
 coverage:
 	go test -coverprofile=/tmp/coverage.out gohome/config
