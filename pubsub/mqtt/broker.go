@@ -12,11 +12,11 @@ import (
 
 type Broker struct {
 	broker string
-	client *MQTT.MqttClient
+	client *MQTT.Client
 	opts   *MQTT.ClientOptions
 }
 
-func createClient(broker string) (*MQTT.MqttClient, *MQTT.ClientOptions) {
+func createClient(broker string) (*MQTT.Client, *MQTT.ClientOptions) {
 	// generate a client id
 	hostname, _ := os.Hostname()
 	pid := os.Getpid()
@@ -24,13 +24,13 @@ func createClient(broker string) (*MQTT.MqttClient, *MQTT.ClientOptions) {
 	clientId := fmt.Sprintf("gohome/%s-%d-%d", hostname, pid, r)
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(broker)
-	opts.SetClientId(clientId)
+	opts.SetClientID(clientId)
 	opts.SetCleanSession(true)
 
 	client := MQTT.NewClient(opts)
-	_, err := client.Start()
-	if err != nil {
-		log.Fatalln("Couldn't Start mqtt:", err)
+	token := client.Connect()
+	if token.Wait() && token.Error() != nil {
+		log.Fatalln("Couldn't Start mqtt:", token.Error())
 	}
 	return client, opts
 }

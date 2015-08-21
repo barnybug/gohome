@@ -1,13 +1,13 @@
 github.com/barnybug/gofsm
 github.com/barnybug/gogsmmodem
 github.com/barnybug/gorfxtrx
-github.com/kurrik/oauth1a #fc2542bc5f2532ed4a437960d2d51ff6e18a5cb6
-github.com/kurrik/twittergo #7ce068b08f04d659d0c5c3a41aedd3266aa1024c
-github.com/mattn/go-xmpp #8b13d0ad771420685f85ed09d8e9bf81757e7e20
-github.com/tarm/goserial #6517d24aa8722a7540ea13405f4559a5e68c9d19
-github.com/gorilla/mux #0ef595e787efa95d68151570ead5c85dc2e05f91
-github.com/gorilla/context #1f3e8a46c5bb4c29971d9867ede6e198ca5eddce
-github.com/gorilla/handlers #d7b4c587772859d1b40531646d5dc4eb6c52afd4
-github.com/garyburd/redigo/redis #cca3df8fa0670249a3f746bcc062c69aeba0517c
+github.com/kurrik/oauth1a
+github.com/kurrik/twittergo
+github.com/mattn/go-xmpp
+github.com/tarm/goserial
+github.com/gorilla/mux
+github.com/gorilla/context
+github.com/gorilla/handlers
+github.com/garyburd/redigo
 git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git
-github.com/gdamore/mangos #271babf6f292a7800626b358867cc33efc007d21
+github.com/gdamore/mangos

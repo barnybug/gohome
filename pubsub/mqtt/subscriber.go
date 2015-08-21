@@ -33,7 +33,7 @@ func (self *Subscriber) ID() string {
 	return self.broker.Id()
 }
 
-func (self *Subscriber) publishHandler(client *MQTT.MqttClient, msg MQTT.Message) {
+func (self *Subscriber) publishHandler(client *MQTT.Client, msg MQTT.Message) {
 	body := string(msg.Payload())
 	event := pubsub.Parse(body)
 	if event == nil {
@@ -55,10 +55,9 @@ func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventCha
 	for _, topic := range topics {
 		_, exists := self.topicCount[topic]
 		if !exists {
-			filter, _ := MQTT.NewTopicFilter(topicName(topic), 1)
 			// fmt.Printf("StartSubscription: %+v\n", filter)
 			// nil = all messages go to the default handler
-			self.broker.client.StartSubscription(nil, filter)
+			self.broker.client.Subscribe(topicName(topic), 1, nil)
 		}
 		self.topicCount[topic] += 1
 	}
@@ -108,7 +107,7 @@ func (self *Subscriber) Close(channel <-chan *pubsub.Event) {
 				self.topicCount[topic] -= 1
 				if self.topicCount[topic] == 0 {
 					// fmt.Printf("EndSubscription: %+v\n", topicName(topic))
-					self.broker.client.EndSubscription(topicName(topic))
+					self.broker.client.Unsubscribe(topicName(topic))
 				}
 			}
 			close(ch.C)
