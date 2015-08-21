@@ -1,0 +1,18 @@
+package gorfxtrx
+
+// Struct for the SetMode packet type.
+type SetMode struct {
+}
+
+func (self *SetMode) Send() []byte {
+	// return []byte{0x0d, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	var flag1 byte = 0x20 // byron sx
+	var flag2 byte = 0x00 // none
+	var flag3 byte = 0x2f // x10, arc, ac, homeeasy, oregon
+	return []byte{0x0d, 0x00, 0x00, 0x01, 0x03, 0x53, 0x00, flag1, flag2, flag3, 0x00, 0x00, 0x00, 0x00}
+}
+
+// SetMode packet constructor
+func NewSetMode() (*SetMode, error) {
+	return &SetMode{}, nil
+}

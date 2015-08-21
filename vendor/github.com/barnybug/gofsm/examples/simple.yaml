@@ -1,0 +1,29 @@
+simple:
+  start: Hungry
+  states:
+    Hungry: {}
+    Eating:
+      leaving:
+      - groan()
+    Full:
+      entering:
+      - digest()
+    Sleepy: {}
+
+  transitions:
+    Hungry->Eating:
+    - when: food.*
+      actions:
+      - woof()
+      - eat('apple')
+    Eating->Full:
+    - when: food.*
+    Full->Hungry:
+    - when: walk or run
+    '*':
+    - when: '*.scratch'
+      actions:
+      - scratch()
+    - when: 'sniff.*'
+      actions:
+      - sniff()
