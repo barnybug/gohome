@@ -1,7 +1,10 @@
 language: go
 go:
  - 1.5
-sudo: false
+sudo: required
+before_script:
+- sudo apt-get -y install upx-ucl
 script:
 - make test
+after_success:
 - make release
