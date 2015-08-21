@@ -117,36 +117,47 @@ func apiVoice(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type deviceAndState struct {
-	config.DeviceConf
-	State interface{} `json:"state"`
-}
-
-func getDevicesState() map[string]interface{} {
+func getDevicesEvents() map[string]map[string]interface{} {
 	// Get state from store
-	ret := make(map[string]interface{})
-	nodes, _ := services.Stor.GetRecursive("gohome/state/devices")
+	ret := make(map[string]map[string]interface{})
+	// gohome/state/events/<topic>/<device>
+	nodes, _ := services.Stor.GetRecursive("gohome/state/events")
 	for _, node := range nodes {
+		ks := strings.Split(node.Key, "/")
+		if len(ks) != 5 {
+			continue
+		}
 		ev := pubsub.Parse(node.Value)
-		name := node.Key[strings.LastIndex(node.Key, "/")+1:]
-		ret[name] = ev.Map()
+		topic := ks[3]
+		device := ks[4]
+		if _, ok := ret[device]; !ok {
+			ret[device] = make(map[string]interface{})
+		}
+		ret[device][topic] = ev.Map()
 	}
+	// returns {device: {topic: {event}}}
 	return ret
 }
 
 func apiDevices(w http.ResponseWriter, r *http.Request) {
-	ret := make(map[string]deviceAndState)
-	state := getDevicesState()
+	ret := make(map[string]interface{})
+	events := getDevicesEvents()
 
 	for name, dev := range services.Config.Devices {
-		ret[name] = deviceAndState{dev, state[name]}
+		value := make(map[string]interface{})
+		value["id"] = dev.Id
+		value["name"] = dev.Name
+		value["type"] = dev.Type
+		value["group"] = dev.Group
+		ev := events[name]
+		if ev == nil {
+			ev = make(map[string]interface{})
+		}
+		value["events"] = ev
+		ret[name] = value
 	}
 
 	jsonResponse(w, ret)
-}
-
-func apiDevicesEvents(w http.ResponseWriter, r *http.Request) {
-	jsonResponse(w, getDevicesState())
 }
 
 func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +316,6 @@ func router() *mux.Router {
 	router.PathPrefix("/query/").HandlerFunc(apiQuery)
 	router.Path("/voice").HandlerFunc(apiVoice)
 	router.Path("/devices").HandlerFunc(apiDevices)
-	router.Path("/devices/events").HandlerFunc(apiDevicesEvents)
 	router.Path("/devices/control").HandlerFunc(apiDevicesControl)
 	router.Path("/heating/status").HandlerFunc(apiHeatingStatus)
 	router.Path("/heating/set").HandlerFunc(apiHeatingSet)
@@ -355,7 +365,7 @@ func recordEvents() {
 		// record to store
 		device := services.Config.LookupDeviceName(ev)
 		if device != "" {
-			key := "gohome/state/devices/" + device
+			key := fmt.Sprintf("gohome/state/events/%s/%s", ev.Topic, device)
 			services.Stor.Set(key, ev.String())
 		}
 	}

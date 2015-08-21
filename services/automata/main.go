@@ -348,7 +348,7 @@ func (self *Service) Run() error {
 	for {
 		select {
 		case ev := <-ch:
-			if ev.Topic == "alert" || ev.Topic == "state" || ev.Topic == "heating" || strings.HasPrefix(ev.Topic, "_") {
+			if ev.Topic == "alert" || ev.Topic == "heating" || strings.HasPrefix(ev.Topic, "_") {
 				continue
 			}
 			if ev.Command() == "" && ev.State() == "" {
@@ -364,19 +364,13 @@ func (self *Service) Run() error {
 			s := fmt.Sprintf("%-17s %s->%s", "["+change.Automaton+"]", change.Old, change.New)
 			log.Printf("%-40s (event: %s)", s, trigger)
 			chanPersist <- change.Automaton
-			if !strings.Contains(change.Automaton, ".") {
-				continue
-			}
 			// emit event
-			ps := strings.Split(change.Automaton, ".")
-			topic := ps[0]
-			source := ps[1]
 			fields := pubsub.Fields{
-				"source":  source,
+				"device":  change.Automaton,
 				"state":   change.New,
 				"trigger": trigger.String(),
 			}
-			ev := pubsub.NewEvent(topic, fields)
+			ev := pubsub.NewEvent("state", fields)
 			services.Publisher.Emit(ev)
 
 		case action := <-self.automata.Actions:
