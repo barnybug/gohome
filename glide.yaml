@@ -1,0 +1,21 @@
+package: github.com/barnybug/gohome
+import:
+  - package: git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git
+  - package: github.com/barnybug/gofsm
+  - package: github.com/barnybug/gogsmmodem
+  - package: github.com/barnybug/gorfxtrx
+  - package: github.com/droundy/goopt
+  - package: github.com/garyburd/redigo
+  - package: github.com/gdamore/mangos
+  - package: github.com/gorilla/context
+  - package: github.com/gorilla/handlers
+  - package: github.com/gorilla/mux
+  - package: github.com/kurrik/json
+  - package: github.com/kurrik/oauth1a
+  - package: github.com/kurrik/twittergo
+  - package: github.com/mattn/go-xmpp
+  - package: github.com/pborman/uuid
+  - package: github.com/tarm/goserial
+  - package: golang.org/x/net
+  - package: golang.org/x/text
+  - package: gopkg.in/v1/yaml
