@@ -1,6 +1,7 @@
 package mqtt
 
 import (
+	"log"
 	"sync"
 
 	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
@@ -40,10 +41,8 @@ func (self *Subscriber) publishHandler(client *MQTT.Client, msg MQTT.Message) {
 		return
 	}
 	self.channelsLock.Lock()
-	// fmt.Printf("Event: %+v\n", event)
 	for _, ch := range self.channels {
 		if ch.filter(event) {
-			// fmt.Printf("Sending to: %+v\n", ch.topics)
 			ch.C <- event
 		}
 	}
@@ -57,7 +56,10 @@ func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventCha
 		if !exists {
 			// fmt.Printf("StartSubscription: %+v\n", filter)
 			// nil = all messages go to the default handler
-			self.broker.client.Subscribe(topicName(topic), 1, nil)
+			token := self.broker.client.Subscribe(topicName(topic), 1, nil)
+			if token.Wait() && token.Error() != nil {
+				log.Fatalln("Couldn't Subscribe to topic:", token.Error())
+			}
 		}
 		self.topicCount[topic] += 1
 	}
