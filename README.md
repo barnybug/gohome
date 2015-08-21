@@ -100,9 +100,8 @@ all the components together.
 
 To build yourself from source:
 
-    $ go get github.com/nitrous-io/goop
     $ go get github.com/barnybug/gohome
     $ cd $GOHOME/src/github.com/barnybug/gohome
-    $ goop install
+    $ make install
 
-This will produce a binary `gohome' under `.vendor/bin`, after this follow the steps as above.
+This will produce a binary `gohome' in `~/go/bin` (ie. $GOPATH/bin), after this follow the steps as above.
