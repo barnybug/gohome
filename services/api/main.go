@@ -54,6 +54,13 @@ func errorResponse(w http.ResponseWriter, err error) {
 	http.Error(w, err.Error(), 500)
 }
 
+type VarsHandler func(http.ResponseWriter, *http.Request, map[string]string)
+
+func (h VarsHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	h(w, req, vars)
+}
+
 func apiIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html>Gohome is listening</html>")
@@ -163,8 +170,7 @@ func apiDevices(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, ret)
 }
 
-func apiDevicesSingle(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+func apiDevicesSingle(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	device := params["device"]
 	if dev, ok := services.Config.Devices[device]; ok {
 		events := getDevicesEvents()
@@ -333,7 +339,7 @@ func router() *mux.Router {
 	router.Path("/voice").HandlerFunc(apiVoice)
 	router.Path("/devices").HandlerFunc(apiDevices)
 	router.Path("/devices/control").HandlerFunc(apiDevicesControl)
-	router.Path("/devices/{device}").HandlerFunc(apiDevicesSingle)
+	router.Handle("/devices/{device}", VarsHandler(apiDevicesSingle))
 	router.Path("/heating/status").HandlerFunc(apiHeatingStatus)
 	router.Path("/heating/set").HandlerFunc(apiHeatingSet)
 	router.Path("/events/feed").HandlerFunc(apiEventsFeed)

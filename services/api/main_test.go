@@ -2,12 +2,13 @@ package api
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/config"
-	"github.com/barnybug/gohome/pubsub/dummy"
-	"github.com/barnybug/gohome/services"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+
+	"github.com/barnybug/gohome/config"
+	"github.com/barnybug/gohome/pubsub/dummy"
+	"github.com/barnybug/gohome/services"
 )
 
 func ExampleInterfaces() {
@@ -32,17 +33,27 @@ func ExampleDevices() {
 	apiDevices(rec, &r)
 	fmt.Println(rec.Body)
 	// Output:
-	// {"light.kitchen":{"id":"light.kitchen","name":"Kitchen","type":"light","group":"downstairs","state":null}}
+	// {"light.kitchen":{"events":{},"group":"downstairs","id":"light.kitchen","name":"Kitchen","type":"light"}}
 }
 
-func ExampleDevicesEvents() {
+func ExampleDevicesSingle() {
 	services.Config = config.ExampleConfig
 	rec := httptest.NewRecorder()
 	r := http.Request{}
-	apiDevicesEvents(rec, &r)
+	apiDevicesSingle(rec, &r, map[string]string{"device": "light.kitchen"})
 	fmt.Println(rec.Body)
 	// Output:
-	// {}
+	// {"events":{},"group":"downstairs","id":"light.kitchen","name":"Kitchen","type":"light"}
+}
+
+func ExampleDevicesSingleNotFound() {
+	services.Config = config.ExampleConfig
+	rec := httptest.NewRecorder()
+	r := http.Request{}
+	apiDevicesSingle(rec, &r, map[string]string{"device": "abc"})
+	fmt.Println(rec.Body)
+	// Output:
+	// not found: abc
 }
 
 func ExampleDevicesControl() {
