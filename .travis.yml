@@ -18,3 +18,4 @@ deploy:
   - release/gohome-linux-arm
   on:
     repo: barnybug/gohome
+    tags: true
