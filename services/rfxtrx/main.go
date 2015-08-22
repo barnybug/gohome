@@ -153,8 +153,6 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 		return gorfxtrx.NewLightingHE(0x00, pids["homeeasy"], command)
 	case pids["x10"] != "":
 		return gorfxtrx.NewLightingX10(0x01, pids["x10"], command)
-	default:
-		log.Println("Protocol not recognised:", pids)
 	}
 	return nil, nil
 }
@@ -163,7 +161,7 @@ var RepeatInterval, _ = time.ParseDuration("3s")
 
 var repeats map[string]*time.Timer = map[string]*time.Timer{}
 
-func repeatSend(dev *gorfxtrx.Device, device string, pkt gorfxtrx.OutPacket, repeat int64) {
+func repeatSend(dev *gorfxtrx.Device, device string, pkt gorfxtrx.OutPacket, repeat int64) error {
 	// cancel any existing timer
 	if t, ok := repeats[device]; ok {
 		delete(repeats, device)
@@ -172,7 +170,7 @@ func repeatSend(dev *gorfxtrx.Device, device string, pkt gorfxtrx.OutPacket, rep
 
 	err := dev.Send(pkt)
 	if err != nil {
-		log.Println("Error sending packet:", err)
+		return err
 	}
 
 	if repeat > 1 {
@@ -180,21 +178,25 @@ func repeatSend(dev *gorfxtrx.Device, device string, pkt gorfxtrx.OutPacket, rep
 			repeatSend(dev, device, pkt, repeat-1)
 		})
 	}
+	return nil
 }
 
 func transmitCommands(dev *gorfxtrx.Device) {
 	for ev := range services.Subscriber.FilteredChannel("command") {
 		pkt, err := translateCommands(ev)
 		if err != nil {
-			fmt.Println("Couldn't translate command:", err)
+			log.Println("Couldn't translate command:", err)
 			continue
 		}
 		if pkt == nil {
-			// empty packet valid - command not translated
+			// command not translated
 			continue
 		}
 		repeat := ev.IntField("repeat")
-		repeatSend(dev, ev.Device(), pkt, repeat)
+		err = repeatSend(dev, ev.Device(), pkt, repeat)
+		if err != nil {
+			log.Fatalln("Exiting after error sending:", err)
+		}
 	}
 }
 
