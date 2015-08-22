@@ -1,6 +1,6 @@
 language: go
 go:
- - 1.5
+- 1.5
 sudo: required
 before_script:
 - sudo apt-get -y install upx-ucl
@@ -8,3 +8,13 @@ script:
 - make test
 after_success:
 - make release
+deploy:
+  provider: releases
+  api_key:
+    secure: au903BSPYC2wwVko8Hxxp1SS9SK7FYdQqZC4AfVWz1Odj+6K4X5ilzkJvcesk9amJWltpbUb+SxzCx7+Tnrfvw+ZwJXe6N6bNAEkml0OkwgMUH3ylbOqGUgsfmChyiJwCPG6Q2ve0k48nZIPjCKnHOBG65hNlhqIeFcq2HY/Dzw=
+  file: 
+  - release/gohome-linux-amd64
+  - release/gohome-linux-386
+  - release/gohome-linux-arm
+  on:
+    repo: barnybug/gohome
