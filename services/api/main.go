@@ -6,11 +6,11 @@
 //
 // http://localhost:8723/voice - perform a voice query command
 //
-// http://localhost:8723/devices - list of devices
-//
-// http://localhost:8723/devices/events - list of device events
+// http://localhost:8723/devices - list of devices and events
 //
 // http://localhost:8723/devices/control?id=device&control=0 - turn a device on or off
+//
+// http://localhost:8723/devices/<devicename> - single device with events
 //
 // http://localhost:8723/heating/status - get the status of heating
 //
@@ -139,25 +139,41 @@ func getDevicesEvents() map[string]map[string]interface{} {
 	return ret
 }
 
+func deviceEntry(dev config.DeviceConf, events map[string]interface{}) interface{} {
+	value := make(map[string]interface{})
+	value["id"] = dev.Id
+	value["name"] = dev.Name
+	value["type"] = dev.Type
+	value["group"] = dev.Group
+	if events == nil {
+		events = make(map[string]interface{})
+	}
+	value["events"] = events
+	return value
+}
+
 func apiDevices(w http.ResponseWriter, r *http.Request) {
 	ret := make(map[string]interface{})
 	events := getDevicesEvents()
 
 	for name, dev := range services.Config.Devices {
-		value := make(map[string]interface{})
-		value["id"] = dev.Id
-		value["name"] = dev.Name
-		value["type"] = dev.Type
-		value["group"] = dev.Group
-		ev := events[name]
-		if ev == nil {
-			ev = make(map[string]interface{})
-		}
-		value["events"] = ev
-		ret[name] = value
+		ret[name] = deviceEntry(dev, events[name])
 	}
 
 	jsonResponse(w, ret)
+}
+
+func apiDevicesSingle(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	device := params["device"]
+	if dev, ok := services.Config.Devices[device]; ok {
+		events := getDevicesEvents()
+		ret := deviceEntry(dev, events[device])
+		jsonResponse(w, ret)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(w, "not found: %s", device)
+	}
 }
 
 func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
@@ -317,6 +333,7 @@ func router() *mux.Router {
 	router.Path("/voice").HandlerFunc(apiVoice)
 	router.Path("/devices").HandlerFunc(apiDevices)
 	router.Path("/devices/control").HandlerFunc(apiDevicesControl)
+	router.Path("/devices/{device}").HandlerFunc(apiDevicesSingle)
 	router.Path("/heating/status").HandlerFunc(apiHeatingStatus)
 	router.Path("/heating/set").HandlerFunc(apiHeatingSet)
 	router.Path("/events/feed").HandlerFunc(apiEventsFeed)
