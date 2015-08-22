@@ -147,6 +147,25 @@ func (s *S) TestPersistRestore(c *C) {
 	c.Assert(dog.State.Name, Equals, "Hungry")
 }
 
+func (s *S) TestRestore(c *C) {
+	ps := AutomataState{"simple": AutomatonState{State: "Eating", Since: time.Now()}}
+
+	aut, _ := LoadFile("examples/simple.yaml")
+	aut.Restore(ps)
+	dog, _ := aut.Automaton["simple"]
+	c.Assert(dog.State.Name, Equals, "Eating")
+}
+
+func (s *S) TestRestoreInvalid(c *C) {
+	// restoring bad state should be ignored
+	ps := AutomataState{"simple": AutomatonState{State: "Invalid", Since: time.Now()}}
+
+	aut, _ := LoadFile("examples/simple.yaml")
+	aut.Restore(ps)
+	dog, _ := aut.Automaton["simple"]
+	c.Assert(dog.State.Name, Equals, "Hungry")
+}
+
 func (s *S) TestInvalid(c *C) {
 	conf := "invalid: {}"
 	_, err := Load([]byte(conf))

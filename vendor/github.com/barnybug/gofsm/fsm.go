@@ -13,11 +13,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"gopkg.in/v1/yaml"
+	"gopkg.in/yaml.v1"
 )
 
 type Automata struct {
@@ -264,8 +265,12 @@ func (self *Automata) Persist() AutomataState {
 func (self *Automata) Restore(s AutomataState) {
 	for k, as := range s {
 		if aut, ok := self.Automaton[k]; ok {
-			aut.State, _ = aut.sm[as.State]
-			aut.Since = as.Since
+			if state, ok := aut.sm[as.State]; ok {
+				aut.State = state
+				aut.Since = as.Since
+			} else {
+				log.Println("Invalid restored state:", as.State)
+			}
 		}
 	}
 }
