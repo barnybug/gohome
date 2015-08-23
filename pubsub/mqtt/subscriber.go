@@ -1,7 +1,6 @@
 package mqtt
 
 import (
-	"log"
 	"sync"
 
 	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
@@ -34,15 +33,17 @@ func (self *Subscriber) ID() string {
 	return self.broker.Id()
 }
 
-func (self *Subscriber) publishHandler(client *MQTT.Client, msg MQTT.Message) {
+func (self *Subscriber) publishHandler(client *MQTT.MqttClient, msg MQTT.Message) {
 	body := string(msg.Payload())
 	event := pubsub.Parse(body)
 	if event == nil {
 		return
 	}
 	self.channelsLock.Lock()
+	// fmt.Printf("Event: %+v\n", event)
 	for _, ch := range self.channels {
 		if ch.filter(event) {
+			// fmt.Printf("Sending to: %+v\n", ch.topics)
 			ch.C <- event
 		}
 	}
@@ -54,12 +55,10 @@ func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventCha
 	for _, topic := range topics {
 		_, exists := self.topicCount[topic]
 		if !exists {
+			filter, _ := MQTT.NewTopicFilter(topicName(topic), 1)
 			// fmt.Printf("StartSubscription: %+v\n", filter)
 			// nil = all messages go to the default handler
-			token := self.broker.client.Subscribe(topicName(topic), 1, nil)
-			if token.Wait() && token.Error() != nil {
-				log.Fatalln("Couldn't Subscribe to topic:", token.Error())
-			}
+			self.broker.client.StartSubscription(nil, filter)
 		}
 		self.topicCount[topic] += 1
 	}
@@ -109,7 +108,7 @@ func (self *Subscriber) Close(channel <-chan *pubsub.Event) {
 				self.topicCount[topic] -= 1
 				if self.topicCount[topic] == 0 {
 					// fmt.Printf("EndSubscription: %+v\n", topicName(topic))
-					self.broker.client.Unsubscribe(topicName(topic))
+					self.broker.client.EndSubscription(topicName(topic))
 				}
 			}
 			close(ch.C)

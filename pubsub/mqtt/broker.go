@@ -11,13 +11,12 @@ import (
 )
 
 type Broker struct {
-	broker     string
-	client     *MQTT.Client
-	opts       *MQTT.ClientOptions
-	subscriber pubsub.Subscriber
+	broker string
+	client *MQTT.MqttClient
+	opts   *MQTT.ClientOptions
 }
 
-func createOpts(broker string) *MQTT.ClientOptions {
+func createClient(broker string) (*MQTT.MqttClient, *MQTT.ClientOptions) {
 	// generate a client id
 	hostname, _ := os.Hostname()
 	pid := os.Getpid()
@@ -25,29 +24,20 @@ func createOpts(broker string) *MQTT.ClientOptions {
 	clientId := fmt.Sprintf("gohome/%s-%d-%d", hostname, pid, r)
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(broker)
-	opts.SetClientID(clientId)
+	opts.SetClientId(clientId)
 	opts.SetCleanSession(true)
 
-	return opts
-}
-
-func createClient(opts *MQTT.ClientOptions) *MQTT.Client {
 	client := MQTT.NewClient(opts)
-	token := client.Connect()
-	if token.Wait() && token.Error() != nil {
-		log.Fatalln("Couldn't Start mqtt:", token.Error())
+	_, err := client.Start()
+	if err != nil {
+		log.Fatalln("Couldn't Start mqtt:", err)
 	}
-	return client
+	return client, opts
 }
 
 func NewBroker(broker string) *Broker {
-	opts := createOpts(broker)
-	ret := &Broker{broker: broker, opts: opts}
-	// The default publish handler must be set on opts before creating the client now,
-	// so create Subscriber first, then client.
-	ret.subscriber = NewSubscriber(ret)
-	ret.client = createClient(opts)
-	return ret
+	client, opts := createClient(broker)
+	return &Broker{broker, client, opts}
 }
 
 func (self *Broker) Id() string {
@@ -55,7 +45,7 @@ func (self *Broker) Id() string {
 }
 
 func (self *Broker) Subscriber() pubsub.Subscriber {
-	return self.subscriber
+	return NewSubscriber(self)
 }
 
 func (self *Broker) Publisher() *Publisher {

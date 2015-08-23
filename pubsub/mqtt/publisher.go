@@ -9,7 +9,7 @@ import (
 // Publisher for mqtt
 type Publisher struct {
 	broker  string
-	client  *MQTT.Client
+	client  *MQTT.MqttClient
 	channel chan *pubsub.Event
 }
 
@@ -22,6 +22,6 @@ func (pub *Publisher) ID() string {
 func (pub *Publisher) Emit(ev *pubsub.Event) {
 	// put all topics under gohome/
 	topic := "gohome/" + ev.Topic
-	token := pub.client.Publish(topic, 1, false, ev.Bytes())
-	token.Wait()
+	r := pub.client.Publish(MQTT.QOS_ONE, topic, ev.Bytes())
+	<-r
 }
