@@ -16,7 +16,6 @@ package mqtt
 
 type component string
 
-// Component names for debug output
 const (
 	NET component = "[net]     "
 	PNG component = "[pinger]  "

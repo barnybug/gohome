@@ -15,7 +15,6 @@
 package mqtt
 
 import (
-	"git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git/packets"
 	"sync"
 )
 
@@ -24,7 +23,7 @@ import (
 // as long as the client instance exists.
 type MemoryStore struct {
 	sync.RWMutex
-	messages map[string]packets.ControlPacket
+	messages map[string]*Message
 	opened   bool
 }
 
@@ -33,7 +32,7 @@ type MemoryStore struct {
 // use until Open() has been called on it.
 func NewMemoryStore() *MemoryStore {
 	store := &MemoryStore{
-		messages: make(map[string]packets.ControlPacket),
+		messages: make(map[string]*Message),
 		opened:   false,
 	}
 	return store
@@ -49,7 +48,7 @@ func (store *MemoryStore) Open() {
 
 // Put takes a key and a pointer to a Message and stores the
 // message.
-func (store *MemoryStore) Put(key string, message packets.ControlPacket) {
+func (store *MemoryStore) Put(key string, message *Message) {
 	store.Lock()
 	defer store.Unlock()
 	chkcond(store.opened)
@@ -58,11 +57,11 @@ func (store *MemoryStore) Put(key string, message packets.ControlPacket) {
 
 // Get takes a key and looks in the store for a matching Message
 // returning either the Message pointer or nil.
-func (store *MemoryStore) Get(key string) packets.ControlPacket {
+func (store *MemoryStore) Get(key string) *Message {
 	store.RLock()
 	defer store.RUnlock()
 	chkcond(store.opened)
-	mid := mIDFromKey(key)
+	mid := key2mid(key)
 	m := store.messages[key]
 	if m == nil {
 		CRITICAL.Println(STR, "memorystore get: message", mid, "not found")
@@ -79,7 +78,7 @@ func (store *MemoryStore) All() []string {
 	defer store.RUnlock()
 	chkcond(store.opened)
 	keys := []string{}
-	for k := range store.messages {
+	for k, _ := range store.messages {
 		keys = append(keys, k)
 	}
 	return keys
@@ -90,7 +89,7 @@ func (store *MemoryStore) All() []string {
 func (store *MemoryStore) Del(key string) {
 	store.Lock()
 	defer store.Unlock()
-	mid := mIDFromKey(key)
+	mid := key2mid(key)
 	m := store.messages[key]
 	if m == nil {
 		WARN.Println(STR, "memorystore del: message", mid, "not found")
@@ -114,6 +113,6 @@ func (store *MemoryStore) Reset() {
 	store.Lock()
 	defer store.Unlock()
 	chkcond(store.opened)
-	store.messages = make(map[string]packets.ControlPacket)
+	store.messages = make(map[string]*Message)
 	WARN.Println(STR, "memorystore wiped")
 }

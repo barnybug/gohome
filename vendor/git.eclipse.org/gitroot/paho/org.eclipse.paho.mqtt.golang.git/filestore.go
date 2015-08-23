@@ -15,7 +15,6 @@
 package mqtt
 
 import (
-	"git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git/packets"
 	"io"
 	"io/ioutil"
 	"os"
@@ -24,8 +23,8 @@ import (
 )
 
 const (
-	msgExt = ".msg"
-	bkpExt = ".bkp"
+	_MSG_EXT = ".msg"
+	_BKP_EXT = ".bkp"
 )
 
 // FileStore implements the store interface using the filesystem to provide
@@ -79,7 +78,7 @@ func (store *FileStore) Close() {
 
 // Put will put a message into the store, associated with the provided
 // key value.
-func (store *FileStore) Put(key string, m packets.ControlPacket) {
+func (store *FileStore) Put(key string, m *Message) {
 	store.Lock()
 	defer store.Unlock()
 	chkcond(store.opened)
@@ -94,7 +93,7 @@ func (store *FileStore) Put(key string, m packets.ControlPacket) {
 
 // Get will retrieve a message from the store, the one associated with
 // the provided key value.
-func (store *FileStore) Get(key string) packets.ControlPacket {
+func (store *FileStore) Get(key string) (m *Message) {
 	store.RLock()
 	defer store.RUnlock()
 	chkcond(store.opened)
@@ -104,10 +103,9 @@ func (store *FileStore) Get(key string) packets.ControlPacket {
 	}
 	mfile, oerr := os.Open(filepath)
 	chkerr(oerr)
-	//all, rerr := ioutil.ReadAll(mfile)
-	//chkerr(rerr)
-	msg, rerr := packets.ReadPacket(mfile)
+	all, rerr := ioutil.ReadAll(mfile)
 	chkerr(rerr)
+	msg := decode(all)
 	cerr := mfile.Close()
 	chkerr(cerr)
 	return msg
@@ -171,12 +169,12 @@ func (store *FileStore) del(key string) {
 }
 
 func fullpath(store string, key string) string {
-	p := path.Join(store, key+msgExt)
+	p := path.Join(store, key+_MSG_EXT)
 	return p
 }
 
 func bkppath(store string, key string) string {
-	p := path.Join(store, key+bkpExt)
+	p := path.Join(store, key+_BKP_EXT)
 	return p
 }
 
@@ -185,11 +183,11 @@ func bkppath(store string, key string) string {
 // if a message with m's message id already exists, it will
 // be overwritten
 // X will be 'i' for inbound messages, and O for outbound messages
-func write(store, key string, m packets.ControlPacket) {
+func write(store, key string, m *Message) {
 	filepath := fullpath(store, key)
 	f, err := os.Create(filepath)
 	chkerr(err)
-	werr := m.Write(f)
+	_, werr := f.Write(m.Bytes())
 	chkerr(werr)
 	cerr := f.Close()
 	chkerr(cerr)
@@ -229,7 +227,7 @@ func restore(store string) {
 	for _, f := range files {
 		fname := f.Name()
 		if len(fname) > 4 {
-			if fname[len(fname)-4:] == bkpExt {
+			if fname[len(fname)-4:] == _BKP_EXT {
 				key := fname[0 : len(fname)-4]
 				fulp := fullpath(store, key)
 				msg, cerr := os.Create(fulp)

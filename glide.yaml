@@ -1,6 +1,7 @@
 package: github.com/barnybug/gohome
 import:
   - package: git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git
+    ref: 3e58ec10bf2da9ef3fc639d12a0eb2e3596c2df7
   - package: github.com/barnybug/gofsm
   - package: github.com/barnybug/gogsmmodem
   - package: github.com/barnybug/gorfxtrx

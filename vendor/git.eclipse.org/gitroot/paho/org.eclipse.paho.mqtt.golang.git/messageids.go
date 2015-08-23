@@ -15,6 +15,7 @@
 package mqtt
 
 import (
+	"errors"
 	"sync"
 )
 
@@ -24,38 +25,56 @@ import (
 type MId uint16
 
 type messageIds struct {
-	sync.RWMutex
-	index map[uint16]Token
+	sync.Mutex
+	idChan   chan MId
+	index    map[MId]bool
+	stopChan chan struct{}
 }
 
 const (
-	midMin uint16 = 1
-	midMax uint16 = 65535
+	MId_MAX MId = 65535
+	MId_MIN MId = 1
 )
 
-func (mids *messageIds) freeID(id uint16) {
-	mids.Lock()
-	defer mids.Unlock()
-	delete(mids.index, id)
+func (mids *messageIds) stop() {
+	close(mids.stopChan)
 }
 
-func (mids *messageIds) getID(t Token) uint16 {
-	mids.Lock()
-	defer mids.Unlock()
-	for i := midMin; i < midMax; i++ {
-		if _, ok := mids.index[i]; !ok {
-			mids.index[i] = t
-			return i
+func (mids *messageIds) generateMsgIds() {
+
+	mids.idChan = make(chan MId, 10)
+	mids.stopChan = make(chan struct{})
+	go func(mid *messageIds) {
+		for {
+			mid.Lock()
+			for i := MId_MIN; i < MId_MAX; i++ {
+				if !mid.index[i] {
+					mid.index[i] = true
+					mid.Unlock()
+					select {
+					case mid.idChan <- i:
+					case <-mid.stopChan:
+						return
+					}
+					break
+				}
+			}
 		}
-	}
-	return 0
+	}(mids)
 }
 
-func (mids *messageIds) getToken(id uint16) Token {
-	mids.RLock()
-	defer mids.RUnlock()
-	if token, ok := mids.index[id]; ok {
-		return token
+func (mids *messageIds) freeId(id MId) {
+	mids.Lock()
+	defer mids.Unlock()
+	//trace_v(MID, "freeing message id: %v", id)
+	mids.index[id] = false
+}
+
+func (mids *messageIds) getId() (MId, error) {
+	select {
+	case i := <-mids.idChan:
+		return i, nil
+	case <-mids.stopChan:
 	}
-	return nil
+	return 0, errors.New("Failed to get next message id.")
 }

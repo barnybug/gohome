@@ -19,8 +19,6 @@ import (
 	"log"
 )
 
-// Internal levels of library output that are initialised to not print
-// anything but can be overridden by programmer
 var (
 	ERROR    *log.Logger
 	CRITICAL *log.Logger

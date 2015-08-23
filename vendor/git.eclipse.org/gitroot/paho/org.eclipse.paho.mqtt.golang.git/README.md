@@ -43,7 +43,8 @@ Samples are available in the `/samples` directory for reference.
 Runtime tracing
 ---------------
 
-Tracing is enabled by assigning logs (from the Go log package) to the logging endpoints, ERROR, CRITICAL, WARN and DEBUG
+Tracing is enabled by using the `SetTraceLevel` option when creating a ClientOptions struct. See the ClientOptions
+documentation for more details.
 
 
 Reporting bugs

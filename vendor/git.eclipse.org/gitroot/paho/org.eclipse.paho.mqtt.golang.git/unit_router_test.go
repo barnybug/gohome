@@ -15,7 +15,6 @@
 package mqtt
 
 import (
-	"git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git/packets"
 	"testing"
 )
 
@@ -35,7 +34,7 @@ func Test_newRouter(t *testing.T) {
 func Test_AddRoute(t *testing.T) {
 	router, _ := newRouter()
 	calledback := false
-	cb := func(client *Client, msg Message) {
+	cb := func(client *MqttClient, msg Message) {
 		calledback = true
 	}
 	router.addRoute("/alpha", cb)
@@ -256,16 +255,13 @@ func Test_match(t *testing.T) {
 func Test_MatchAndDispatch(t *testing.T) {
 	calledback := make(chan bool)
 
-	cb := func(c *Client, m Message) {
+	cb := func(c *MqttClient, m Message) {
 		calledback <- true
 	}
 
-	pub := packets.NewControlPacket(packets.Publish).(*packets.PublishPacket)
-	pub.Qos = 2
-	pub.TopicName = "a"
-	pub.Payload = []byte("foo")
+	pub := newPublishMsg(QOS_TWO, "a", []byte("foo"))
 
-	msgs := make(chan *packets.PublishPacket)
+	msgs := make(chan *Message)
 
 	router, stopper := newRouter()
 	router.addRoute("a", cb)
