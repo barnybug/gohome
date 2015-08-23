@@ -3,14 +3,19 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 )
+
+func fmtFatalf(format string, v ...interface{}) {
+	fmt.Printf(format, v...)
+	os.Exit(1)
+}
 
 func queryArgs(first string, rest ...string) {
 	query(append([]string{first}, rest...))
@@ -27,14 +32,22 @@ func query(args []string) {
 		services.Config.Endpoints.Api, args[0], u.Encode())
 	resp, err := http.Get(uri)
 	if err != nil {
-		log.Fatalf("error: %s\n", err)
+		if strings.HasSuffix(err.Error(), " EOF") { // yuck
+			fmtFatalf("Server disconnected\n")
+		} else {
+			fmtFatalf("error: %s\n", err)
+		}
 	}
+	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("error: %s\n", err)
+		fmtFatalf("error: %s\n", err)
 	}
 
 	parts := strings.Split(string(data), "\n")
+	if len(parts) == 0 {
+		fmt.Println("No response")
+	}
 	for _, part := range parts {
 		if len(part) == 0 {
 			continue
