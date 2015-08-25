@@ -56,7 +56,7 @@ func sendToGraphite(ev *pubsub.Event) {
 		case uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64:
 			floatValue = value.(float64)
 		default:
-			log.Printf("Ignoring non-numeric value: %s:%s %v\n", device, metric, value)
+			//log.Printf("Ignoring non-numeric value: %s:%s %v\n", device, metric, value)
 			continue
 		}
 

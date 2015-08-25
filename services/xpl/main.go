@@ -70,7 +70,7 @@ func (service *Service) Run() error {
 			continue
 		}
 		data := string(buf[:rlen])
-		log.Println("Received:", data)
+		//log.Println("Received:", data)
 		source, power := Process(data)
 		if source != "" && power != "" {
 			var command string

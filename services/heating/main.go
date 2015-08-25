@@ -177,7 +177,7 @@ func (self *Thermostat) Heartbeat(now time.Time) {
 	self.Publisher.Emit(ev)
 	// repeat current state
 	self.Command()
-	log.Println(self.ShortStatus(now))
+	//log.Println(self.ShortStatus(now))
 }
 
 func (self *Thermostat) Event(ev *pubsub.Event) {
