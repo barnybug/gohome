@@ -129,7 +129,7 @@ type Thermostat struct {
 
 func isOccupied() bool {
 	// get presence from store
-	value, err := services.Stor.Get("gohome/state/devices/house.presence")
+	value, err := services.Stor.Get("gohome/state/events/state/house.presence")
 	if err != nil {
 		log.Println("Couldn't get current presence:", err)
 		return true
