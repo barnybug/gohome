@@ -28,6 +28,7 @@ import (
 	"github.com/barnybug/gohome/services/script"
 	"github.com/barnybug/gohome/services/sender"
 	"github.com/barnybug/gohome/services/sms"
+	"github.com/barnybug/gohome/services/systemd"
 	"github.com/barnybug/gohome/services/twitter"
 	"github.com/barnybug/gohome/services/watchdog"
 	"github.com/barnybug/gohome/services/weather"
@@ -57,6 +58,7 @@ func registerServices() {
 	services.Register(&script.Service{})
 	services.Register(&sender.Service{})
 	services.Register(&sms.Service{})
+	services.Register(&systemd.Service{})
 	services.Register(&twitter.Service{})
 	services.Register(&watchdog.Service{})
 	services.Register(&weather.Service{})
@@ -113,8 +115,10 @@ func main() {
 		stop(ps)
 	case "restart":
 		restart(ps)
-	case "status", "ps":
-		queryArgs("daemon/status")
+	case "ps":
+		queryArgs("ps")
+	case "status":
+		queryArgs("status")
 	case "service":
 		service(ps)
 	case "run":
@@ -139,12 +143,12 @@ func start(ps []string) {
 		// daemon can't start itself, so this one must run locally
 		processes.Start(ps, processes.LogLogger{})
 	} else {
-		queryArgs("daemon/start", ps...)
+		queryArgs("start", ps...)
 	}
 }
 
 func stop(ps []string) {
-	queryArgs("daemon/stop", ps...)
+	queryArgs("stop", ps...)
 }
 
 func restart(ps []string) {
@@ -152,6 +156,6 @@ func restart(ps []string) {
 		// daemon can't start itself, so this one must run locally
 		processes.Restart(ps, processes.LogLogger{})
 	} else {
-		queryArgs("daemon/restart", ps...)
+		queryArgs("restart", ps...)
 	}
 }
