@@ -3,12 +3,13 @@ package heating
 import (
 	"encoding/json"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/pubsub/dummy"
 	"github.com/barnybug/gohome/services"
-	"testing"
-	"time"
 
 	"gopkg.in/v1/yaml"
 )
@@ -60,7 +61,7 @@ func Setup() {
 	// setup mock store
 	services.Config = config.ExampleConfig
 	services.Stor = services.NewMockStore()
-	services.Stor.Set("gohome/state/devices/house.presence", mockHousePresence)
+	services.Stor.Set("gohome/state/events/state/house.presence", mockHousePresence)
 
 	yaml.Unmarshal([]byte(configYaml), &testConfig)
 	em = &dummy.Publisher{}
