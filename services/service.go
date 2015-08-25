@@ -171,15 +171,10 @@ func Launch(ss []string) {
 	SetupEndpoints()
 	SetupFlags()
 
-	// id should be the process id - ie. key under processes (not necessarily
-	// equal to the service, for scripts)
-	if id := os.Getenv("ID"); id != "" {
-		go Heartbeat(id)
-	}
-
 	for _, service := range enabled {
 		log.Printf("Starting %s\n", service.ID())
 		// run heartbeater
+		go Heartbeat(service.ID())
 		err := service.Run()
 		if err != nil {
 			log.Fatalf("Error running service %s: %s", service.ID(), err.Error())
