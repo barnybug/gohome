@@ -4,9 +4,13 @@
 package systemd
 
 import (
+	"bufio"
+	"encoding/json"
+	"log"
 	"os/exec"
 	"strings"
 
+	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 )
 
@@ -19,8 +23,35 @@ func (self *Service) ID() string {
 }
 
 func (self *Service) Run() error {
-	select {} // sleep forever
+	// tail logs and retransmit under topic: log
+	journalTailer()
 	return nil
+}
+
+func journalTailer() {
+	cmd := exec.Command("journalctl", "--user-unit=gohome@*", "-f", "-n0", "-q", "--output=json")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+	}
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		var data map[string]interface{}
+		err := json.Unmarshal([]byte(scanner.Text()), &data)
+		if err != nil {
+			log.Println("Error decoding json:", err)
+			continue
+		}
+
+		fields := map[string]interface{}{
+			"message": data["MESSAGE"],
+		}
+		ev := pubsub.NewEvent("log", fields)
+		services.Publisher.Emit(ev)
+	}
 }
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
