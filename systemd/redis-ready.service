@@ -1,0 +1,11 @@
+[Unit]
+Description=Check for redis being ready
+After=redis.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'while ! /usr/bin/redis-cli ping; do sleep 1; done'
+TimeoutStartSec=30s
+
+[Install]
+WantedBy=default.target

@@ -159,25 +159,6 @@ func allProcesses() []string {
 	return ret
 }
 
-func Run(ps []string) {
-	running := GetRunning()
-	IterateServices(ps, func(name string, cf config.ProcessConf) {
-		if running[name].Pid == 0 {
-			fmt.Print("Running ", name, "...\n")
-			fpath, args, pattr := processSpec(name, &cf)
-			pattr.Files = []*os.File{os.Stdin, os.Stdout, os.Stderr}
-			p, err := os.StartProcess(fpath, args, pattr)
-			if err == nil {
-				p.Wait()
-			} else {
-				fmt.Println("Error running", name, err)
-			}
-		} else {
-			fmt.Println(name, "already running")
-		}
-	})
-}
-
 func IterateServices(ps []string, fn func(string, config.ProcessConf)) {
 	for _, name := range ps {
 		serviceconf := services.Config.Processes[name]

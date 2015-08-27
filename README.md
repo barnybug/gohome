@@ -83,18 +83,28 @@ Edit this to match your setup and upload to redis:
 
 ## Running
 
-Now start the gohome daemon:
+gohome runs as a set of distributed and independent processes/services. They
+can run across different hosts connecting to the same network, with the pubsub
+bus (MQTT//nanomsg) connecting all the components together.
 
-    $ gohome start daemon
+To manually run a gohome service:
 
-This will start all the services defined in the config and ensure they stay
-running.
+    $ gohome run <service>
 
-gohome runs as a set of distributed and independent processes/services. These
-don't necessarily have to be gohome itself - you can add scripts to the system
-of your own crafting. Because they run as independent processes they can run
-across different hardware, with the pubsub bus (MQTT//Nanomsg) connecting
-all the components together.
+The best way to manage the whole set of services is using your user systemd -
+because you probably want to ensure they are restarted if they happen to
+crash. Any recent Archlinux comes with this preconfigured, you just need to
+install the gohome services by running the script `setup.sh` provided:
+
+    $ cd systemd && ./setup.sh
+
+This will enable and start all the services defined in by `SERVICES=...` in
+`setup.sh`.
+
+The 'services' don't necessarily have to be gohome itself - you can add
+scripts to the system of your own crafting. The `script` service can wrap
+external scripts and passes on any events printing to stdout by the external
+script into gohome, allowing quick and easy integration.
 
 ## Building from source
 
