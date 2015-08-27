@@ -73,8 +73,7 @@ func usage() {
 	fmt.Println("   logs    Tail logs (all or select)")
 	fmt.Println("   restart Restart a process")
 	fmt.Println("   rotate  Rotate logs")
-	fmt.Println("   run     Run a process (foreground)")
-	fmt.Println("   service Execute a builtin service")
+	fmt.Println("   run     Run a service")
 	fmt.Println("   start   Start a process")
 	fmt.Println("   status  Get process status")
 	fmt.Println("   stop    Stop a process")
@@ -119,10 +118,8 @@ func main() {
 		queryArgs("ps")
 	case "status":
 		queryArgs("status")
-	case "service":
-		service(ps)
 	case "run":
-		processes.Run(ps)
+		service(ps)
 	case "logs":
 		processes.Logs(ps)
 	case "rotate":
