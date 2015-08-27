@@ -6,6 +6,7 @@ package systemd
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os/exec"
 	"strings"
@@ -46,11 +47,22 @@ func journalTailer() {
 			continue
 		}
 
-		fields := map[string]interface{}{
-			"message": data["MESSAGE"],
+		if message, ok := data["MESSAGE"].(string); ok {
+			var unit string
+			if user_unit, ok := data["_SYSTEMD_USER_UNIT"].(string); ok {
+				user_unit = strings.Replace(user_unit, "gohome@", "", 1)
+				user_unit = strings.Replace(user_unit, ".service", "", 1)
+				unit = user_unit
+			} else {
+				unit = "systemd"
+			}
+			message = fmt.Sprintf("[%s] %s", unit, message)
+			fields := map[string]interface{}{
+				"message": message,
+			}
+			ev := pubsub.NewEvent("log", fields)
+			services.Publisher.Emit(ev)
 		}
-		ev := pubsub.NewEvent("log", fields)
-		services.Publisher.Emit(ev)
 	}
 }
 
