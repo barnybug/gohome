@@ -3,7 +3,6 @@ Description=gohome service %i
 After=network.target
 
 [Service]
-Environment="GOHOME_STORE=redis://localhost:6379"
 ExecStart=$HOME/go/bin/gohome run %i
 ExecStop=/bin/kill $MAINPID
 

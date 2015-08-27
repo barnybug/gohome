@@ -146,6 +146,10 @@ type RfidConf struct {
 	Device string
 }
 
+type SlackConf struct {
+	Token string
+}
+
 type VoiceConf map[string]string
 
 type WeatherConf struct {
@@ -186,6 +190,7 @@ type Config struct {
 	Irrigation   IrrigationConf
 	Jabber       JabberConf
 	Rfid         RfidConf
+	Slack        SlackConf
 	SMS          SMSConf
 	Twitter      TwitterConf
 	Voice        VoiceConf

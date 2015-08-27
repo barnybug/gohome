@@ -27,6 +27,7 @@ import (
 	"github.com/barnybug/gohome/services/rfxtrx"
 	"github.com/barnybug/gohome/services/script"
 	"github.com/barnybug/gohome/services/sender"
+	"github.com/barnybug/gohome/services/slack"
 	"github.com/barnybug/gohome/services/sms"
 	"github.com/barnybug/gohome/services/systemd"
 	"github.com/barnybug/gohome/services/twitter"
@@ -57,6 +58,7 @@ func registerServices() {
 	services.Register(&rfxtrx.Service{})
 	services.Register(&script.Service{})
 	services.Register(&sender.Service{})
+	services.Register(&slack.Service{})
 	services.Register(&sms.Service{})
 	services.Register(&systemd.Service{})
 	services.Register(&twitter.Service{})
