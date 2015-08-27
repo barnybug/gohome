@@ -7,8 +7,10 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -50,9 +52,7 @@ func journalTailer() {
 		if message, ok := data["MESSAGE"].(string); ok {
 			var unit string
 			if user_unit, ok := data["_SYSTEMD_USER_UNIT"].(string); ok {
-				user_unit = strings.Replace(user_unit, "gohome@", "", 1)
-				user_unit = strings.Replace(user_unit, ".service", "", 1)
-				unit = user_unit
+				unit = stripUnitName(user_unit)
 			} else {
 				unit = "systemd"
 			}
@@ -82,14 +82,6 @@ func (self *Service) QueryHandlers() services.QueryHandlers {
 	}
 }
 
-func allProcesses() []string {
-	var ret []string
-	for key, _ := range services.Config.Processes {
-		ret = append(ret, key)
-	}
-	return ret
-}
-
 func systemctl(first string, args ...string) string {
 	cmdarg := append([]string{"--user", first}, args...)
 	cmd := exec.Command("systemctl", cmdarg...)
@@ -97,9 +89,116 @@ func systemctl(first string, args ...string) string {
 	return string(out)
 }
 
+func writeTable(table [][]string) string {
+	var out string
+	lengths := map[int]int{}
+	for _, row := range table {
+		for i, value := range row {
+			if len(value) > lengths[i] {
+				lengths[i] = len(value)
+			}
+		}
+	}
+
+	for _, row := range table {
+		for i, value := range row {
+			format := fmt.Sprintf("%%-%ds", lengths[i]+1)
+			out += fmt.Sprintf(format, value)
+		}
+		out += "\n"
+	}
+	return out
+}
+
+type ByStatus []UnitStatus
+
+func (a ByStatus) Len() int {
+	return len(a)
+}
+
+func (a ByStatus) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+func (a ByStatus) Less(i, j int) bool {
+	x := strings.Compare(a[i].Status, a[j].Status)
+	y := strings.Compare(a[i].Process, a[j].Process)
+	return (x == 0 && y < 0) || (x != 0 && x > 0)
+}
+
 func (self *Service) queryStatus(q services.Question) string {
-	// ps := allProcesses()
-	return systemctl("status")
+	table := [][]string{
+		[]string{"Process", "Status", "PID", "Started"},
+	}
+	units := getStatus()
+	sort.Sort(ByStatus(units))
+	for _, unit := range units {
+		table = append(table, []string{unit.Process, unit.Status, unit.MainPid, unit.Started})
+	}
+	return writeTable(table)
+}
+
+type UnitStatus struct {
+	Process string
+	Status  string
+	MainPid string
+	Started string
+}
+
+func parseShowOutput(reader io.Reader) []UnitStatus {
+	scanner := bufio.NewScanner(reader)
+	results := []UnitStatus{}
+	current := UnitStatus{}
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" {
+			results = append(results, current)
+			current = UnitStatus{}
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		switch parts[0] {
+		case "Id":
+			current.Process = stripUnitName(parts[1])
+		case "MainPID":
+			if parts[1] == "0" {
+				parts[1] = ""
+			}
+			current.MainPid = parts[1]
+		case "ActiveState":
+			if parts[1] == "active" {
+				parts[1] = "running"
+			}
+			current.Status = parts[1]
+		case "ExecMainStartTimestamp":
+			current.Started = parts[1]
+		}
+	}
+	if current.Process != "" {
+		results = append(results, current)
+	}
+	return results
+}
+
+func getStatus() []UnitStatus {
+	cmd := exec.Command("systemctl", "--user", "show", "--property=Id,MainPID,ActiveState,ExecMainStartTimestamp", "gohome@*")
+	stdout, err := cmd.StdoutPipe()
+	if err == nil {
+		err = cmd.Start()
+	}
+	if err != nil {
+		log.Println(err)
+		return []UnitStatus{}
+	}
+	return parseShowOutput(stdout)
+}
+
+func stripUnitName(s string) string {
+	return strings.Replace(
+		strings.Replace(s, "gohome@", "", 1),
+		".service", "", 1)
 }
 
 func (self *Service) queryStartStopRestart(q services.Question) string {

@@ -27,12 +27,12 @@ func (self *Service) Run() error {
 	// api.SetDebug(true)
 	rtm := api.NewRTM()
 	go slacker(rtm)
-	logTransmitter(api, rtm)
+	logTransmitter(rtm)
 
 	return nil
 }
 
-func lookupChannelByName(api *slack.Client, name string) *slack.Channel {
+func lookupChannelByName(api *slack.RTM, name string) *slack.Channel {
 	channels, err := api.GetChannels(true)
 	if err != nil {
 		log.Fatal(err)
@@ -45,8 +45,8 @@ func lookupChannelByName(api *slack.Client, name string) *slack.Channel {
 	return nil
 }
 
-func logTransmitter(api *slack.Client, rtm *slack.RTM) {
-	channel := lookupChannelByName(api, "logs")
+func logTransmitter(rtm *slack.RTM) {
+	channel := lookupChannelByName(rtm, "logs")
 	if channel == nil {
 		log.Fatal("You must create #logs and invite me")
 	}
