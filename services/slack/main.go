@@ -55,7 +55,6 @@ func logTransmitter(api *slack.Client, rtm *slack.RTM) {
 	}
 
 	for ev := range services.Subscriber.FilteredChannel("log") {
-		fmt.Println(ev.String())
 		rtm.SendMessage(rtm.NewOutgoingMessage(ev.StringField("message"), channel.ID))
 	}
 }
