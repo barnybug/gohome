@@ -62,6 +62,7 @@ func logTransmitter(rtm *slack.RTM) {
 func slacker(rtm *slack.RTM) {
 	go rtm.ManageConnection()
 
+	userId := ""
 Loop:
 	for {
 		select {
@@ -73,13 +74,16 @@ Loop:
 					channel := event.Info.Channels[0]
 					rtm.SendMessage(rtm.NewOutgoingMessage("gohome bot reporting for duty!", channel.ID))
 				}
+				// remember our id
+				userId = event.Info.User.ID
 
 			case *slack.MessageEvent:
-				if event.BotID != "" { // ignore bot messages
+				if event.User == userId || event.BotID != "" {
+					// ignore messages from self or bots
 					continue
 				}
 				// send the message as a query
-				log.Println("Querying: " + event.Text)
+				log.Println("Querying:", event.Text)
 				ch := services.QueryChannel(event.Text, time.Duration(5)*time.Second)
 
 				gotResponse := false
