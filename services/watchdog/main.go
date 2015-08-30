@@ -122,15 +122,13 @@ func (self *Service) Run() error {
 	}
 
 	// monitor gohome processes heartbeats
-	for process, conf := range services.Config.Processes {
-		if strings.HasPrefix(conf.Cmd, "gohome service") {
-			device := fmt.Sprintf("heartbeat.%s", process)
-			// if a process misses 2 heartbeats, mark as problem
-			devices[device] = &WatchdogDevice{
-				Name:      fmt.Sprintf("Process %s", process),
-				Timeout:   time.Second * 121,
-				LastEvent: now,
-			}
+	for _, process := range services.Config.Watchdog.Processes {
+		device := fmt.Sprintf("heartbeat.%s", process)
+		// if a process misses 2 heartbeats, mark as problem
+		devices[device] = &WatchdogDevice{
+			Name:      fmt.Sprintf("Process %s", process),
+			Timeout:   time.Second * 121,
+			LastEvent: now,
 		}
 	}
 

@@ -9,56 +9,6 @@ endpoints:
   mqtt:
     broker: tcp://127.0.0.1:1883
 
-processes:
-  # enable or disable processes by adding/removing sections
-  daemon:
-    cmd: gohome service daemon
-  api:
-    cmd: gohome service api
-  arduino:
-    cmd: gohome service arduino
-  automata:
-    cmd: gohome service automata
-  bills:
-    cmd: gohome service bills
-  camera:
-    cmd: gohome service camera
-  currentcost:
-    cmd: gohome service currentcost
-  datalogger:
-    cmd: gohome service datalogger
-  earth:
-    cmd: gohome service earth
-  espeaker:
-    cmd: gohome service espeaker
-  graphite:
-    cmd: gohome service graphite
-  heating:
-    cmd: gohome service heating
-  irrigation:
-    cmd: gohome service irrigation
-  jabber:
-    cmd: gohome service jabber
-  pubsub:
-    cmd: gohome service pubsub
-  rfid:
-    cmd: gohome service rfid
-  rfxtrx:
-    cmd: gohome service rfxtrx
-  sms:
-    cmd: gohome service sms
-  twitter:
-    cmd: gohome service twitter
-  watchdog:
-    cmd: gohome service watchdog
-  weather:
-    cmd: gohome service weather
-  wmr100:
-    cmd: gohome service script -- ~/git/wmr100/wmr100 -s
-  wunderground:
-    cmd: gohome service wunderground
-  xpl:
-    cmd: gohome service xpl
 bill:
   electricity:
     primary_rate: 8.89
@@ -217,6 +167,8 @@ watchdog:
     temp.office: 20m
     temp.outside: 20m
     wind.outside: 20m
+  processes: [api, arduino, automata, bills, camera, currentcost, datalogger, earth, espeaker, graphite, heating, irrigation, jabber, pubsub, rfid, rfxtrx, sms, twitter, watchdog, weather, wmr100, wunderground, xpl]
+
 weather:
   outside:
     rain: rain.outside

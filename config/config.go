@@ -162,7 +162,8 @@ type WeatherConf struct {
 }
 
 type WatchdogConf struct {
-	Devices map[string]string
+	Devices   map[string]string
+	Processes []string
 }
 
 type WundergroundConf struct {
@@ -174,8 +175,8 @@ type WundergroundConf struct {
 // Configuration structure
 type Config struct {
 	// yaml fields
-	Devices      map[string]DeviceConf
-	Processes    map[string]ProcessConf
+	Devices map[string]DeviceConf
+	// Processes    map[string]ProcessConf
 	Protocols    map[string]map[string]string
 	Endpoints    EndpointsConf
 	Bill         BillConf
@@ -232,11 +233,6 @@ func OpenRaw(data []byte) (*Config, error) {
 		self.Devices[id] = device
 	}
 
-	for name, cf := range self.Processes {
-		cf.Cmd = util.ExpandUser(cf.Cmd)
-		cf.Path = util.ExpandUser(cf.Path)
-		self.Processes[name] = cf
-	}
 	return self, nil
 }
 

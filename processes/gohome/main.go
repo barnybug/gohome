@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/barnybug/gohome/processes"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/services/api"
 	"github.com/barnybug/gohome/services/arduino"
@@ -14,7 +13,6 @@ import (
 	"github.com/barnybug/gohome/services/bills"
 	"github.com/barnybug/gohome/services/camera"
 	"github.com/barnybug/gohome/services/currentcost"
-	"github.com/barnybug/gohome/services/daemon"
 	"github.com/barnybug/gohome/services/datalogger"
 	"github.com/barnybug/gohome/services/earth"
 	"github.com/barnybug/gohome/services/espeaker"
@@ -46,7 +44,6 @@ func registerServices() {
 	services.Register(&camera.Service{})
 	services.Register(&currentcost.Service{})
 	services.Register(&datalogger.Service{})
-	services.Register(&daemon.Service{})
 	services.Register(&earth.Service{})
 	services.Register(&espeaker.Service{})
 	services.Register(&graphite.Service{})
@@ -122,10 +119,6 @@ func main() {
 		queryArgs("status")
 	case "run":
 		service(ps)
-	case "logs":
-		processes.Logs(ps)
-	case "rotate":
-		processes.Rotate(ps)
 	case "query":
 		query(ps)
 	}
@@ -138,12 +131,7 @@ func service(ss []string) {
 }
 
 func start(ps []string) {
-	if len(ps) == 1 && ps[0] == "daemon" {
-		// daemon can't start itself, so this one must run locally
-		processes.Start(ps, processes.LogLogger{})
-	} else {
-		queryArgs("start", ps...)
-	}
+	queryArgs("start", ps...)
 }
 
 func stop(ps []string) {
@@ -151,10 +139,5 @@ func stop(ps []string) {
 }
 
 func restart(ps []string) {
-	if len(ps) == 1 && ps[0] == "daemon" {
-		// daemon can't start itself, so this one must run locally
-		processes.Restart(ps, processes.LogLogger{})
-	} else {
-		queryArgs("restart", ps...)
-	}
+	queryArgs("restart", ps...)
 }
