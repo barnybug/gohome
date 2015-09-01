@@ -50,15 +50,15 @@ func journalTailer() {
 		}
 
 		if message, ok := data["MESSAGE"].(string); ok {
-			var unit string
+			var source string
 			if user_unit, ok := data["_SYSTEMD_USER_UNIT"].(string); ok {
-				unit = stripUnitName(user_unit)
+				source = stripUnitName(user_unit)
 			} else {
-				unit = "systemd"
+				source = "systemd"
 			}
-			message = fmt.Sprintf("[%s] %s", unit, message)
 			fields := map[string]interface{}{
 				"message": message,
+				"source":  source,
 			}
 			ev := pubsub.NewEvent("log", fields)
 			services.Publisher.Emit(ev)

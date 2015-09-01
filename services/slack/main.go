@@ -55,7 +55,8 @@ func logTransmitter(rtm *slack.RTM) {
 	}
 
 	for ev := range services.Subscriber.FilteredChannel("log") {
-		rtm.SendMessage(rtm.NewOutgoingMessage(ev.StringField("message"), channel.ID))
+		message := fmt.Sprintf("[%s] %s", ev.StringField("source"), ev.StringField("message"))
+		rtm.SendMessage(rtm.NewOutgoingMessage(message, channel.ID))
 	}
 }
 
