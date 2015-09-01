@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -31,20 +31,11 @@ func request(path string, params url.Values) {
 		}
 	}
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmtFatalf("error: %s\n", err)
-	}
+	scanner := bufio.NewScanner(resp.Body)
 
-	parts := strings.Split(string(data), "\n")
-	if len(parts) == 0 {
-		fmt.Println("No response")
-	}
-	for _, part := range parts {
-		if len(part) == 0 {
-			continue
-		}
-		ev := pubsub.Parse(part)
+	n := 0
+	for scanner.Scan() {
+		ev := pubsub.Parse(scanner.Text())
 		if ev == nil {
 			continue
 		}
@@ -56,6 +47,10 @@ func request(path string, params url.Values) {
 		} else {
 			fmt.Printf("\x1b[32;1m%s\x1b[0m %s\n", source, message)
 		}
+		n += 1
+	}
+	if n == 0 {
+		fmt.Println("No response")
 	}
 }
 

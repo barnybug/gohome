@@ -2,9 +2,7 @@
 //
 // The endpoints supported are:
 //
-// http://localhost:8723/query/{query} - query a service, e.g. http://localhost:8723/query/heating/status
-//
-// http://localhost:8723/voice - perform a voice query command
+// http://localhost:8723/config?path=gohome/config - GET configuration or POST to update configuration
 //
 // http://localhost:8723/devices - list of devices and events
 //
@@ -18,19 +16,21 @@
 //
 // http://localhost:8723/events/feed - continuous live stream of events (line delimited)
 //
-// http://localhost:8723/config?path=gohome/config - GET configuration or POST to update configuration
+// http://localhost:8723/query/{query} - query a service, e.g. http://localhost:8723/query/heating/status
+//
+// http://localhost:8723/logs - stream logs, until disconnect
+//
+// http://localhost:8723/voice - perform a voice query command
 package api
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -325,30 +325,17 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func apiLogs(w http.ResponseWriter, r *http.Request) {
-	logs := []string{}
-	infos, err := ioutil.ReadDir(config.LogPath(""))
-	if err != nil {
-		errorResponse(w, err)
-		return
-	}
+	w.Header().Add("Content-Type", "application/json; boundary=NL")
 
-	for _, info := range infos {
-		logs = append(logs, info.Name())
+	ch := services.Subscriber.FilteredChannel("log")
+	defer services.Subscriber.Close(ch)
+	for ev := range ch {
+		_, err := fmt.Fprintf(w, "%s\r\n", ev)
+		if err != nil {
+			break
+		}
+		w.(http.Flusher).Flush()
 	}
-	jsonResponse(w, logs)
-}
-
-func apiLogsLog(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	filename := config.LogPath(params["file"])
-	file, err := os.Open(filename)
-	if err != nil {
-		errorResponse(w, err)
-		return
-	}
-
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	io.Copy(w, file)
 }
 
 func router() *mux.Router {
@@ -364,7 +351,6 @@ func router() *mux.Router {
 	router.Path("/events/feed").HandlerFunc(apiEventsFeed)
 	router.Path("/config").HandlerFunc(apiConfig)
 	router.Path("/logs").HandlerFunc(apiLogs)
-	router.Path("/logs/{file}").HandlerFunc(apiLogsLog)
 	return router
 }
 

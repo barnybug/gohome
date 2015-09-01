@@ -70,7 +70,7 @@ func usage() {
 	fmt.Println("Usage: gohome COMMAND [PROCESS/SERVICE]")
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Println("   logs    Tail logs (all or select)")
+	fmt.Println("   logs    Tail logs")
 	fmt.Println("   restart Restart a process")
 	fmt.Println("   rotate  Rotate logs")
 	fmt.Println("   run     Run a service")
@@ -128,6 +128,8 @@ func main() {
 			return
 		}
 		query(ps[0], ps[1:], EmptyParams)
+	case "logs":
+		request("logs", EmptyParams)
 	}
 }
 
