@@ -28,6 +28,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"regexp"
@@ -77,16 +78,21 @@ func jsonResponse(w http.ResponseWriter, obj interface{}) {
 	}
 }
 
-const DefaultQueryTimeout = 100
+const DefaultQueryTimeout = 500
 
-func query(endpoint string, q string, timeout int64, w http.ResponseWriter) {
+func query(endpoint string, q string, timeout int64, responses int64, w http.ResponseWriter) {
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 
 	ch := services.QueryChannel(endpoint+" "+q, time.Duration(timeout)*time.Millisecond)
 
+	var n int64 = 0
 	for ev := range ch {
 		fmt.Fprintf(w, ev.String()+"\r\n")
 		w.(http.Flusher).Flush()
+		n++
+		if n >= responses {
+			break
+		}
 	}
 }
 
@@ -98,7 +104,11 @@ func apiQuery(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		timeout = DefaultQueryTimeout
 	}
-	query(endpoint, q, timeout, w)
+	responses, err := strconv.ParseInt(qvals.Get("responses"), 10, 32)
+	if err != nil {
+		responses = math.MaxInt64
+	}
+	query(endpoint, q, timeout, responses, w)
 }
 
 func apiVoice(w http.ResponseWriter, r *http.Request) {
@@ -216,7 +226,7 @@ func apiHeatingStatus(w http.ResponseWriter, r *http.Request) {
 func apiHeatingSet(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	arg := fmt.Sprintf("%s %s", q.Get("temp"), q.Get("until"))
-	query("heating/ch", arg, DefaultQueryTimeout, w)
+	query("heating/ch", arg, DefaultQueryTimeout, 1, w)
 }
 
 func apiEventsFeed(w http.ResponseWriter, r *http.Request) {

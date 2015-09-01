@@ -114,13 +114,13 @@ func main() {
 	case "restart":
 		restart(ps)
 	case "ps":
-		queryArgs("ps")
+		query([]string{"ps"}, map[string]string{"responses": "1"})
 	case "status":
 		queryArgs("status")
 	case "run":
 		service(ps)
 	case "query":
-		query(ps)
+		query(ps, map[string]string{})
 	}
 }
 

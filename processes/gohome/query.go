@@ -18,15 +18,19 @@ func fmtFatalf(format string, v ...interface{}) {
 }
 
 func queryArgs(first string, rest ...string) {
-	query(append([]string{first}, rest...))
+	query(append([]string{first}, rest...), map[string]string{})
 }
 
-func query(args []string) {
+func query(args []string, params map[string]string) {
 	if len(args) == 0 {
 		usage()
+		return
 	}
 	q := strings.Join(args[1:], " ")
 	u := url.Values{"q": {q}}
+	for key, value := range params {
+		u[key] = []string{value}
+	}
 
 	uri := fmt.Sprintf("%s/query/%s?%s",
 		services.Config.Endpoints.Api, args[0], u.Encode())
