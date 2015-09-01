@@ -62,6 +62,7 @@ func logTransmitter(rtm *slack.RTM) {
 func slacker(rtm *slack.RTM) {
 	go rtm.ManageConnection()
 
+	greeted := false
 	userId := ""
 Loop:
 	for {
@@ -71,8 +72,11 @@ Loop:
 			case *slack.ConnectedEvent:
 				// say hello in the first channel we're in
 				if len(event.Info.Channels) > 0 {
-					channel := event.Info.Channels[0]
-					rtm.SendMessage(rtm.NewOutgoingMessage("gohome bot reporting for duty!", channel.ID))
+					if !greeted {
+						channel := event.Info.Channels[0]
+						rtm.SendMessage(rtm.NewOutgoingMessage("gohome bot reporting for duty!", channel.ID))
+					}
+					greeted = true
 				}
 				// remember our id
 				userId = event.Info.User.ID
