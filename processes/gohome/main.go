@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 
 	"github.com/barnybug/gohome/services"
@@ -80,6 +81,8 @@ func usage() {
 	fmt.Println()
 }
 
+var EmptyParams = url.Values{}
+
 func main() {
 	log.SetOutput(os.Stdout)
 	flag.Usage = usage
@@ -108,19 +111,23 @@ func main() {
 	default:
 		usage()
 	case "start":
-		start(ps)
+		query("start", ps, EmptyParams)
 	case "stop":
-		stop(ps)
+		query("stop", ps, EmptyParams)
 	case "restart":
-		restart(ps)
+		query("restart", ps, EmptyParams)
 	case "ps":
-		query([]string{"ps"}, map[string]string{"responses": "1"})
+		query("ps", []string{}, url.Values{"responses": {"1"}})
 	case "status":
-		queryArgs("status")
+		query("status", []string{}, EmptyParams)
 	case "run":
 		service(ps)
 	case "query":
-		query(ps, map[string]string{})
+		if len(ps) == 0 {
+			usage()
+			return
+		}
+		query(ps[0], ps[1:], EmptyParams)
 	}
 }
 
@@ -128,16 +135,4 @@ func main() {
 func service(ss []string) {
 	registerServices()
 	services.Launch(ss)
-}
-
-func start(ps []string) {
-	queryArgs("start", ps...)
-}
-
-func stop(ps []string) {
-	queryArgs("stop", ps...)
-}
-
-func restart(ps []string) {
-	queryArgs("restart", ps...)
 }
