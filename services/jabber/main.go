@@ -124,8 +124,10 @@ func (self *Service) Run() error {
 			case xmpp.Presence:
 				// ignore self
 				if !IsSelf(v.From) {
-					presence[v.From] = v.Show
-					log.Println("Presence:", v.From, v.Show)
+					if presence[v.From] != v.Show {
+						presence[v.From] = v.Show
+						log.Println("Presence:", v.From, v.Show)
+					}
 				}
 			}
 		}
