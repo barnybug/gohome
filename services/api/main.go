@@ -47,6 +47,8 @@ import (
 type Service struct {
 }
 
+var Debug bool = false
+
 // ID of the service
 func (service *Service) ID() string {
 	return "api"
@@ -359,7 +361,9 @@ type loggingHandler struct {
 }
 
 func (service loggingHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	log.Printf("%s %s\n", req.Method, req.RequestURI)
+	if Debug {
+		log.Printf("%s %s\n", req.Method, req.RequestURI)
+	}
 	service.Handler.ServeHTTP(w, req)
 }
 
