@@ -81,7 +81,7 @@ func usage() {
 	fmt.Println()
 }
 
-var EmptyParams = url.Values{}
+var emptyParams = url.Values{}
 
 func main() {
 	log.SetOutput(os.Stdout)
@@ -104,22 +104,22 @@ func main() {
 		}
 	}
 
-	services.Setup()
+	services.SetupLogging()
 
 	command := flag.Args()[0]
 	switch command {
 	default:
 		usage()
 	case "start":
-		query("start", ps, EmptyParams)
+		query("start", ps, emptyParams)
 	case "stop":
-		query("stop", ps, EmptyParams)
+		query("stop", ps, emptyParams)
 	case "restart":
-		query("restart", ps, EmptyParams)
+		query("restart", ps, emptyParams)
 	case "ps":
 		query("ps", []string{}, url.Values{"responses": {"1"}})
 	case "status":
-		query("status", []string{}, EmptyParams)
+		query("status", []string{}, emptyParams)
 	case "run":
 		service(ps)
 	case "query":
@@ -127,14 +127,16 @@ func main() {
 			usage()
 			return
 		}
-		query(ps[0], ps[1:], EmptyParams)
+		query(ps[0], ps[1:], emptyParams)
 	case "logs":
-		request("logs", EmptyParams)
+		request("logs", emptyParams)
 	}
 }
 
 // Start builtin services
 func service(ss []string) {
+	services.SetupStore()
+	services.SetupConfig()
 	registerServices()
 	services.Launch(ss)
 }

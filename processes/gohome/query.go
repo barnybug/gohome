@@ -2,14 +2,16 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
 )
 
 func fmtFatalf(format string, v ...interface{}) {
@@ -17,12 +19,34 @@ func fmtFatalf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+func httpClient() *http.Client {
+	// add any custom ca certs
+	roots := x509.NewCertPool()
+	cafile := os.Getenv("GOHOME_CA_CERT")
+	if cafile != "" {
+		pemCerts, err := ioutil.ReadFile(cafile)
+		if err != nil {
+			fmtFatalf("Couldn't load CA cert", err)
+		}
+		roots.AppendCertsFromPEM(pemCerts)
+	}
+	config := &tls.Config{RootCAs: roots}
+	tr := &http.Transport{TLSClientConfig: config}
+	return &http.Client{Transport: tr}
+}
+
 func request(path string, params url.Values) {
-	uri := fmt.Sprintf("%s/%s", services.Config.Endpoints.Api, path)
+	if os.Getenv("GOHOME_API") == "" {
+		fmtFatalf("Set GOHOME_API to the gohome api url.")
+	}
+	// add http auth
+	api := os.Getenv("GOHOME_API")
+	uri := fmt.Sprintf("%s/%s", api, path)
 	if len(params) > 0 {
 		uri += "?" + params.Encode()
 	}
-	resp, err := http.Get(uri)
+	client := httpClient()
+	resp, err := client.Get(uri)
 	if err != nil {
 		if strings.HasSuffix(err.Error(), " EOF") { // yuck
 			fmtFatalf("Server disconnected\n")
