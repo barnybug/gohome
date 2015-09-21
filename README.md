@@ -114,4 +114,4 @@ To build yourself from source:
     $ cd $GOHOME/src/github.com/barnybug/gohome
     $ make install
 
-This will produce a binary `gohome' in `~/go/bin` (ie. $GOPATH/bin), after this follow the steps as above.
+This will produce a binary `gohome` in `~/go/bin` (ie. $GOPATH/bin), after this follow the steps as above.
