@@ -58,17 +58,17 @@ You also will need redis and mosquitto installed:
 ### Debian/Ubuntu/Raspbian:
 
     $ apt-get install redis
-    TODO: mosquitto installation steps
+    $ service redis start
+    $ apt-get install mosquitto
+    $ service mosquitto start
 
 ### ArchLinux
 
     $ pacman -S redis
-    $ systemctl enable redis
-    $ systemctl start redis
+    $ systemctl enable --now redis
 
     $ packer -S mosquitto
-    $ systemctl enable mosquitto
-    $ systemctl start mosquitto
+    $ systemctl enable --now mosquitto
 
 ## Configuration
 
@@ -85,7 +85,7 @@ Edit this to match your setup and upload to redis:
 
 gohome runs as a set of distributed and independent processes/services. They
 can run across different hosts connecting to the same network, with the pubsub
-bus (MQTT//nanomsg) connecting all the components together.
+bus (MQTT/nanomsg) connecting all the components together.
 
 To manually run a gohome service:
 
@@ -111,7 +111,7 @@ script into gohome, allowing quick and easy integration.
 To build yourself from source:
 
     $ go get github.com/barnybug/gohome
-    $ cd $GOHOME/src/github.com/barnybug/gohome
+    $ cd $GOPATH/src/github.com/barnybug/gohome
     $ make install
 
-This will produce a binary `gohome' in `~/go/bin` (ie. $GOPATH/bin), after this follow the steps as above.
+This will produce a binary `gohome` in `~/go/bin` (ie. $GOPATH/bin), after this follow the steps as above.
