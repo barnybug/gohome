@@ -20,16 +20,24 @@ func fmtFatalf(format string, v ...interface{}) {
 }
 
 func httpClient() *http.Client {
-	// add any custom ca certs
 	roots := x509.NewCertPool()
+
+	// add system certs
+	pemCerts, err := ioutil.ReadFile("/etc/ssl/cert.pem")
+	if err == nil {
+		roots.AppendCertsFromPEM(pemCerts)
+	}
+
+	// add any custom ca certs
 	cafile := os.Getenv("GOHOME_CA_CERT")
 	if cafile != "" {
 		pemCerts, err := ioutil.ReadFile(cafile)
 		if err != nil {
-			fmtFatalf("Couldn't load CA cert", err)
+			fmtFatalf("Couldn't load CA cert: %s", err)
 		}
 		roots.AppendCertsFromPEM(pemCerts)
 	}
+
 	config := &tls.Config{RootCAs: roots}
 	tr := &http.Transport{TLSClientConfig: config}
 	return &http.Client{Transport: tr}
