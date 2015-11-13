@@ -115,6 +115,7 @@ func apiQuery(w http.ResponseWriter, r *http.Request) {
 
 func apiVoice(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
+	log.Printf("Received voice request: '%s'", q)
 
 	body := ""
 	for key, value := range services.Config.Voice {
@@ -131,12 +132,14 @@ func apiVoice(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if body == "" {
+		log.Printf("Not understood: '%s'", q)
 		fmt.Fprintf(w, "Not understood: '%s'", q)
 		return
 	}
 
 	resp, err := services.RPC(body)
 	if err == nil {
+		log.Printf("Voice response: '%s'", resp)
 		fmt.Fprintf(w, resp)
 	} else {
 		w.WriteHeader(500)
