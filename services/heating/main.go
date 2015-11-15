@@ -173,11 +173,16 @@ func (self *Thermostat) ConfigUpdated(config config.HeatingConf) {
 func (self *Thermostat) Heartbeat(now time.Time) {
 	self.Check(now)
 	// emit event for datalogging
-	ev := pubsub.NewEvent("heating", pubsub.Fields{"source": "ch", "heating": self.State})
+	fields := pubsub.Fields{
+		"device":  self.HeatingDevice,
+		"source":  "ch",
+		"heating": self.State,
+		"status":  self.Json(now),
+	}
+	ev := pubsub.NewEvent("heating", fields)
 	self.Publisher.Emit(ev)
 	// repeat current state
 	self.Command()
-	//log.Println(self.ShortStatus(now))
 }
 
 func (self *Thermostat) Event(ev *pubsub.Event) {
