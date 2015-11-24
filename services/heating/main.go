@@ -196,11 +196,14 @@ func (self *Thermostat) Event(ev *pubsub.Event) {
 			dev.Update(temp, now)
 			self.Check(now)
 		}
-	case "house":
-		// house state update
-		state := ev.Fields["state"]
-		self.Occupied = (state != "Empty")
-		self.Check(now)
+	case "state":
+		device := services.Config.LookupDeviceName(ev)
+		if device == "house.presence" {
+			// house state update
+			state := ev.Fields["state"]
+			self.Occupied = (state != "Empty")
+			self.Check(now)
+		}
 	case "command":
 		if ev.Target() == "ch" {
 			value, ok := ev.Fields["value"].(string)
@@ -344,7 +347,7 @@ func (self *Service) ID() string {
 func (self *Service) Run() error {
 	self.thermo = NewThermostat(services.Config.Heating, services.Publisher)
 	ticker := util.NewScheduler(time.Duration(0), time.Minute)
-	events := services.Subscriber.FilteredChannel("temp", "house", "command")
+	events := services.Subscriber.FilteredChannel("temp", "state", "command")
 	for {
 		select {
 		case ev := <-events:

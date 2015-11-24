@@ -20,8 +20,8 @@ var (
 	evBorderline = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 14.2, "timestamp": "2014-01-04 16:10:00.000000"})
 	evHot        = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 19.0, "timestamp": "2014-01-04 16:31:00.000000"})
 
-	evEmpty = pubsub.NewEvent("house", pubsub.Fields{"source": "house", "state": "Empty", "timestamp": "2014-01-04 16:00:00.000000"})
-	evFull  = pubsub.NewEvent("house", pubsub.Fields{"source": "house", "state": "Full", "timestamp": "2014-01-04 16:00:00.000000"})
+	evEmpty = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Empty", "timestamp": "2014-01-04 16:00:00.000000"})
+	evFull  = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Full", "timestamp": "2014-01-04 16:00:00.000000"})
 
 	evParty      = pubsub.NewEvent("command", pubsub.Fields{"target": "ch", "value": "20 30m", "timestamp": "2014-01-04 16:31:00.000000"})
 	evAfterParty = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000000"})
