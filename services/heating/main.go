@@ -208,8 +208,9 @@ func (self *Thermostat) Event(ev *pubsub.Event) {
 		if ev.Target() == "ch" {
 			value, ok := ev.Fields["value"].(string)
 			if ok {
-				err := self.setParty(value, ev.Timestamp)
+				err, temp, duration := parseSet(value)
 				if err == nil {
+					self.setParty(temp, duration, ev.Timestamp)
 					self.Check(now)
 					// TODO - response
 				} else {
@@ -220,22 +221,9 @@ func (self *Thermostat) Event(ev *pubsub.Event) {
 	}
 }
 
-func (self *Thermostat) setParty(value string, at time.Time) error {
-	vs := strings.Split(value, " ")
-	temp, err := strconv.ParseFloat(vs[0], 64)
-	if err != nil {
-		return err
-	}
-	duration := time.Duration(30) * time.Minute
-	if len(vs) > 1 {
-		duration, err = time.ParseDuration(vs[1])
-		if err != nil {
-			return err
-		}
-	}
+func (self *Thermostat) setParty(temp float64, duration time.Duration, at time.Time) {
 	self.PartyTemp = temp
 	self.PartyUntil = at.Add(duration)
-	return nil
 }
 
 func (self *Thermostat) Target(device *Device, now time.Time) float64 {
@@ -383,10 +371,27 @@ func (self *Service) queryStatus(q services.Question) services.Answer {
 	}
 }
 
+func parseSet(value string) (err error, temp float64, duration time.Duration) {
+	vs := strings.Split(value, " ")
+	temp, err = strconv.ParseFloat(vs[0], 64)
+	if err != nil {
+		return
+	}
+	duration = time.Duration(30) * time.Minute
+	if len(vs) > 1 {
+		duration, err = time.ParseDuration(vs[1])
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (self *Service) queryCh(q services.Question) string {
-	err := self.thermo.setParty(q.Args, Clock())
+	err, temp, duration := parseSet(q.Args)
 	if err == nil {
-		return fmt.Sprintf("Set to %v°C until %s", self.thermo.PartyTemp, self.thermo.PartyUntil.Format(time.Stamp))
+		self.thermo.setParty(temp, duration, Clock())
+		return fmt.Sprintf("Set to %v°C for %s", self.thermo.PartyTemp, util.FriendlyDuration(duration))
 	} else {
 		return "usage: ch <temp> <duration>"
 	}

@@ -244,10 +244,10 @@ func ExampleQueryCh() {
 	// Output:
 	// usage: ch <temp> <duration>
 	// usage: ch <temp> <duration>
-	// Set to 18°C until Jan  4 16:40:00
+	// Set to 18°C for 30 minutes
 	// usage: ch <temp> <duration>
-	// Set to 18°C until Jan  4 16:11:00
-	// Set to 18°C until Jan  4 17:10:00
+	// Set to 18°C for 1 minute
+	// Set to 18°C for 1 hour
 }
 
 func ExampleSchedule() {
