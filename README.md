@@ -29,6 +29,7 @@ Home automation for the geek home. Built in Go.
 - Foscam wireless IP cameras
 - Motion webcam application
 - Currentcost electricity monitor
+- LIRC infra-red transmitters
 
 ## Services supported
 

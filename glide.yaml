@@ -21,3 +21,4 @@ import:
   - package: golang.org/x/text
   - package: gopkg.in/v1/yaml
   - package: github.com/nlopes/slack
+  - package: github.com/chbmuc/lirc
