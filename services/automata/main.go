@@ -437,11 +437,11 @@ func (self EventAction) Video(device string, preset int64, secs float64, ir bool
 }
 
 func (self EventAction) RingAlarm() {
-	command("alarm.bell", true)
+	command("alarm.bell", "on")
 }
 
 func (self EventAction) QuietAlarm() {
-	command("alarm.bell", false)
+	command("alarm.bell", "off")
 }
 
 func (self EventAction) Script(cmd string) {
@@ -474,13 +474,14 @@ func (self EventAction) Alert(message string, target string) {
 	services.SendAlert(message, target, "", 0)
 }
 
-func command(device string, state bool) {
-	command := "off"
-	if state {
-		command = "on"
-	}
-	ev := pubsub.NewCommand(device, command, 0)
+func command(device string, cmd string) {
+	ev := pubsub.NewCommand(device, cmd, 0)
 	services.Publisher.Emit(ev)
+}
+
+func (self EventAction) Command(device string, cmd string) {
+	log.Printf("Sending %s %s", device, cmd)
+	command(device, cmd)
 }
 
 func (self EventAction) Switch(device string, state bool) {
@@ -489,7 +490,7 @@ func (self EventAction) Switch(device string, state bool) {
 		on = "on"
 	}
 	log.Printf("Switching %s %s", device, on)
-	command(device, state)
+	command(device, on)
 }
 
 func (self EventAction) StartTimer(name string, d int64) {
