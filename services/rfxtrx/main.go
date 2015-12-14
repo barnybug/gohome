@@ -137,14 +137,19 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 	device := ev.Device()
 	command := ev.Command()
-	if command != "off" && command != "on" {
-		log.Println("Command not recognised:", command)
-		return nil, nil
-	}
-
 	pids := services.Config.LookupDeviceProtocol(device)
 	if len(pids) == 0 {
 		log.Println("Device not found for:", device)
+		return nil, nil
+	}
+
+	if pids["homeeasy"] == "" && pids["x10"] == "" {
+		// command not for us
+		return nil, nil
+	}
+
+	if command != "off" && command != "on" {
+		log.Println("Command not recognised:", command)
 		return nil, nil
 	}
 
