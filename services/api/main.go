@@ -214,8 +214,12 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	} else {
 		command = "off"
 	}
+	var repeat int
+	if q.Get("repeat") == "" {
+		repeat, _ = strconv.Atoi(q.Get("repeat"))
+	}
 	// send command
-	ev := pubsub.NewCommand(device, command, 0)
+	ev := pubsub.NewCommand(device, command, repeat)
 	services.Publisher.Emit(ev)
 	jsonResponse(w, true)
 }
