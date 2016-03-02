@@ -200,9 +200,11 @@ func (self *Service) querySwitch(q services.Question) string {
 		command = args[1]
 	}
 	matches := []string{}
-	for dev, _ := range services.Config.Devices {
-		if strings.Contains(dev, name) {
-			matches = append(matches, dev)
+    var dev config.DeviceConf
+	for iname, idev := range services.Config.Devices {
+		if strings.Contains(iname, name) {
+            dev = idev
+			matches = append(matches, name)
 		}
 	}
 
@@ -212,10 +214,9 @@ func (self *Service) querySwitch(q services.Question) string {
 	if len(matches) > 1 {
 		return fmt.Sprintf("device %s is ambiguous", strings.Join(matches, ", "))
 	}
-	device := matches[0]
-	ev := pubsub.NewCommand(device, command, 0)
+	ev := pubsub.NewCommand(dev.Id, command, 0)
 	services.Publisher.Emit(ev)
-	return fmt.Sprintf("Switched %s %s", matches[0], command)
+	return fmt.Sprintf("Switched %s %s", dev.Name, command)
 }
 
 func (self *Service) queryScript(q services.Question) string {
