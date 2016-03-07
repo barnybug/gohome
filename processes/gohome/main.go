@@ -13,6 +13,7 @@ import (
 	"github.com/barnybug/gohome/services/automata"
 	"github.com/barnybug/gohome/services/bills"
 	"github.com/barnybug/gohome/services/camera"
+	"github.com/barnybug/gohome/services/cast"
 	"github.com/barnybug/gohome/services/cheerlights"
 	"github.com/barnybug/gohome/services/currentcost"
 	"github.com/barnybug/gohome/services/datalogger"
@@ -45,6 +46,7 @@ func registerServices() {
 	services.Register(&automata.Service{})
 	services.Register(&bills.Service{})
 	services.Register(&camera.Service{})
+	services.Register(&cast.Service{})
 	services.Register(&cheerlights.Service{})
 	services.Register(&currentcost.Service{})
 	services.Register(&datalogger.Service{})

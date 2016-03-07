@@ -1,24 +1,27 @@
 package: github.com/barnybug/gohome
 import:
-  - package: git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git
-    ref:     3e58ec10bf2da9ef3fc639d12a0eb2e3596c2df7
-  - package: github.com/barnybug/gofsm
-  - package: github.com/barnybug/gogsmmodem
-  - package: github.com/barnybug/gorfxtrx
-  - package: github.com/droundy/goopt
-  - package: github.com/garyburd/redigo
-  - package: github.com/gdamore/mangos
-  - package: github.com/gorilla/context
-  - package: github.com/gorilla/handlers
-  - package: github.com/gorilla/mux
-  - package: github.com/kurrik/json
-  - package: github.com/kurrik/oauth1a
-  - package: github.com/kurrik/twittergo
-  - package: github.com/mattn/go-xmpp
-  - package: github.com/pborman/uuid
-  - package: github.com/tarm/goserial
-  - package: golang.org/x/net
-  - package: golang.org/x/text
-  - package: gopkg.in/v1/yaml
-  - package: github.com/nlopes/slack
-  - package: github.com/chbmuc/lirc
+- package: git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git
+  version: 3e58ec10bf2da9ef3fc639d12a0eb2e3596c2df7
+- package: github.com/barnybug/gofsm
+- package: github.com/barnybug/gogsmmodem
+- package: github.com/barnybug/gorfxtrx
+- package: github.com/droundy/goopt
+- package: github.com/garyburd/redigo
+- package: github.com/gdamore/mangos
+- package: github.com/gorilla/context
+- package: github.com/gorilla/handlers
+- package: github.com/gorilla/mux
+- package: github.com/kurrik/json
+- package: github.com/kurrik/oauth1a
+- package: github.com/kurrik/twittergo
+- package: github.com/mattn/go-xmpp
+- package: github.com/pborman/uuid
+- package: github.com/tarm/goserial
+- package: golang.org/x/net
+- package: golang.org/x/text
+- package: gopkg.in/v1/yaml
+- package: github.com/nlopes/slack
+- package: github.com/chbmuc/lirc
+- package: github.com/stampzilla/gocast
+  repo: git@github.com:barnybug/gocast.git
+  vcs: git
