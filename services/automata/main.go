@@ -503,6 +503,12 @@ func command(device string, cmd string) {
 	services.Publisher.Emit(ev)
 }
 
+func (self EventAction) Query(query string) {
+	log.Printf("Query %s", query)
+	services.QueryChannel(query, time.Second*5)
+	// results currently discarded
+}
+
 func (self EventAction) Command(device string, cmd string) {
 	log.Printf("Sending %s %s", device, cmd)
 	command(device, cmd)
