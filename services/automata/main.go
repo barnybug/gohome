@@ -40,6 +40,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -183,6 +184,19 @@ func (self *Service) queryTag(q services.Question) string {
 	return fmt.Sprintf("Emitted tag for %s", tagName)
 }
 
+func keywordArgs(args []string) map[string]string {
+	ret := map[string]string{}
+	for _, arg := range args {
+		p := strings.SplitN(arg, "=", 2)
+		if len(p) == 2 {
+			ret[p[0]] = p[1]
+		} else {
+			ret[""] = p[0]
+		}
+	}
+	return ret
+}
+
 func (self *Service) querySwitch(q services.Question) string {
 	if q.Args == "" {
 		// return a list of the devices
@@ -195,10 +209,6 @@ func (self *Service) querySwitch(q services.Question) string {
 	}
 	args := strings.Split(q.Args, " ")
 	name := args[0]
-	command := "on"
-	if len(args) > 1 {
-		command = args[1]
-	}
 	matches := []string{}
 	var dev config.DeviceConf
 	for iname, idev := range services.Config.Devices {
@@ -214,7 +224,20 @@ func (self *Service) querySwitch(q services.Question) string {
 	if len(matches) > 1 {
 		return fmt.Sprintf("device %s is ambiguous", strings.Join(matches, ", "))
 	}
+
+	// rest of key=value arguments
+	kwargs := keywordArgs(args[1:])
+	command := "on"
+	if c, ok := kwargs[""]; ok {
+		command = c
+	}
 	ev := pubsub.NewCommand(dev.Id, command, 3)
+	if level, ok := kwargs["level"]; ok {
+		if level, err := strconv.Atoi(level); err == nil {
+			ev.SetField("level", level)
+		}
+	}
+
 	services.Publisher.Emit(ev)
 	return fmt.Sprintf("Switched %s %s", dev.Name, command)
 }

@@ -152,10 +152,21 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 		log.Println("Command not recognised:", command)
 		return nil, nil
 	}
+	level := ev.IntField("level")
+	if level > 255 {
+		level = 255
+	}
 
 	switch {
 	case pids["homeeasy"] != "":
-		return gorfxtrx.NewLightingHE(0x00, pids["homeeasy"], command)
+		if level != 0 {
+			command = "set level"
+		}
+		pkt, err := gorfxtrx.NewLightingHE(0x00, pids["homeeasy"], command)
+		if level != 0 {
+			pkt.Level = byte(level)
+		}
+		return pkt, err
 	case pids["x10"] != "":
 		return gorfxtrx.NewLightingX10(0x01, pids["x10"], command)
 	}

@@ -63,6 +63,10 @@ func (event *Event) IntField(name string) int64 {
 	return int64(ret)
 }
 
+func (event *Event) SetField(name string, value interface{}) {
+    event.Fields[name] = value
+}
+
 func (event *Event) Target() string {
 	return event.StringField("target")
 }
