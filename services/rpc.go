@@ -3,9 +3,10 @@ package services
 import (
 	"errors"
 	"fmt"
-	"github.com/barnybug/gohome/pubsub"
 	"math/rand"
 	"time"
+
+	"github.com/barnybug/gohome/pubsub"
 )
 
 // Query with `query`, waiting for `timeout` for results.
@@ -34,8 +35,8 @@ func QueryChannel(query string, timeout time.Duration) <-chan *pubsub.Event {
 	return ch
 }
 
-func RPC(query string) (string, error) {
-	ch := QueryChannel(query, time.Second)
+func RPC(query string, timeout time.Duration) (string, error) {
+	ch := QueryChannel(query, timeout)
 	for ev := range ch {
 		return ev.StringField("message"), nil
 	}

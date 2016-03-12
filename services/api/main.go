@@ -137,7 +137,7 @@ func apiVoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := services.RPC(body)
+	resp, err := services.RPC(body, time.Second*5)
 	if err == nil {
 		log.Printf("Voice response: '%s'", resp)
 		fmt.Fprintf(w, resp)
