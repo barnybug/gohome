@@ -422,6 +422,13 @@ func (self *Service) Run() error {
 
 func (self *Service) appendLog(msg string) {
 	fmt.Fprintln(self.log, msg)
+
+	fields := map[string]interface{}{
+		"message": msg,
+		"source":  "event",
+	}
+	ev := pubsub.NewEvent("log", fields)
+	services.Publisher.Emit(ev)
 }
 
 func (self EventAction) substitute(msg string) string {

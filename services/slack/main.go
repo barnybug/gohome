@@ -39,24 +39,32 @@ func lookupChannelByName(api *slack.RTM, name string) *slack.Channel {
 	}
 	for _, channel := range channels {
 		if channel.Name == name {
+			if !channel.IsMember {
+				log.Fatal("You must invite me in to #%s", name)
+			}
 			return &channel
 		}
 	}
+	log.Fatalf("You must create #%s and invite me", name)
+
 	return nil
 }
 
 func logTransmitter(rtm *slack.RTM) {
-	channel := lookupChannelByName(rtm, "logs")
-	if channel == nil {
-		log.Fatal("You must create #logs and invite me")
-	}
-	if !channel.IsMember {
-		log.Fatal("You must invite me in to #logs")
-	}
+	logsChannel := lookupChannelByName(rtm, "logs")
+	eventsChannel := lookupChannelByName(rtm, "events")
 
 	for ev := range services.Subscriber.FilteredChannel("log") {
-		message := fmt.Sprintf("[%s] %s", ev.StringField("source"), ev.StringField("message"))
-		rtm.SendMessage(rtm.NewOutgoingMessage(message, channel.ID))
+		var msg *slack.OutgoingMessage
+		source := ev.StringField("source")
+		if source == "event" {
+			message := ev.StringField("message")
+			msg = rtm.NewOutgoingMessage(message, eventsChannel.ID)
+		} else {
+			message := fmt.Sprintf("[%s] %s", source, ev.StringField("message"))
+			msg = rtm.NewOutgoingMessage(message, logsChannel.ID)
+		}
+		rtm.SendMessage(msg)
 	}
 }
 
