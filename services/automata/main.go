@@ -421,7 +421,9 @@ func (self *Service) Run() error {
 }
 
 func (self *Service) appendLog(msg string) {
-	fmt.Fprintln(self.log, msg)
+	now := time.Now()
+	logMsg := fmt.Sprintf("%s: %s", now.Format(time.StampMilli), msg)
+	fmt.Fprintln(self.log, logMsg)
 
 	fields := map[string]interface{}{
 		"message": msg,
@@ -446,7 +448,7 @@ func (self EventAction) substitute(msg string) string {
 }
 
 func (self EventAction) Log(msg string) {
-	msg = self.substitute("$datetime: " + msg)
+	msg = self.substitute(msg)
 	self.service.appendLog(msg)
 }
 
