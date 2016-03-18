@@ -197,8 +197,13 @@ func keywordArgs(args []string) map[string]string {
 	return ret
 }
 
-func switchable(type_ string) bool {
-	return type_ == "light" || type_ == "dimlight"
+var switchable = map[string]bool{
+	"amp":      true,
+	"dimlight": true,
+	"heater":   true,
+	"light":    true,
+	"lock":     true,
+	"ringer":   true,
 }
 
 func (self *Service) querySwitch(q services.Question) string {
@@ -216,7 +221,7 @@ func (self *Service) querySwitch(q services.Question) string {
 	matches := []string{}
 	var dev config.DeviceConf
 	for iname, idev := range services.Config.Devices {
-		if strings.Contains(iname, name) && switchable(idev.Type) {
+		if strings.Contains(iname, name) && switchable[idev.Type] {
 			dev = idev
 			matches = append(matches, iname)
 		}
