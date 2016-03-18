@@ -21,13 +21,10 @@ func NewEvent(topic string, fields map[string]interface{}) *Event {
 	return &Event{Topic: topic, Timestamp: timestamp, Fields: fields}
 }
 
-func NewCommand(device string, command string, repeat int) *Event {
+func NewCommand(device string, command string) *Event {
 	fields := map[string]interface{}{
 		"device":  device,
 		"command": command,
-	}
-	if repeat > 0 {
-		fields["repeat"] = repeat
 	}
 	return NewEvent("command", fields)
 }
@@ -63,8 +60,12 @@ func (event *Event) IntField(name string) int64 {
 	return int64(ret)
 }
 
+func (event *Event) SetRepeat(repeat int) {
+	event.Fields["repeat"] = repeat
+}
+
 func (event *Event) SetField(name string, value interface{}) {
-    event.Fields[name] = value
+	event.Fields[name] = value
 }
 
 func (event *Event) Target() string {

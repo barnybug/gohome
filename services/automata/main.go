@@ -197,6 +197,10 @@ func keywordArgs(args []string) map[string]string {
 	return ret
 }
 
+func switchable(type_ string) bool {
+	return type_ == "light" || type_ == "dimlight"
+}
+
 func (self *Service) querySwitch(q services.Question) string {
 	if q.Args == "" {
 		// return a list of the devices
@@ -212,9 +216,9 @@ func (self *Service) querySwitch(q services.Question) string {
 	matches := []string{}
 	var dev config.DeviceConf
 	for iname, idev := range services.Config.Devices {
-		if strings.Contains(iname, name) {
+		if strings.Contains(iname, name) && switchable(idev.Type) {
 			dev = idev
-			matches = append(matches, name)
+			matches = append(matches, iname)
 		}
 	}
 
@@ -231,11 +235,19 @@ func (self *Service) querySwitch(q services.Question) string {
 	if c, ok := kwargs[""]; ok {
 		command = c
 	}
-	ev := pubsub.NewCommand(dev.Id, command, 3)
-	if level, ok := kwargs["level"]; ok {
-		if level, err := strconv.Atoi(level); err == nil {
-			ev.SetField("level", level)
+	repeat := 3
+	ev := pubsub.NewCommand(dev.Id, command)
+	if dev.Type == "dimlight" {
+		if level, ok := kwargs["level"]; ok {
+			if level, err := strconv.Atoi(level); err == nil {
+				ev.SetField("level", level)
+				ev.SetRepeat(repeat)
+			}
 		}
+		// avoid setting repeat on a dimmable without a level, as
+		// this triggers dim cycle on homeeasy lights
+	} else {
+		ev.SetRepeat(repeat)
 	}
 
 	services.Publisher.Emit(ev)
@@ -508,7 +520,7 @@ func (self EventAction) Alert(message string, target string) {
 }
 
 func command(device string, cmd string) {
-	ev := pubsub.NewCommand(device, cmd, 0)
+	ev := pubsub.NewCommand(device, cmd)
 	services.Publisher.Emit(ev)
 }
 

@@ -266,7 +266,7 @@ func (self *Thermostat) Command() {
 	if self.State {
 		command = "on"
 	}
-	ev := pubsub.NewCommand(self.HeatingDevice, command, 0)
+	ev := pubsub.NewCommand(self.HeatingDevice, command)
 	self.Publisher.Emit(ev)
 }
 

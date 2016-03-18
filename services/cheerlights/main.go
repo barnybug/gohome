@@ -182,7 +182,7 @@ func tweetListener(tweets chan *twittergo.Tweet, commands chan *Command) {
 
 func (self *Service) setState(state State) {
 	for _, code := range state.Transition(self.state) {
-		ev := pubsub.NewCommand("light.cheer", code, 1)
+		ev := pubsub.NewCommand("light.cheer", code)
 		services.Publisher.Emit(ev)
 	}
 	self.state = state

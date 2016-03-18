@@ -84,7 +84,8 @@ func command(device string, state bool, repeat int) {
 	if state {
 		command = "on"
 	}
-	ev := pubsub.NewCommand(device, command, repeat)
+	ev := pubsub.NewCommand(device, command)
+	ev.SetRepeat(repeat)
 	services.Publisher.Emit(ev)
 }
 
