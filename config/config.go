@@ -229,7 +229,9 @@ func OpenRaw(data []byte) (*Config, error) {
 
 	for id, device := range self.Devices {
 		device.Id = id
-		device.Type = strings.Split(id, ".")[0]
+		if device.Type == "" {
+			device.Type = strings.Split(id, ".")[0]
+		}
 		self.Devices[id] = device
 	}
 
