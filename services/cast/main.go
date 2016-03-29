@@ -8,10 +8,13 @@ import (
 	"log"
 	"time"
 
+	"golang.org/x/net/context"
+
+	"github.com/barnybug/go-cast"
+	"github.com/barnybug/go-cast/discovery"
+	"github.com/barnybug/go-cast/events"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
-	"github.com/stampzilla/gocast/discovery"
-	"github.com/stampzilla/gocast/events"
 )
 
 // Service xpl
@@ -22,50 +25,67 @@ func (service *Service) ID() string {
 	return "cast"
 }
 
+var connected = map[string]bool{}
+
+func listener(ctx context.Context, client *cast.Client) {
+LOOP:
+	for {
+		event := <-client.Events
+		switch data := event.(type) {
+		case events.Connected:
+			log.Printf("%s: connected", client.Name())
+			connected[client.Name()] = true
+		case events.Disconnected:
+			log.Printf("%s: disconnected, reconnecting...", client.Name())
+			client.Close()
+			delete(connected, client.Name())
+			// Try to reconnect again
+			err := client.Connect(ctx)
+			if err != nil {
+				log.Printf("Failed to reconnect to %s, removing: %s", client.Name(), err)
+				break LOOP
+			}
+		case events.AppStarted:
+			log.Printf("%s: App started: %s (%s)", client.Name(), data.DisplayName, data.AppID)
+			fields := map[string]interface{}{
+				"origin":  "cast",
+				"command": "on",
+				"source":  client.Name(),
+				"app":     data.DisplayName,
+			}
+			event := pubsub.NewEvent("cast", fields)
+			services.Publisher.Emit(event)
+		case events.AppStopped:
+			log.Printf("%s: App stopped: %s (%s)", client.Name(), data.DisplayName, data.AppID)
+			fields := map[string]interface{}{
+				"origin":  "cast",
+				"command": "off",
+				"source":  client.Name(),
+			}
+			event := pubsub.NewEvent("cast", fields)
+			services.Publisher.Emit(event)
+		default:
+			// ignored
+		}
+	}
+
+}
+
 func (service *Service) listener(discover *discovery.Service) {
-	connected := map[string]bool{}
-	for device := range discover.Found() {
-		device := device
-		if _, ok := connected[device.Name()]; ok {
-			log.Printf("Existing device discovered: %+v\n", device)
+	ctx := context.Background()
+	for client := range discover.Found() {
+		if _, ok := connected[client.Name()]; ok {
+			log.Printf("Existing client discovered: %s\n", client)
 			continue
 		}
-		log.Printf("New device discovered: %+v\n", device)
+		log.Printf("New client discovered: %s\n", client)
 
-		device.OnEvent(func(event events.Event) {
-			switch data := event.(type) {
-			case events.Connected:
-				log.Printf("%s: connected", device.Name())
-				connected[device.Name()] = true
-			case events.Disconnected:
-				log.Printf("%s: disconnected, reconnecting...", device.Name())
-				delete(connected, device.Name())
-				// Try to reconnect again
-				device.Connect()
-			case events.AppStarted:
-				log.Printf("%s: App started: %s (%s)", device.Name(), data.DisplayName, data.AppID)
-				fields := map[string]interface{}{
-					"origin":  "cast",
-					"command": "on",
-					"source":  device.Name(),
-					"app":     data.DisplayName,
-				}
-				event := pubsub.NewEvent("cast", fields)
-				services.Publisher.Emit(event)
-			case events.AppStopped:
-				log.Printf("%s: App stopped: %s (%s)", device.Name(), data.DisplayName, data.AppID)
-				fields := map[string]interface{}{
-					"origin":  "cast",
-					"command": "off",
-					"source":  device.Name(),
-				}
-				event := pubsub.NewEvent("cast", fields)
-				services.Publisher.Emit(event)
-			default:
-				log.Printf("Unexpected event %T: %#v\n", data, data)
-			}
-		})
-		device.Connect()
+		err := client.Connect(ctx)
+		if err == nil {
+			go listener(ctx, client)
+		} else {
+			log.Printf("Failed to connect to %s: %s", client.Name(), err)
+		}
 	}
 
 	log.Println("Listener finished")
@@ -73,10 +93,11 @@ func (service *Service) listener(discover *discovery.Service) {
 
 // Run the service
 func (service *Service) Run() error {
-	discover := discovery.NewService()
+	ctx := context.Background()
+	discover := discovery.NewService(ctx)
 
 	go service.listener(discover)
 
-	discover.Periodic(time.Second * 300)
-	select {}
+	discover.Run(ctx, time.Second*300)
+	return nil
 }

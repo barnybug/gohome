@@ -1,0 +1,32 @@
+hash: a660c6cb5ce9d31cb4f97513db71e89d75f562d0bbd2350254e6f81b7d8a779e
+updated: 2016-03-29T20:35:54.031645001+01:00
+imports:
+- name: github.com/codegangsta/cli
+  version: 5bf6ffa5a6b5535ce84d7b12101e1f5757e5bd82
+- name: github.com/davecgh/go-spew
+  version: 5bf6ffa5a6b5535ce84d7b12101e1f5757e5bd82
+  subpackages:
+  - spew
+- name: github.com/gogo/protobuf
+  version: 5bf6ffa5a6b5535ce84d7b12101e1f5757e5bd82
+  subpackages:
+  - proto
+- name: github.com/hashicorp/go.net
+  version: 5bf6ffa5a6b5535ce84d7b12101e1f5757e5bd82
+  subpackages:
+  - ipv4
+  - ipv6
+  - internal/iana
+- name: github.com/hashicorp/mdns
+  version: 5bf6ffa5a6b5535ce84d7b12101e1f5757e5bd82
+- name: github.com/miekg/dns
+  version: 5bf6ffa5a6b5535ce84d7b12101e1f5757e5bd82
+- name: github.com/stretchr/testify
+  version: 6fe211e493929a8aac0469b93f28b1d0688a9a3a
+  subpackages:
+  - assert
+- name: golang.org/x/net
+  version: 5bf6ffa5a6b5535ce84d7b12101e1f5757e5bd82
+  subpackages:
+  - context
+devImports: []

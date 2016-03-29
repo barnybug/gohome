@@ -25,3 +25,4 @@ import:
 - package: github.com/stampzilla/gocast
   repo: git@github.com:barnybug/gocast.git
   vcs: git
+- package: github.com/barnybug/go-cast

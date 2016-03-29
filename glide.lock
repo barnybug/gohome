@@ -1,86 +1,88 @@
-hash: f610a6205093e8ea5199b0e612887183dc2f6807ae0a010a71c0bc08d9b6a43a
-updated: 2016-03-07T22:11:21.265916435Z
+hash: ff6546d654a9323673bf65b30364f73ce21dd10fde19124ebf53cbd1d74dec85
+updated: 2016-03-29T22:54:15.840498496+01:00
 imports:
 - name: git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git
   version: ""
-- name: github.com/barnybug/gofsm
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
-- name: github.com/barnybug/gogsmmodem
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
-- name: github.com/barnybug/gorfxtrx
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
-- name: github.com/chbmuc/lirc
-  version: f5796a80dd2b16ffa1cbc5317b3d420af1547de8
-- name: github.com/davecgh/go-spew
-  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+- name: github.com/barnybug/go-cast
+  version: 7adb11dbcadbfdde51d7ec60802fe963c21f6192
   subpackages:
-  - spew
+  - discovery
+  - events
+  - controllers
+  - log
+  - net
+  - api
+- name: github.com/barnybug/gofsm
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
+- name: github.com/barnybug/gogsmmodem
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
+- name: github.com/barnybug/gorfxtrx
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
+- name: github.com/chbmuc/lirc
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/droundy/goopt
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/garyburd/redigo
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
   subpackages:
   - redis
   - internal
 - name: github.com/gdamore/mangos
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
   subpackages:
   - protocol/pub
   - protocol/sub
   - transport/inproc
   - transport/tcp
 - name: github.com/gogo/protobuf
-  version: f4cc07910fc38f5b6b8d6e75d7457cf504157b6c
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
   subpackages:
   - proto
 - name: github.com/gorilla/context
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/gorilla/handlers
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/gorilla/mux
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/hashicorp/go.net
-  version: 104dcad90073cd8d1e6828b2af19185b60cf3e29
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
   subpackages:
   - ipv4
   - ipv6
   - internal/iana
 - name: github.com/hashicorp/mdns
-  version: 9d85cf22f9f8d53cb5c81c1b2749f438b2ee333f
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/kurrik/json
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/kurrik/oauth1a
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/kurrik/twittergo
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/mattn/go-xmpp
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/miekg/dns
-  version: 4adf880b0237527fe9e86701c412d6906e5fcf9c
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/nlopes/slack
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/pborman/uuid
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: github.com/stampzilla/gocast
-  version: 1aa533d07b0b5cc160a0e5a6e180630c0f01c82b
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
   repo: git@github.com:barnybug/gocast.git
   vcs: git
-  subpackages:
-  - api
-  - events
-  - handlers
 - name: github.com/tarm/goserial
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: golang.org/x/net
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
   subpackages:
+  - context
   - websocket
 - name: golang.org/x/text
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: gopkg.in/v1/yaml
-  version: baa88b13ca00aa88f2fa2a69f7eb006dfb357119
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
 - name: gopkg.in/yaml.v1
-  version: 9f9df34309c04878acc86042b16630b0f696e1de
+  version: 227b680d0bcd6e91d538f57b59e500910dd5fe04
   repo: https://gopkg.in/yaml.v1
   vcs: git
 devImports: []
