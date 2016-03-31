@@ -75,7 +75,6 @@ func (service *Service) listener(discover *discovery.Service) {
 	ctx := context.Background()
 	for client := range discover.Found() {
 		if _, ok := connected[client.Name()]; ok {
-			log.Printf("Existing client discovered: %s\n", client)
 			continue
 		}
 		log.Printf("New client discovered: %s\n", client)
