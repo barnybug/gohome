@@ -22,7 +22,4 @@ import:
 - package: gopkg.in/v1/yaml
 - package: github.com/nlopes/slack
 - package: github.com/chbmuc/lirc
-- package: github.com/stampzilla/gocast
-  repo: git@github.com:barnybug/gocast.git
-  vcs: git
 - package: github.com/barnybug/go-cast
