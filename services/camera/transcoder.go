@@ -10,12 +10,12 @@ type Transcoder interface {
 	Transcode(in string) (out string, err error)
 }
 
-// Transcoder using VLC to transcode to .webm format
-type VLCTranscoder struct{}
-
 func stripExt(filename string) string {
 	return strings.TrimSuffix(filename, filepath.Ext(filename))
 }
+
+// Transcoder using VLC to transcode to .webm format
+type VLCTranscoder struct{}
 
 func (self *VLCTranscoder) Transcode(in string) (out string, err error) {
 	out = stripExt(in) + ".webm"
@@ -23,6 +23,19 @@ func (self *VLCTranscoder) Transcode(in string) (out string, err error) {
 		"-Idummy", in,
 		"--sout=#transcode{vcodec=VP80,vb=800,scale=1,acodec=vorb,ab=128,channels=1,samplerate=44100}:file{dst='"+out+"'}",
 		"vlc://quit")
+	err = cmd.Run()
+	return
+}
+
+// Transcoder using ffmpeg to transcode to .avi format
+type FFMpegTranscoder struct{}
+
+func (self *FFMpegTranscoder) Transcode(in string) (out string, err error) {
+	out = stripExt(in) + ".avi"
+	cmd := exec.Command("/usr/bin/ffmpeg",
+        "-i", in,
+        "-c:a", "copy", "-c:v", "copy",
+        out)
 	err = cmd.Run()
 	return
 }

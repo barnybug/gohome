@@ -97,7 +97,7 @@ func (self *Foscam) Video(duration time.Duration) (filename string, err error) {
 	if err != nil {
 		return
 	}
-	transcoder := &VLCTranscoder{}
+	transcoder := &FFMpegTranscoder{}
 	filename, err = transcoder.Transcode(filename)
 	return
 }
