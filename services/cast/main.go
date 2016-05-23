@@ -48,7 +48,6 @@ LOOP:
 		case events.AppStarted:
 			log.Printf("%s: App started: %s (%s)", client.Name(), data.DisplayName, data.AppID)
 			fields := map[string]interface{}{
-				"origin":  "cast",
 				"command": "on",
 				"source":  client.Name(),
 				"app":     data.DisplayName,
@@ -58,7 +57,6 @@ LOOP:
 		case events.AppStopped:
 			log.Printf("%s: App stopped: %s (%s)", client.Name(), data.DisplayName, data.AppID)
 			fields := map[string]interface{}{
-				"origin":  "cast",
 				"command": "off",
 				"source":  client.Name(),
 			}

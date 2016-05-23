@@ -22,5 +22,5 @@ func ExampleParseable() {
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)
 	// Output:
-	// {"origin":"cc","power":1234,"source":"cc01","temp":19.1,"timestamp":"2014-01-02 03:04:05.987654","topic":"power"}
+	// {"power":1234,"source":"cc01","temp":19.1,"timestamp":"2014-01-02 03:04:05.987654","topic":"power"}
 }

@@ -52,7 +52,6 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		log.Printf("Status: type: %s transceiver: %d firmware: %d protocols: %s", p.TypeString(), p.TransceiverType, p.FirmwareVersion, protocols)
 	case *gorfxtrx.LightingX10:
 		fields := map[string]interface{}{
-			"origin":  Origin,
 			"source":  p.Id(),
 			"group":   p.Id()[:1],
 			"command": p.Command(),
@@ -62,7 +61,6 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 	case *gorfxtrx.LightingHE:
 		id := fmt.Sprintf("%07X%1X", p.HouseCode, p.UnitCode)
 		fields := map[string]interface{}{
-			"origin":  Origin,
 			"source":  id,
 			"command": p.Command(),
 		}
@@ -71,7 +69,6 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 	case *gorfxtrx.Temp:
 		source := fmt.Sprintf("thn132n.%s", p.Id()[0:2])
 		fields := map[string]interface{}{
-			"origin":  Origin,
 			"source":  source,
 			"temp":    p.Temp,
 			"battery": p.Battery,
@@ -82,7 +79,6 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		major := strings.ToLower(strings.Split(p.Type(), ",")[0])
 		source := fmt.Sprintf("%s.%s", major, p.Id()[0:2])
 		fields := map[string]interface{}{
-			"origin":   Origin,
 			"source":   source,
 			"temp":     p.Temp,
 			"humidity": p.Humidity,
@@ -93,7 +89,6 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 	case *gorfxtrx.Wind:
 		source := strings.ToLower(p.Type())
 		fields := map[string]interface{}{
-			"origin":   Origin,
 			"source":   source,
 			"speed":    p.Gust,
 			"avgspeed": p.AverageSpeed,
@@ -106,7 +101,6 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		device := strings.ToLower(p.Type())
 		source := fmt.Sprintf("%s.%s", device, p.Id())
 		fields := map[string]interface{}{
-			"origin":    Origin,
 			"source":    source,
 			"rate":      p.RainRate,
 			"all_total": p.RainTotal,
@@ -118,7 +112,6 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		device := deviceName(p.Type())
 		source := fmt.Sprintf("%s.%s", device, strings.Replace(p.Id(), ":", "", 1))
 		fields := map[string]interface{}{
-			"origin":  Origin,
 			"source":  source,
 			"chime":   p.Chime,
 			"battery": p.Battery,

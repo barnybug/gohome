@@ -30,7 +30,9 @@ func parse(msg string) *pubsub.Event {
 		}
 
 		fields := map[string]interface{}{
-			"origin": "cc", "power": power, "temp": temp, "source": "cc01",
+			"source": "cc01",
+			"power":  power,
+			"temp":   temp,
 		}
 		return pubsub.NewEvent("power", fields)
 	}

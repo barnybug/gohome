@@ -81,7 +81,6 @@ func (service *Service) Run() error {
 				command = "off"
 			}
 			fields := map[string]interface{}{
-				"origin":  "xpl",
 				"command": command,
 				"source":  source,
 			}
