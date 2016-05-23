@@ -13,7 +13,7 @@ func ExampleString() {
 	//Output: {"timestamp":"2014-01-02 03:04:05.987654","topic":"test"}
 }
 
-func ExampleParse() {
+func ExampleParseWithTimestamp() {
 	ev := Parse(`{"timestamp":"2014-01-02 03:04:05.987654","topic":"test","field":"value"}`)
 	fmt.Println(ev.Topic)
 	fmt.Println(ev.Timestamp)
@@ -21,6 +21,15 @@ func ExampleParse() {
 	// Output:
 	// test
 	// 2014-01-02 03:04:05.987654 +0000 UTC
+	// map[field:value]
+}
+
+func ExampleParseWithoutTimestamp() {
+	ev := Parse(`{"topic":"test","field":"value"}`)
+	fmt.Println(ev.Topic)
+	fmt.Println(ev.Fields)
+	// Output:
+	// test
 	// map[field:value]
 }
 

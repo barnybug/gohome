@@ -16,6 +16,7 @@ type Event struct {
 func NewEvent(topic string, fields map[string]interface{}) *Event {
 	timestamp := time.Now().UTC()
 	if ts, ok := fields["timestamp"].(string); ok {
+		delete(fields, "timestamp")
 		timestamp, _ = time.Parse(TimeFormat, ts)
 	}
 	return &Event{Topic: topic, Timestamp: timestamp, Fields: fields}
@@ -95,18 +96,10 @@ func Parse(msg string) *Event {
 	if err != nil {
 		return nil
 	}
-	timestamp, ok := fields["timestamp"].(string)
-	if !ok {
-		return nil
-	}
-	ts, _ := time.Parse(TimeFormat, timestamp)
 	topic, ok := fields["topic"].(string)
 	if !ok {
 		return nil
 	}
-	event := Event{Topic: topic, Timestamp: ts}
 	delete(fields, "topic")
-	delete(fields, "timestamp")
-	event.Fields = fields
-	return &event
+	return NewEvent(topic, fields)
 }
