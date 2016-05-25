@@ -23,3 +23,4 @@ import:
 - package: github.com/nlopes/slack
 - package: github.com/chbmuc/lirc
 - package: github.com/barnybug/go-cast
+- package: github.com/mitsuse/pushbullet-go

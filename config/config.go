@@ -123,6 +123,10 @@ type JabberConf struct {
 	Pass string
 }
 
+type PushbulletConf struct {
+	Token string
+}
+
 type ProcessConf struct {
 	Cmd  string
 	Path string
@@ -175,8 +179,7 @@ type WundergroundConf struct {
 // Configuration structure
 type Config struct {
 	// yaml fields
-	Devices map[string]DeviceConf
-	// Processes    map[string]ProcessConf
+	Devices      map[string]DeviceConf
 	Protocols    map[string]map[string]string
 	Endpoints    EndpointsConf
 	Bill         BillConf
@@ -190,6 +193,7 @@ type Config struct {
 	Heating      HeatingConf
 	Irrigation   IrrigationConf
 	Jabber       JabberConf
+	Pushbullet   PushbulletConf
 	Rfid         RfidConf
 	Slack        SlackConf
 	SMS          SMSConf

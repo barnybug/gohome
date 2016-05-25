@@ -1,0 +1,17 @@
+box: mitsuse/golang
+build:
+    steps:
+        - setup-go-workspace
+        - script:
+            name: build
+            code: |
+                go get -t ./...
+        - script:
+            name: coverage
+            code: |
+                bash coverage.bash
+                bash goveralls.bash
+    after-steps:
+        - mitsuse/bullet-send:
+            title: "${WERCKER_GIT_REPOSITORY} - Build ${WERCKER_RESULT}."
+            path: "${WERCKER_BUILD_URL}"
