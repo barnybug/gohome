@@ -203,6 +203,7 @@ var switchable = map[string]bool{
 	"heater":   true,
 	"light":    true,
 	"lock":     true,
+	"pump":     true,
 	"ringer":   true,
 }
 
