@@ -116,6 +116,7 @@ type IrrigationConf struct {
 	Max_Time float64
 	Min_Temp float64
 	Min_Time float64
+	Sensor   string
 }
 
 type JabberConf struct {
