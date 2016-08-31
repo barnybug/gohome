@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	gr graphite.IGraphite
+	gr graphite.Querier
 )
 
 func tweet(message string, subtopic string, interval int64) {
@@ -73,7 +73,7 @@ func (self *Service) ID() string {
 // Run the service
 func (self *Service) Run() error {
 	// initialise
-	gr = graphite.New(services.Config.Graphite.Url)
+	gr = graphite.NewQuerier(services.Config.Graphite.Url)
 
 	// schedule at 00:02
 	offset, _ := time.ParseDuration("2m")

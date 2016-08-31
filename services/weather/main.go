@@ -111,7 +111,7 @@ func weatherStats() string {
 		lowestDesc, lowest)
 }
 
-var gr graphite.IGraphite
+var gr graphite.Querier
 
 // Get last 24 hour temperature min/max
 func getLast24(sensor string, cf string) float64 {
@@ -140,7 +140,7 @@ func (service *Service) ID() string {
 
 // Run the service
 func (service *Service) Run() error {
-	gr = graphite.New(services.Config.Graphite.Url)
+	gr = graphite.NewQuerier(services.Config.Graphite.Url)
 	// schedule at 08:00
 	offset, _ := time.ParseDuration("8h")
 	repeat, _ := time.ParseDuration("24h")

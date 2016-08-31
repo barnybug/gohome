@@ -13,43 +13,18 @@ import (
 
 const BatchSize = 4096
 
-type IGraphite interface {
-	Add(path string, timestamp int64, value float64) error
-	Flush() error
+type Querier interface {
 	Query(from, until, target string) ([]Dataseries, error)
 }
 
-type Graphite struct {
+type GraphiteQuerier struct {
 	url    string
+	host   string
 	buffer string
 }
 
-var dailer = func(network, address string) (io.ReadWriteCloser, error) {
-	return net.Dial(network, address)
-}
-
-func New(url string) *Graphite {
-	return &Graphite{url: url}
-}
-
-func (graphite *Graphite) Add(path string, timestamp int64, value float64) error {
-	line := fmt.Sprintf("%s %v %d\n", path, value, timestamp)
-	graphite.buffer += line
-	if len(graphite.buffer) > BatchSize {
-		return graphite.Flush()
-	}
-	return nil
-}
-
-func (graphite *Graphite) Flush() error {
-	conn, err := dailer("tcp", graphite.url+":2003")
-	if err != nil {
-		return err
-	}
-	conn.Write([]byte(graphite.buffer))
-	conn.Close()
-	graphite.buffer = ""
-	return nil
+func NewQuerier(url string) Querier {
+	return &GraphiteQuerier{url: url}
 }
 
 type Datapoint struct {
@@ -73,7 +48,7 @@ type Dataseries struct {
 	Datapoints []Datapoint
 }
 
-func (graphite *Graphite) Query(from, until, target string) ([]Dataseries, error) {
+func (graphite *GraphiteQuerier) Query(from, until, target string) ([]Dataseries, error) {
 	vs := url.Values{
 		"from":   []string{from},
 		"until":  []string{until},
@@ -91,4 +66,42 @@ func (graphite *Graphite) Query(from, until, target string) ([]Dataseries, error
 		return nil, err
 	}
 	return v, nil
+}
+
+type Writer interface {
+	Add(path string, timestamp int64, value float64) error
+	Flush() error
+}
+
+type GraphiteWriter struct {
+	host   string
+	buffer string
+}
+
+var dialer = func(network, address string) (io.ReadWriteCloser, error) {
+	return net.Dial(network, address)
+}
+
+func NewWriter(host string) *GraphiteWriter {
+	return &GraphiteWriter{host: host}
+}
+
+func (graphite *GraphiteWriter) Add(path string, timestamp int64, value float64) error {
+	line := fmt.Sprintf("%s %v %d\n", path, value, timestamp)
+	graphite.buffer += line
+	if len(graphite.buffer) > BatchSize {
+		return graphite.Flush()
+	}
+	return nil
+}
+
+func (graphite *GraphiteWriter) Flush() error {
+	conn, err := dialer("tcp", graphite.host+":2003")
+	if err != nil {
+		return err
+	}
+	conn.Write([]byte(graphite.buffer))
+	conn.Close()
+	graphite.buffer = ""
+	return nil
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/barnybug/gohome/util"
 )
 
-var gr graphite.IGraphite
+var gr graphite.Querier
 
 func calculateDuration() (duration time.Duration, avgTemp float64) {
 	parts := strings.SplitN(services.Config.Irrigation.Sensor, ".", 2)
@@ -100,7 +100,7 @@ func (self *Service) ID() string {
 
 // Run the service
 func (self *Service) Run() error {
-	gr = graphite.New(services.Config.Graphite.Url)
+	gr = graphite.NewQuerier(services.Config.Graphite.Url)
 	// schedule at given time and interval
 	ticker := util.NewScheduler(services.Config.Irrigation.At.Duration,
 		services.Config.Irrigation.Interval.Duration)

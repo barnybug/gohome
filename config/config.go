@@ -96,7 +96,8 @@ func (self *Duration) SetYAML(tag string, value interface{}) bool {
 }
 
 type GraphiteConf struct {
-	Url string
+	Url  string
+	Host string
 }
 
 type HeatingConf struct {

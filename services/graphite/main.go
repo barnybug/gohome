@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	gr *graphite.Graphite
+	gr *graphite.GraphiteWriter
 )
 
 var GraphiteAggs = []string{"avg", "max", "min"}
@@ -82,7 +82,7 @@ func (self *Service) ID() string {
 
 // Run the service
 func (self *Service) Run() error {
-	gr = graphite.New(services.Config.Graphite.Url)
+	gr = graphite.NewWriter(services.Config.Graphite.Host)
 	for ev := range services.Subscriber.Channel() {
 		sendToGraphite(ev)
 	}
