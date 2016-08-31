@@ -73,7 +73,7 @@ func (self *Service) ID() string {
 // Run the service
 func (self *Service) Run() error {
 	// initialise
-	gr = graphite.New(services.Config.Graphite.Host)
+	gr = graphite.New(services.Config.Graphite.Url)
 
 	// schedule at 00:02
 	offset, _ := time.ParseDuration("2m")

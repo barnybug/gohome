@@ -100,7 +100,7 @@ func (self *Service) ID() string {
 
 // Run the service
 func (self *Service) Run() error {
-	gr = graphite.New(services.Config.Graphite.Host)
+	gr = graphite.New(services.Config.Graphite.Url)
 	// schedule at given time and interval
 	ticker := util.NewScheduler(services.Config.Irrigation.At.Duration,
 		services.Config.Irrigation.Interval.Duration)

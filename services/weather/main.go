@@ -140,7 +140,7 @@ func (service *Service) ID() string {
 
 // Run the service
 func (service *Service) Run() error {
-	gr = graphite.New(services.Config.Graphite.Host)
+	gr = graphite.New(services.Config.Graphite.Url)
 	// schedule at 08:00
 	offset, _ := time.ParseDuration("8h")
 	repeat, _ := time.ParseDuration("24h")

@@ -20,7 +20,7 @@ type IGraphite interface {
 }
 
 type Graphite struct {
-	host   string
+	url    string
 	buffer string
 }
 
@@ -28,8 +28,8 @@ var dailer = func(network, address string) (io.ReadWriteCloser, error) {
 	return net.Dial(network, address)
 }
 
-func New(host string) *Graphite {
-	return &Graphite{host: host}
+func New(url string) *Graphite {
+	return &Graphite{url: url}
 }
 
 func (graphite *Graphite) Add(path string, timestamp int64, value float64) error {
@@ -42,7 +42,7 @@ func (graphite *Graphite) Add(path string, timestamp int64, value float64) error
 }
 
 func (graphite *Graphite) Flush() error {
-	conn, err := dailer("tcp", graphite.host+":2003")
+	conn, err := dailer("tcp", graphite.url+":2003")
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (graphite *Graphite) Query(from, until, target string) ([]Dataseries, error
 		"until":  []string{until},
 		"target": []string{target},
 		"format": []string{"json"}}
-	uri := fmt.Sprintf("http://%s/graphite/render?%s", graphite.host, vs.Encode())
+	uri := fmt.Sprintf("%s/render?%s", graphite.url, vs.Encode())
 	resp, err := http.Get(uri)
 	if err != nil {
 		return nil, err
