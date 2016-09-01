@@ -550,6 +550,13 @@ func (self EventAction) Switch(device string, state bool) {
 	command(device, on)
 }
 
+func (self EventAction) Dim(device string, level int) {
+	log.Printf("Switching %s level %d", device, level)
+	ev := pubsub.NewCommand(device, "on")
+	ev.SetField("level", level)
+	services.Publisher.Emit(ev)
+}
+
 func (self EventAction) StartTimer(name string, d int64) {
 	// log.Printf("Starting timer: %s for %ds", name, d)
 	duration := time.Duration(d) * time.Second
