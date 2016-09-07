@@ -16,10 +16,10 @@ func (self *DummyConn) Close() error {
 
 func TestGraphite(t *testing.T) {
 	conn := &DummyConn{bytes.NewBuffer([]byte{})}
-	dailer = func(network, address string) (io.ReadWriteCloser, error) {
+	dialer = func(network, address string) (io.ReadWriteCloser, error) {
 		return conn, nil
 	}
-	gr := New("localhost")
+	gr := NewWriter("localhost")
 	gr.Add("test.stat", 1, 42.0)
 	err := gr.Flush()
 	if err != nil {
