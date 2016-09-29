@@ -217,12 +217,12 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	// send command
 	ev := pubsub.NewCommand(device, command)
 	if q.Get("repeat") != "" {
-		if repeat, err := strconv.Atoi(q.Get("repeat")); err != nil {
+		if repeat, err := strconv.Atoi(q.Get("repeat")); err == nil {
 			ev.SetRepeat(repeat)
 		}
 	}
 	if q.Get("level") != "" {
-		if level, err := strconv.Atoi(q.Get("level")); err != nil {
+		if level, err := strconv.Atoi(q.Get("level")); err == nil {
 			ev.SetField("level", level)
 		}
 	}
