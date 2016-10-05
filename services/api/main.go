@@ -55,7 +55,11 @@ func (service *Service) ID() string {
 }
 
 func errorResponse(w http.ResponseWriter, err error) {
-	http.Error(w, err.Error(), 500)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+}
+
+func badRequest(w http.ResponseWriter, err error) {
+	http.Error(w, err.Error(), http.StatusBadRequest)
 }
 
 type VarsHandler func(http.ResponseWriter, *http.Request, map[string]string)
@@ -240,7 +244,14 @@ func apiHeatingStatus(w http.ResponseWriter, r *http.Request) {
 
 func apiHeatingSet(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	arg := fmt.Sprintf("%s %s", q.Get("temp"), q.Get("until"))
+	for _, name := range []string{"id", "temp", "until"} {
+		if _, ok := q[name]; !ok {
+			err := fmt.Errorf("%s parameter required", name)
+			badRequest(w, err)
+			return
+		}
+	}
+	arg := fmt.Sprintf("%s %s %s", q.Get("id"), q.Get("temp"), q.Get("until"))
 	query("heating/ch", arg, DefaultQueryTimeout, 1, w)
 }
 
@@ -303,7 +314,7 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 	path := q.Get("path")
 	if path == "" {
 		err := errors.New("path parameter required")
-		errorResponse(w, err)
+		badRequest(w, err)
 		return
 	}
 

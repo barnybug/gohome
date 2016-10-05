@@ -4,13 +4,13 @@
 package heating
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
@@ -95,18 +95,20 @@ func (self *Schedule) Target(at time.Time) (temp float64) {
 	return
 }
 
-type Device struct {
-	Schedule *Schedule
-	Temp     float64
-	At       time.Time
+type Thermostat struct {
+	Temp       float64
+	At         time.Time
+	Schedule   *Schedule
+	PartyTemp  float64
+	PartyUntil time.Time
 }
 
-func (self *Device) Update(temp float64, at time.Time) {
+func (self *Thermostat) Update(temp float64, at time.Time) {
 	self.Temp = temp
 	self.At = at
 }
 
-func (self *Device) Check(now time.Time, target float64) bool {
+func (self *Thermostat) Check(now time.Time, target float64) bool {
 	valid := now.Sub(self.At) < maxTempAge
 	if !valid {
 		return false
@@ -114,16 +116,20 @@ func (self *Device) Check(now time.Time, target float64) bool {
 	return (self.Temp < target)
 }
 
-type Thermostat struct {
+func (self *Thermostat) setParty(temp float64, duration time.Duration, at time.Time) {
+	self.PartyTemp = temp
+	self.PartyUntil = at.Add(duration)
+}
+
+// Service heating
+type Service struct {
 	HeatingDevice string
 	Slop          float64
-	Devices       map[string]*Device
+	Thermostats   map[string]*Thermostat
 	Schedules     map[string]*Schedule
 	State         bool
 	StateChanged  time.Time
 	Occupied      bool
-	PartyTemp     float64
-	PartyUntil    time.Time
 	Publisher     pubsub.Publisher
 }
 
@@ -138,39 +144,7 @@ func isOccupied() bool {
 	return (event.Fields["state"] != "Empty")
 }
 
-func NewThermostat(config config.HeatingConf, em pubsub.Publisher) *Thermostat {
-	self := Thermostat{
-		State:     false,
-		Occupied:  isOccupied(),
-		Publisher: em,
-	}
-	self.ConfigUpdated(config)
-	return &self
-}
-
-func (self *Thermostat) ConfigUpdated(config config.HeatingConf) {
-	schedules := map[string]*Schedule{}
-	for k, conf := range config.Schedule {
-		schedules[k] = NewSchedule(conf)
-	}
-
-	devices := map[string]*Device{}
-	for _, name := range config.Sensors {
-		sname := name[5:] // drop "temp."
-		if _, ok := config.Schedule[sname]; !ok {
-			log.Println("Missing schedule:", sname, "for device:", name)
-			continue
-		}
-		devices[name] = &Device{Schedule: schedules[sname]}
-	}
-	self.HeatingDevice = config.Device
-	self.Slop = config.Slop
-	self.Devices = devices
-	self.Schedules = schedules
-
-}
-
-func (self *Thermostat) Heartbeat(now time.Time) {
+func (self *Service) Heartbeat(now time.Time) {
 	self.Check(now)
 	// emit event for datalogging
 	fields := pubsub.Fields{
@@ -185,15 +159,16 @@ func (self *Thermostat) Heartbeat(now time.Time) {
 	self.Command()
 }
 
-func (self *Thermostat) Event(ev *pubsub.Event) {
+func (self *Service) Event(ev *pubsub.Event) {
 	now := ev.Timestamp.Local() // must use Local time, as schedule is in local
 	switch ev.Topic {
 	case "temp":
 		// temperature device update
 		device := services.Config.LookupDeviceName(ev)
-		if dev, ok := self.Devices[device]; ok {
+		zone := device[5:] // drop "temp."
+		if thermostat, ok := self.Thermostats[zone]; ok {
 			temp, _ := ev.Fields["temp"].(float64)
-			dev.Update(temp, now)
+			thermostat.Update(temp, now)
 			self.Check(now)
 		}
 	case "state":
@@ -204,44 +179,33 @@ func (self *Thermostat) Event(ev *pubsub.Event) {
 			self.Occupied = (state != "Empty")
 			self.Check(now)
 		}
-	case "command":
-		if ev.Target() == "ch" {
-			value, ok := ev.Fields["value"].(string)
-			if ok {
-				err, temp, duration := parseSet(value)
-				if err == nil {
-					self.setParty(temp, duration, ev.Timestamp)
-					self.Check(now)
-					// TODO - response
-				} else {
-					// TODO - error response
-				}
-			}
-		}
 	}
 }
 
-func (self *Thermostat) setParty(temp float64, duration time.Duration, at time.Time) {
-	self.PartyTemp = temp
-	self.PartyUntil = at.Add(duration)
+func (self *Service) setParty(zone string, temp float64, duration time.Duration, at time.Time) {
+	if thermostat, ok := self.Thermostats[zone]; ok {
+		thermostat.setParty(temp, duration, at)
+	} else {
+		log.Println("Not found:", zone)
+	}
 }
 
-func (self *Thermostat) Target(device *Device, now time.Time) float64 {
-	if now.Before(self.PartyUntil) {
-		return self.PartyTemp
+func (self *Service) Target(thermostat *Thermostat, now time.Time) float64 {
+	if now.Before(thermostat.PartyUntil) {
+		return thermostat.PartyTemp
 	} else if self.Occupied {
-		return device.Schedule.Target(now)
+		return thermostat.Schedule.Target(now)
 	} else {
 		return self.Schedules["unoccupied"].Target(now)
 	}
 }
 
-func (self *Thermostat) Check(now time.Time) {
+func (self *Service) Check(now time.Time) {
 	state := false
 	trigger := ""
-	for id, device := range self.Devices {
-		target := self.Target(device, now)
-		if device.Check(now, target) {
+	for id, thermostat := range self.Thermostats {
+		target := self.Target(thermostat, now)
+		if thermostat.Check(now, target) {
 			state = true
 			trigger = id
 		}
@@ -261,7 +225,7 @@ func (self *Thermostat) Check(now time.Time) {
 
 }
 
-func (self *Thermostat) Command() {
+func (self *Service) Command() {
 	command := "off"
 	if self.State {
 		command = "on"
@@ -270,7 +234,7 @@ func (self *Thermostat) Command() {
 	self.Publisher.Emit(ev)
 }
 
-func (self *Thermostat) ShortStatus(now time.Time) string {
+func (self *Service) ShortStatus(now time.Time) string {
 	du := "unknown"
 	if !self.StateChanged.IsZero() {
 		du = util.ShortDuration(now.Sub(self.StateChanged))
@@ -278,42 +242,41 @@ func (self *Thermostat) ShortStatus(now time.Time) string {
 	return fmt.Sprintf("Heating: %v for %s", self.State, du)
 }
 
-func (self *Thermostat) Status(now time.Time) string {
+func (self *Service) Status(now time.Time) string {
 	msg := self.ShortStatus(now)
-	for name, device := range self.Devices {
-		target := self.Target(device, now)
-		n := strings.Split(name, ".")
+	for name, thermostat := range self.Thermostats {
+		target := self.Target(thermostat, now)
 		star := ""
-		if device.Temp < target {
+		if thermostat.Temp < target {
 			star = "*"
 		}
-		if device.At.IsZero() {
-			msg += fmt.Sprintf("\n%s: unknown [%v°C]", n[1], target)
+		if thermostat.At.IsZero() {
+			msg += fmt.Sprintf("\n%s: unknown [%v°C]", name, target)
 		} else {
-			msg += fmt.Sprintf("\n%s: %v°C at %s [%v°C]%s", n[1], device.Temp, device.At.Format(time.Stamp), target, star)
+			msg += fmt.Sprintf("\n%s: %v°C at %s [%v°C]%s", name, thermostat.Temp, thermostat.At.Format(time.Stamp), target, star)
 		}
 	}
 	return msg
 }
 
-func (self *Thermostat) Json(now time.Time) interface{} {
+func (self *Service) Json(now time.Time) interface{} {
 	data := map[string]interface{}{}
 	data["heating"] = self.State
 	if !self.StateChanged.IsZero() {
 		data["changed"] = self.StateChanged
 	}
 	devices := map[string]interface{}{}
-	for name, device := range self.Devices {
-		target := self.Target(device, now)
-		if device.At.IsZero() {
+	for name, thermostat := range self.Thermostats {
+		target := self.Target(thermostat, now)
+		if thermostat.At.IsZero() {
 			devices[name] = map[string]interface{}{
 				"temp":   nil,
 				"target": target,
 			}
 		} else {
 			devices[name] = map[string]interface{}{
-				"temp":   device.Temp,
-				"at":     device.At.Format(time.RFC3339),
+				"temp":   thermostat.Temp,
+				"at":     thermostat.At.Format(time.RFC3339),
 				"target": target,
 			}
 		}
@@ -322,35 +285,57 @@ func (self *Thermostat) Json(now time.Time) interface{} {
 	return data
 }
 
-// Service heating
-type Service struct {
-	thermo *Thermostat
-}
-
 func (self *Service) ID() string {
 	return "heating"
 }
 
+func (self *Service) Initialize(em pubsub.Publisher) {
+	self.State = false
+	self.Occupied = isOccupied()
+	self.Publisher = em
+	self.ConfigUpdated("gohome/config")
+}
+
 // Run the service
 func (self *Service) Run() error {
-	self.thermo = NewThermostat(services.Config.Heating, services.Publisher)
+	self.Initialize(services.Publisher)
+
 	ticker := util.NewScheduler(time.Duration(0), time.Minute)
 	events := services.Subscriber.FilteredChannel("temp", "state", "command")
 	for {
 		select {
 		case ev := <-events:
-			self.thermo.Event(ev)
+			self.Event(ev)
 		case tick := <-ticker.C:
-			self.thermo.Heartbeat(tick)
+			self.Heartbeat(tick)
 		}
 	}
 	return nil
 }
 
 func (self *Service) ConfigUpdated(path string) {
-	if path == "gohome/config" {
-		self.thermo.ConfigUpdated(services.Config.Heating)
+	if path != "gohome/config" {
+		return
 	}
+	conf := services.Config.Heating
+	schedules := map[string]*Schedule{}
+	for k, sconf := range conf.Schedule {
+		schedules[k] = NewSchedule(sconf)
+	}
+
+	thermostats := map[string]*Thermostat{}
+	for _, name := range conf.Sensors {
+		zone := name[5:] // drop "temp."
+		if _, ok := conf.Schedule[zone]; !ok {
+			log.Println("Missing schedule:", zone, "for device:", name)
+			continue
+		}
+		thermostats[zone] = &Thermostat{Schedule: schedules[zone]}
+	}
+	self.HeatingDevice = conf.Device
+	self.Slop = conf.Slop
+	self.Thermostats = thermostats
+	self.Schedules = schedules
 }
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
@@ -366,20 +351,26 @@ func (self *Service) QueryHandlers() services.QueryHandlers {
 func (self *Service) queryStatus(q services.Question) services.Answer {
 	now := Clock()
 	return services.Answer{
-		Text: self.thermo.Status(now),
-		Json: self.thermo.Json(now),
+		Text: self.Status(now),
+		Json: self.Json(now),
 	}
 }
 
-func parseSet(value string) (err error, temp float64, duration time.Duration) {
+func parseSet(value string) (err error, zone string, temp float64, duration time.Duration) {
 	vs := strings.Split(value, " ")
-	temp, err = strconv.ParseFloat(vs[0], 64)
+	if len(vs) < 2 {
+		err = errors.New("required at least device and temperature")
+		return
+	}
+	ps := strings.SplitN(vs[0], ".", 2)
+	zone = ps[len(ps)-1] // drop "thermostat."
+	temp, err = strconv.ParseFloat(vs[1], 64)
 	if err != nil {
 		return
 	}
 	duration = time.Duration(30) * time.Minute
-	if len(vs) > 1 {
-		duration, err = time.ParseDuration(vs[1])
+	if len(vs) > 2 {
+		duration, err = time.ParseDuration(vs[2])
 		if err != nil {
 			return
 		}
@@ -388,11 +379,13 @@ func parseSet(value string) (err error, temp float64, duration time.Duration) {
 }
 
 func (self *Service) queryCh(q services.Question) string {
-	err, temp, duration := parseSet(q.Args)
+	err, zone, temp, duration := parseSet(q.Args)
 	if err == nil {
-		self.thermo.setParty(temp, duration, Clock())
-		return fmt.Sprintf("Set to %v°C for %s", self.thermo.PartyTemp, util.FriendlyDuration(duration))
+		now := Clock()
+		self.setParty(zone, temp, duration, now)
+		self.Check(now)
+		return fmt.Sprintf("Set to %v°C for %s", temp, util.FriendlyDuration(duration))
 	} else {
-		return "usage: ch <temp> <duration>"
+		return "usage: ch <zone> <temp> <duration>"
 	}
 }

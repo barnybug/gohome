@@ -23,13 +23,13 @@ var (
 	evEmpty = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Empty", "timestamp": "2014-01-04 16:00:00.000000"})
 	evFull  = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Full", "timestamp": "2014-01-04 16:00:00.000000"})
 
-	evParty      = pubsub.NewEvent("command", pubsub.Fields{"target": "ch", "value": "20 30m", "timestamp": "2014-01-04 16:31:00.000000"})
 	evAfterParty = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000000"})
 )
 var (
 	timeLater  = evHot.Timestamp
 	timeLater2 = evBorderline.Timestamp
 	timeJustOn = time.Date(2014, 1, 4, 10, 20, 0, 0, time.UTC)
+	timeParty  = time.Date(2014, 1, 4, 16, 31, 0, 0, time.UTC)
 )
 var configYaml = `
 sensors: [temp.hallway]
@@ -52,7 +52,7 @@ schedule:
 var (
 	testConfig config.HeatingConf
 	em         *dummy.Publisher
-	th         *Thermostat
+	service    *Service
 )
 
 var mockHousePresence string = `{"device":"house.presence","source":"presence","state":"Full","timestamp":"2014-12-07 13:43:59.849429","topic":"house","trigger":"person.barnaby state=In"}`
@@ -64,19 +64,21 @@ func Setup() {
 	services.Stor.Set("gohome/state/events/state/house.presence", mockHousePresence)
 
 	yaml.Unmarshal([]byte(configYaml), &testConfig)
+	services.Config.Heating = testConfig
 	em = &dummy.Publisher{}
-	th = NewThermostat(testConfig, em)
+	service = &Service{}
+	service.Initialize(em)
 }
 
 func TestOnOff(t *testing.T) {
 	Setup()
-	if th.State != false {
+	if service.State != false {
 		t.Error("Expected initial State: false")
 	}
 
-	th.Event(evCold)
+	service.Event(evCold)
 	// should switch on
-	if th.State != true {
+	if service.State != true {
 		t.Error("Expected new State: true")
 	}
 	if len(em.Events) != 1 {
@@ -85,13 +87,13 @@ func TestOnOff(t *testing.T) {
 	em.Events = em.Events[:0]
 
 	// should stay on at 14.2, within slop
-	th.Event(evBorderline)
-	if th.State != true {
+	service.Event(evBorderline)
+	if service.State != true {
 		t.Error("Expected State: true")
 	}
 
-	th.Heartbeat(evBorderline.Timestamp)
-	if th.State != true {
+	service.Heartbeat(evBorderline.Timestamp)
+	if service.State != true {
 		t.Error("Expected State: true")
 	}
 	if len(em.Events) != 2 {
@@ -100,8 +102,8 @@ func TestOnOff(t *testing.T) {
 	em.Events = em.Events[:0]
 
 	// should switch off
-	th.Event(evHot)
-	if th.State != false {
+	service.Event(evHot)
+	if service.State != false {
 		t.Error("Expected State: false")
 	}
 	if len(em.Events) != 1 {
@@ -111,72 +113,74 @@ func TestOnOff(t *testing.T) {
 
 func TestTimeChange(t *testing.T) {
 	Setup()
-	th.Event(evOff)
+	service.Event(evOff)
 	// should start off
-	if th.State != false {
+	if service.State != false {
 		t.Error("Expected State: false")
 	}
 
-	th.Heartbeat(timeJustOn)
+	service.Heartbeat(timeJustOn)
 	// should switch on
-	if th.State != true {
+	if service.State != true {
 		t.Error("Expected new State: true")
 	}
 }
 
 func TestStaleTemperature(t *testing.T) {
 	Setup()
-	th.Event(evCold)
+	service.Event(evCold)
 	// should start On
-	if th.State != true {
+	if service.State != true {
 		t.Error("Expected State: true")
 	}
 
 	// should switch off due to stale temperature data
-	th.Heartbeat(timeLater)
-	if th.State != false {
+	service.Heartbeat(timeLater)
+	if service.State != false {
 		t.Error("Expected State: false")
 	}
 
 	// and stay off
-	th.Heartbeat(timeLater2)
-	if th.State != false {
+	service.Heartbeat(timeLater2)
+	if service.State != false {
 		t.Error("Expected State: false")
 	}
 }
 
 func TestOccupiedToEmptyToFull(t *testing.T) {
 	Setup()
-	th.Event(evCold)
-	if th.State != true {
+	service.Event(evCold)
+	if service.State != true {
 		t.Error("Expected State: true")
 	}
 
 	// should switch off due to house being empty
-	th.Event(evEmpty)
-	if th.State != false {
+	service.Event(evEmpty)
+	if service.State != false {
 		t.Error("Expected State: false")
 	}
 
 	// should switch on due to house being full
-	th.Event(evFull)
-	if th.State != true {
+	service.Event(evFull)
+	if service.State != true {
 		t.Error("Expected State: true")
 	}
 }
 
 func TestPartyMode(t *testing.T) {
 	Setup()
-	th.Event(evHot)
-	if th.State != false {
+	service.Event(evHot)
+	if service.State != false {
 		t.Error("Expected State: false")
 	}
-	th.Event(evParty)
-	if th.State != true {
+	Clock = func() time.Time { return timeParty }
+	q := services.Question{Verb: "ch", Args: "thermostat.hallway 20 30m"}
+	service.queryCh(q)
+	if service.State != true {
 		t.Error("Expected State: true")
 	}
-	th.Event(evAfterParty)
-	if th.State != false {
+	service.Event(evAfterParty)
+	if service.State != false {
 		t.Error("Expected State: false")
 	}
 }
@@ -189,9 +193,9 @@ func ExampleInterfaces() {
 
 func ExampleStatus() {
 	Setup()
-	fmt.Println(th.Status(evCold.Timestamp))
-	th.Event(evCold)
-	fmt.Println(th.Status(evBorderline.Timestamp))
+	fmt.Println(service.Status(evCold.Timestamp))
+	service.Event(evCold)
+	fmt.Println(service.Status(evBorderline.Timestamp))
 	// Output:
 	// Heating: false for unknown
 	// hallway: unknown [18°C]
@@ -202,8 +206,7 @@ func ExampleStatus() {
 func ExampleQueryStatusText() {
 	Setup()
 	Clock = func() time.Time { return evBorderline.Timestamp }
-	service := Service{th}
-	th.Event(evCold)
+	service.Event(evCold)
 	q := services.Question{"status", "", ""}
 	fmt.Println(service.queryStatus(q).Text)
 	// Output:
@@ -214,38 +217,36 @@ func ExampleQueryStatusText() {
 func ExampleQueryStatusJson() {
 	Setup()
 	Clock = func() time.Time { return evBorderline.Timestamp }
-	service := Service{th}
-	th.Event(evCold)
+	service.Event(evCold)
 	q := services.Question{"status", "", ""}
 	data := service.queryStatus(q).Json
 	s, _ := json.Marshal(data)
 	fmt.Println(string(s))
 	// Output:
-	// {"changed":"2014-01-04T16:00:00Z","devices":{"temp.hallway":{"at":"2014-01-04T16:00:00Z","target":18,"temp":10.1}},"heating":true}
+	// {"changed":"2014-01-04T16:00:00Z","devices":{"hallway":{"at":"2014-01-04T16:00:00Z","target":18,"temp":10.1}},"heating":true}
 }
 
 func ExampleQueryCh() {
 	Setup()
 	Clock = func() time.Time { return evBorderline.Timestamp }
-	service := Service{th}
-	th.Event(evCold)
+	service.Event(evCold)
 	fmt.Println(service.queryCh(
 		services.Question{"ch", "", ""}))
 	fmt.Println(service.queryCh(
 		services.Question{"ch", "abc", ""}))
 	fmt.Println(service.queryCh(
-		services.Question{"ch", "18", ""}))
+		services.Question{"ch", "thermostat.hallway 18", ""}))
 	fmt.Println(service.queryCh(
-		services.Question{"ch", "18 xyz", ""}))
+		services.Question{"ch", "thermostat.hallway 18 xyz", ""}))
 	fmt.Println(service.queryCh(
-		services.Question{"ch", "18 1m", ""}))
+		services.Question{"ch", "thermostat.hallway 18 1m", ""}))
 	fmt.Println(service.queryCh(
-		services.Question{"ch", "18 1h", ""}))
+		services.Question{"ch", "thermostat.hallway 18 1h", ""}))
 	// Output:
-	// usage: ch <temp> <duration>
-	// usage: ch <temp> <duration>
+	// usage: ch <zone> <temp> <duration>
+	// usage: ch <zone> <temp> <duration>
 	// Set to 18°C for 30 minutes
-	// usage: ch <temp> <duration>
+	// usage: ch <zone> <temp> <duration>
 	// Set to 18°C for 1 minute
 	// Set to 18°C for 1 hour
 }
