@@ -125,6 +125,10 @@ type JabberConf struct {
 	Pass string
 }
 
+type OrviboConf struct {
+	Broadcast string
+}
+
 type PushbulletConf struct {
 	Token string
 }
@@ -195,6 +199,7 @@ type Config struct {
 	Heating      HeatingConf
 	Irrigation   IrrigationConf
 	Jabber       JabberConf
+	Orvibo       OrviboConf
 	Pushbullet   PushbulletConf
 	Rfid         RfidConf
 	Slack        SlackConf

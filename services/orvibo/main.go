@@ -55,6 +55,10 @@ func (self *Service) Run() error {
 	devices := map[string]*Device{}
 	commandChannel := services.Subscriber.FilteredChannel("command")
 
+	if services.Config.Orvibo.Broadcast != "" {
+		BroadcastAddress = services.Config.Orvibo.Broadcast
+	}
+
 	err := Start()
 	if err != nil {
 		return err

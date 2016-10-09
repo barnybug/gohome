@@ -50,6 +50,7 @@ var Events = make(chan interface{}, 10) // Events is our events channel which wi
 var devices = map[string]*Device{}
 var macPadding = "202020202020" // This is padding for the MAC Address. It appears often, so we define it here for brevity
 var conn *net.UDPConn           // UDP Connection
+var BroadcastAddress string = net.IPv4bcast.String()
 
 const (
 	magicWord    uint16 = 0x6864 // hd
@@ -159,19 +160,13 @@ func encodeDevicePacket(commandID uint16, msg string, device *Device) []byte {
 // It ultimately uses sendMessageRaw to sent out the packet
 func sendMessage(commandID uint16, msg string, device *Device) error {
 	packet := encodeDevicePacket(commandID, msg, device)
-	return sendMessageRaw(packet, device)
+	return sendMessageRaw(packet, device.IP)
 }
 
 // sendMessageRaw is the heart of our library. Sends UDP messages to specified IP addresses
-func sendMessageRaw(buf []byte, device *Device) error {
-	// Resolve our address, ready for sending data
-	udpAddr, err := net.ResolveUDPAddr("udp4", device.IP.String())
-	if err != nil {
-		return err
-	}
-
+func sendMessageRaw(buf []byte, addr *net.UDPAddr) error {
 	// Actually write the data and send it off
-	_, err = conn.WriteToUDP(buf, udpAddr)
+	_, err := conn.WriteToUDP(buf, addr)
 	// If we've got an error
 	if err != nil {
 		return err
@@ -318,9 +313,9 @@ func passMessage(event interface{}) bool {
 // broadcastMessage is another core part of our code. It lets us broadcast a message to the whole network.
 // It's essentially SendMessage with a IPv4 Broadcast address
 func broadcastMessage(commandID uint16, payload []byte) (bool, error) {
-	udpAddr, err := net.ResolveUDPAddr("udp4", net.IPv4bcast.String()+":10000")
+	udpAddr, err := net.ResolveUDPAddr("udp4", BroadcastAddress+":10000")
 	packet := encodePacket(commandID, payload)
-	sendMessageRaw(packet, &Device{IP: udpAddr})
+	sendMessageRaw(packet, udpAddr)
 	if err != nil {
 		return false, err
 	}
