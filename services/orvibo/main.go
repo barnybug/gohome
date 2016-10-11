@@ -11,9 +11,9 @@ import (
 )
 
 func handleCommand(ev *pubsub.Event) {
-	device := ev.Device()
+	dev := ev.Device()
 	command := ev.Command()
-	pids := services.Config.LookupDeviceProtocol(device)
+	pids := services.Config.LookupDeviceProtocol(dev)
 	if pids["orvibo"] == "" {
 		return // command not for us
 	}
@@ -22,6 +22,7 @@ func handleCommand(ev *pubsub.Event) {
 		return
 	}
 	if device, ok := devices[pids["orvibo"]]; ok {
+		log.Printf("Setting device %s to %s\n", dev, command)
 		SetState(device, command == "on")
 	} else {
 		log.Println("Device not recognised:", device)
@@ -29,7 +30,7 @@ func handleCommand(ev *pubsub.Event) {
 }
 
 func handleStateChange(msg *StateChangedMessage) {
-	log.Println("State of", msg.Device.MACAddress, "changed to:", msg.State)
+	log.Printf("Device %s changed to %s\n", msg.Device.MACAddress, msg.State)
 
 	source := msg.Device.MACAddress
 	command := "off"
@@ -83,8 +84,7 @@ func (self *Service) Run() error {
 					Subscribe(msg.Device)
 				})
 			case *SubscribeAckMessage:
-				log.Println("Subscription successful:", msg.Device.MACAddress)
-				SetState(msg.Device, false)
+				// noop
 			case *StateChangedMessage:
 				handleStateChange(msg)
 			}
