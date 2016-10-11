@@ -30,7 +30,7 @@ func handleCommand(ev *pubsub.Event) {
 }
 
 func handleStateChange(msg *StateChangedMessage) {
-	log.Printf("Device %s changed to %s\n", msg.Device.MACAddress, msg.State)
+	log.Printf("Device %s changed to %t\n", msg.Device.MACAddress, msg.State)
 
 	source := msg.Device.MACAddress
 	command := "off"
