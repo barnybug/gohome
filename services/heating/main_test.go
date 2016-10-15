@@ -32,22 +32,21 @@ var (
 	timeParty  = time.Date(2014, 1, 4, 16, 31, 0, 0, time.UTC)
 )
 var configYaml = `
-sensors: [temp.hallway]
 device: heater.boiler
 slop: 0.3
-schedule:
-  unoccupied:
-    Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday:
-      - '0:00': 9.0
+zones:
   hallway:
-    Saturday,Sunday:
-      - '10:20': 18.0
-      - '22:50': 10.0
-    Monday,Tuesday,Wednesday,Thursday,Friday:
-      - '7:30': 18.0
-      - '8:10': 14.0
-      - '17:30': 18.0
-      - '22:20': 10.0
+    sensor: temp.hallway
+    schedule:
+      Saturday,Sunday:
+        - '10:20': 18.0
+        - '22:50': 10.0
+      Monday,Tuesday,Wednesday,Thursday,Friday:
+        - '7:30': 18.0
+        - '8:10': 14.0
+        - '17:30': 18.0
+        - '22:20': 10.0
+unoccupied: 9.0
 `
 var (
 	testConfig config.HeatingConf
@@ -253,7 +252,7 @@ func ExampleQueryCh() {
 
 func ExampleSchedule() {
 	Setup()
-	s := NewSchedule(testConfig.Schedule["hallway"])
+	s := NewSchedule(testConfig.Zones["hallway"].Schedule)
 	t1 := time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC) // Friday
 	fmt.Println(s.Target(t1))
 	t2 := time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC) // Saturday

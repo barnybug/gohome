@@ -100,11 +100,18 @@ type GraphiteConf struct {
 	Host string
 }
 
+type ScheduleConf map[string][]map[string]float64
+
+type ZoneConf struct {
+	Sensor   string
+	Schedule ScheduleConf
+}
+
 type HeatingConf struct {
-	Device   string
-	Schedule map[string]map[string][]map[string]float64
-	Sensors  []string
-	Slop     float64
+	Device     string
+	Zones      map[string]ZoneConf
+	Slop       float64
+	Unoccupied float64
 }
 
 type IrrigationConf struct {

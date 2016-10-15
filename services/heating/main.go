@@ -95,21 +95,22 @@ func (self *Schedule) Target(at time.Time) (temp float64) {
 	return
 }
 
-type Thermostat struct {
-	Id         string
+type Zone struct {
+	Thermostat string
 	Temp       float64
 	At         time.Time
 	Schedule   *Schedule
 	PartyTemp  float64
 	PartyUntil time.Time
+	Sensor     string
 }
 
-func (self *Thermostat) Update(temp float64, at time.Time) {
+func (self *Zone) Update(temp float64, at time.Time) {
 	self.Temp = temp
 	self.At = at
 }
 
-func (self *Thermostat) Check(now time.Time, target float64) bool {
+func (self *Zone) Check(now time.Time, target float64) bool {
 	valid := now.Sub(self.At) < maxTempAge
 	if !valid {
 		return false
@@ -117,21 +118,22 @@ func (self *Thermostat) Check(now time.Time, target float64) bool {
 	return (self.Temp < target)
 }
 
-func (self *Thermostat) setParty(temp float64, duration time.Duration, at time.Time) {
+func (self *Zone) setParty(temp float64, duration time.Duration, at time.Time) {
 	self.PartyTemp = temp
 	self.PartyUntil = at.Add(duration)
 }
 
 // Service heating
 type Service struct {
-	HeatingDevice string
-	Slop          float64
-	Thermostats   map[string]*Thermostat
-	Schedules     map[string]*Schedule
-	State         bool
-	StateChanged  time.Time
-	Occupied      bool
-	Publisher     pubsub.Publisher
+	HeatingDevice    string
+	Slop             float64
+	Zones            map[string]*Zone
+	Sensors          map[string]*Zone
+	State            bool
+	StateChanged     time.Time
+	Occupied         bool
+	UnoccupiedTarget float64
+	Publisher        pubsub.Publisher
 }
 
 func isOccupied() bool {
@@ -166,10 +168,9 @@ func (self *Service) Event(ev *pubsub.Event) {
 	case "temp":
 		// temperature device update
 		device := services.Config.LookupDeviceName(ev)
-		zone := device[5:] // drop "temp."
-		if thermostat, ok := self.Thermostats[zone]; ok {
+		if zone, ok := self.Sensors[device]; ok {
 			temp, _ := ev.Fields["temp"].(float64)
-			thermostat.Update(temp, now)
+			zone.Update(temp, now)
 			self.Check(now, false)
 		}
 	case "state":
@@ -184,36 +185,36 @@ func (self *Service) Event(ev *pubsub.Event) {
 }
 
 func (self *Service) setParty(zone string, temp float64, duration time.Duration, at time.Time) {
-	if thermostat, ok := self.Thermostats[zone]; ok {
-		thermostat.setParty(temp, duration, at)
+	if zone, ok := self.Zones[zone]; ok {
+		zone.setParty(temp, duration, at)
 	} else {
 		log.Println("Not found:", zone)
 	}
 }
 
-func (self *Service) Target(thermostat *Thermostat, now time.Time) float64 {
-	if now.Before(thermostat.PartyUntil) {
-		return thermostat.PartyTemp
+func (self *Service) Target(zone *Zone, now time.Time) float64 {
+	if now.Before(zone.PartyUntil) {
+		return zone.PartyTemp
 	} else if self.Occupied {
-		return thermostat.Schedule.Target(now)
+		return zone.Schedule.Target(now)
 	} else {
-		return self.Schedules["unoccupied"].Target(now)
+		return self.UnoccupiedTarget
 	}
 }
 
 func (self *Service) Check(now time.Time, emitEvents bool) {
 	state := false
 	trigger := ""
-	for id, thermostat := range self.Thermostats {
-		target := self.Target(thermostat, now)
-		if thermostat.Check(now, target) {
+	for id, zone := range self.Zones {
+		target := self.Target(zone, now)
+		if zone.Check(now, target) {
 			state = true
 			trigger = id
 		}
 		if emitEvents {
 			// emit target event
 			fields := pubsub.Fields{
-				"device": thermostat.Id,
+				"device": zone.Thermostat,
 				"source": "ch",
 				"target": target,
 			}
@@ -255,16 +256,16 @@ func (self *Service) ShortStatus(now time.Time) string {
 
 func (self *Service) Status(now time.Time) string {
 	msg := self.ShortStatus(now)
-	for name, thermostat := range self.Thermostats {
-		target := self.Target(thermostat, now)
+	for name, zone := range self.Zones {
+		target := self.Target(zone, now)
 		star := ""
-		if thermostat.Temp < target {
+		if zone.Temp < target {
 			star = "*"
 		}
-		if thermostat.At.IsZero() {
+		if zone.At.IsZero() {
 			msg += fmt.Sprintf("\n%s: unknown [%v°C]", name, target)
 		} else {
-			msg += fmt.Sprintf("\n%s: %v°C at %s [%v°C]%s", name, thermostat.Temp, thermostat.At.Format(time.Stamp), target, star)
+			msg += fmt.Sprintf("\n%s: %v°C at %s [%v°C]%s", name, zone.Temp, zone.At.Format(time.Stamp), target, star)
 		}
 	}
 	return msg
@@ -277,17 +278,17 @@ func (self *Service) Json(now time.Time) interface{} {
 		data["changed"] = self.StateChanged
 	}
 	devices := map[string]interface{}{}
-	for name, thermostat := range self.Thermostats {
-		target := self.Target(thermostat, now)
-		if thermostat.At.IsZero() {
+	for name, zone := range self.Zones {
+		target := self.Target(zone, now)
+		if zone.At.IsZero() {
 			devices[name] = map[string]interface{}{
 				"temp":   nil,
 				"target": target,
 			}
 		} else {
 			devices[name] = map[string]interface{}{
-				"temp":   thermostat.Temp,
-				"at":     thermostat.At.Format(time.RFC3339),
+				"temp":   zone.Temp,
+				"at":     zone.At.Format(time.RFC3339),
 				"target": target,
 			}
 		}
@@ -329,25 +330,23 @@ func (self *Service) ConfigUpdated(path string) {
 		return
 	}
 	conf := services.Config.Heating
-	schedules := map[string]*Schedule{}
-	for k, sconf := range conf.Schedule {
-		schedules[k] = NewSchedule(sconf)
-	}
-
-	thermostats := map[string]*Thermostat{}
-	for _, name := range conf.Sensors {
-		zone := name[5:] // drop "temp."
-		if _, ok := conf.Schedule[zone]; !ok {
-			log.Println("Missing schedule:", zone, "for device:", name)
-			continue
+	zones := map[string]*Zone{}
+	sensors := map[string]*Zone{}
+	for zone, zoneConf := range conf.Zones {
+		thermostat := "thermostat." + zone
+		z := &Zone{
+			Schedule:   NewSchedule(zoneConf.Schedule),
+			Sensor:     zoneConf.Sensor,
+			Thermostat: thermostat,
 		}
-		id := "thermostat." + zone
-		thermostats[zone] = &Thermostat{Id: id, Schedule: schedules[zone]}
+		zones[zone] = z
+		sensors[zoneConf.Sensor] = z
 	}
 	self.HeatingDevice = conf.Device
 	self.Slop = conf.Slop
-	self.Thermostats = thermostats
-	self.Schedules = schedules
+	self.Zones = zones
+	self.Sensors = sensors
+	self.UnoccupiedTarget = conf.Unoccupied
 }
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
