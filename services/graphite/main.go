@@ -25,6 +25,7 @@ var ignoredFields = map[string]bool{
 	"sensor":    true,
 	"origin":    true,
 	"device":    true,
+	"repeat":    true,
 }
 
 func sendToGraphite(ev *pubsub.Event) {
