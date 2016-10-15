@@ -5,6 +5,7 @@ package energenie
 import (
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/barnybug/ener314"
@@ -23,29 +24,7 @@ func handleCommand(ev *pubsub.Event) {
 		log.Println("Command not recognised:", command)
 		return
 	}
-	// if device, ok := devices[pids["energenie"]]; ok {
-	// 	log.Printf("Setting device %s to %s\n", dev, command)
-	// 	SetState(device, command == "on")
-	// } else {
-	// 	log.Println("Device not recognised:", device)
-	// }
 }
-
-// func handleStateChange(msg *StateChangedMessage) {
-// 	log.Printf("Device %s changed to %t\n", msg.Device.MACAddress, msg.State)
-
-// 	source := msg.Device.MACAddress
-// 	command := "off"
-// 	if msg.State {
-// 		command = "on"
-// 	}
-// 	fields := map[string]interface{}{
-// 		"source":  source,
-// 		"command": command,
-// 	}
-// 	ev := pubsub.NewEvent("energenie", fields)
-// 	services.Publisher.Emit(ev)
-// }
 
 // Service energenie
 type Service struct{}
@@ -54,11 +33,17 @@ func (self *Service) ID() string {
 	return "energenie"
 }
 
+func round(f float64, dp int) float64 {
+	shift := math.Pow(10, float64(dp))
+	return math.Floor(f*shift+.5) / shift
+}
+
 func emitTemp(msg *ener314.Message, record ener314.Temperature) {
 	source := fmt.Sprintf("energenie.%06x", msg.SensorId)
+	value := record.Value
 	fields := map[string]interface{}{
 		"source": source,
-		"temp":   record.Value,
+		"temp":   round(value, 1),
 	}
 	ev := pubsub.NewEvent("temp", fields)
 	services.Publisher.Emit(ev)
