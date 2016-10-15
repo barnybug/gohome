@@ -1,6 +1,6 @@
 export GO15VENDOREXPERIMENT=1
 
-exe = github.com/barnybug/gohome/processes/gohome
+exe = github.com/barnybug/gohome/cmd/gohome
 
 .PHONY: all build install test coverage deps release
 
@@ -10,7 +10,7 @@ install:
 	go install -v $(exe)
 
 test:
-	go test ./config/... ./lib/... ./processes/... ./pubsub/... ./services/... ./util/...
+	go test ./config/... ./lib/... ./cmd/... ./pubsub/... ./services/... ./util/...
 
 coverage:
 	go test -coverprofile=/tmp/coverage.out gohome/config
