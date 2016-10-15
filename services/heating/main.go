@@ -96,6 +96,7 @@ func (self *Schedule) Target(at time.Time) (temp float64) {
 }
 
 type Thermostat struct {
+	Id         string
 	Temp       float64
 	At         time.Time
 	Schedule   *Schedule
@@ -145,7 +146,7 @@ func isOccupied() bool {
 }
 
 func (self *Service) Heartbeat(now time.Time) {
-	self.Check(now)
+	self.Check(now, true)
 	// emit event for datalogging
 	fields := pubsub.Fields{
 		"device":  self.HeatingDevice,
@@ -169,7 +170,7 @@ func (self *Service) Event(ev *pubsub.Event) {
 		if thermostat, ok := self.Thermostats[zone]; ok {
 			temp, _ := ev.Fields["temp"].(float64)
 			thermostat.Update(temp, now)
-			self.Check(now)
+			self.Check(now, false)
 		}
 	case "state":
 		device := services.Config.LookupDeviceName(ev)
@@ -177,7 +178,7 @@ func (self *Service) Event(ev *pubsub.Event) {
 			// house state update
 			state := ev.Fields["state"]
 			self.Occupied = (state != "Empty")
-			self.Check(now)
+			self.Check(now, false)
 		}
 	}
 }
@@ -200,7 +201,7 @@ func (self *Service) Target(thermostat *Thermostat, now time.Time) float64 {
 	}
 }
 
-func (self *Service) Check(now time.Time) {
+func (self *Service) Check(now time.Time, emitEvents bool) {
 	state := false
 	trigger := ""
 	for id, thermostat := range self.Thermostats {
@@ -208,6 +209,16 @@ func (self *Service) Check(now time.Time) {
 		if thermostat.Check(now, target) {
 			state = true
 			trigger = id
+		}
+		if emitEvents {
+			// emit target event
+			fields := pubsub.Fields{
+				"device": thermostat.Id,
+				"source": "ch",
+				"target": target,
+			}
+			ev := pubsub.NewEvent("thermostat", fields)
+			self.Publisher.Emit(ev)
 		}
 	}
 
@@ -330,7 +341,8 @@ func (self *Service) ConfigUpdated(path string) {
 			log.Println("Missing schedule:", zone, "for device:", name)
 			continue
 		}
-		thermostats[zone] = &Thermostat{Schedule: schedules[zone]}
+		id := "thermostat." + zone
+		thermostats[zone] = &Thermostat{Id: id, Schedule: schedules[zone]}
 	}
 	self.HeatingDevice = conf.Device
 	self.Slop = conf.Slop
@@ -383,7 +395,7 @@ func (self *Service) queryCh(q services.Question) string {
 	if err == nil {
 		now := Clock()
 		self.setParty(zone, temp, duration, now)
-		self.Check(now)
+		self.Check(now, false)
 		return fmt.Sprintf("Set to %v°C for %s", temp, util.FriendlyDuration(duration))
 	} else {
 		return "usage: ch <zone> <temp> <duration>"

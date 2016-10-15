@@ -96,8 +96,8 @@ func TestOnOff(t *testing.T) {
 	if service.State != true {
 		t.Error("Expected State: true")
 	}
-	if len(em.Events) != 2 {
-		t.Error("Expected 2 events, got", len(em.Events))
+	if len(em.Events) != 3 {
+		t.Error("Expected 3 events, got", len(em.Events))
 	}
 	em.Events = em.Events[:0]
 
