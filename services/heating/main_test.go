@@ -10,6 +10,7 @@ import (
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/pubsub/dummy"
 	"github.com/barnybug/gohome/services"
+	"github.com/stretchr/testify/assert"
 
 	"gopkg.in/v1/yaml"
 )
@@ -250,17 +251,52 @@ func ExampleQueryCh() {
 	// Set to 18°C for 1 hour
 }
 
-func ExampleSchedule() {
-	Setup()
-	s := NewSchedule(testConfig.Zones["hallway"].Schedule)
-	t1 := time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC) // Friday
-	fmt.Println(s.Target(t1))
-	t2 := time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC) // Saturday
-	fmt.Println(s.Target(t2))
-	t3 := time.Date(2014, 1, 4, 16, 0, 0, 0, time.UTC) // Saturday
-	fmt.Println(s.Target(t3))
-	// Output:
-	// 18
-	// 10
-	// 18
+func TestSchedule(t *testing.T) {
+	conf := `
+Saturday,Sunday:
+- '10:20': 18.0
+- '22:50': 10.0
+Monday,Tuesday,Wednesday,Thursday,Friday:
+- '7:30': 18.0
+- '8:10': 14.0
+- '17:30': 18.0
+- '22:20': 10.0`
+	var schedule config.ScheduleConf
+	yaml.Unmarshal([]byte(conf), &schedule)
+	s, _ := NewSchedule(schedule)
+	t1 := time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC) // Friday 8am
+	assert.Equal(t, 18.0, s.Target(t1))
+	t2 := time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC) // Saturday 8am
+	assert.Equal(t, 10.0, s.Target(t2))
+	t3 := time.Date(2014, 1, 4, 16, 0, 0, 0, time.UTC) // Saturday 4pm
+	assert.Equal(t, 18.0, s.Target(t3))
+}
+
+func TestScheduleWithoutWeekends(t *testing.T) {
+	conf := `
+Monday,Tuesday,Wednesday,Thursday,Friday:
+- '8:00': 17
+- '18:00': 10`
+	var schedule config.ScheduleConf
+	yaml.Unmarshal([]byte(conf), &schedule)
+	s, _ := NewSchedule(schedule)
+	t1 := time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC) // Friday 8am
+	assert.Equal(t, 17.0, s.Target(t1))
+	t2 := time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC) // Saturday 8am
+	assert.Equal(t, 10.0, s.Target(t2))
+	t4 := time.Date(2014, 1, 5, 8, 0, 0, 0, time.UTC) // Sunday 8am
+	assert.Equal(t, 10.0, s.Target(t4))
+	t5 := time.Date(2014, 1, 6, 8, 0, 0, 0, time.UTC) // Monday 8am
+	assert.Equal(t, 17.0, s.Target(t5))
+}
+
+func TestScheduleParseError(t *testing.T) {
+	conf := `
+Monkeys:
+- '8:00': 17`
+	var schedule config.ScheduleConf
+	yaml.Unmarshal([]byte(conf), &schedule)
+	s, err := NewSchedule(schedule)
+	assert.Error(t, err)
+	assert.Nil(t, s)
 }

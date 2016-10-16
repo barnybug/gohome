@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
@@ -51,15 +52,17 @@ func ParseHourMinute(at string) int {
 				return int(hour*60 + min)
 			}
 		}
-
 	}
 	return 0
 }
 
-func NewSchedule(conf map[string][]map[string]float64) *Schedule {
+func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 	days := map[time.Weekday][]MinuteTemp{}
 	for weekdays, mts := range conf {
 		for _, weekday := range strings.Split(weekdays, ",") {
+			if _, ok := DOW[weekday]; !ok {
+				return nil, fmt.Errorf("Invalid weekday: %s", weekday)
+			}
 			sch := []MinuteTemp{}
 			for _, arr := range mts {
 				for at, temp := range arr {
@@ -70,29 +73,31 @@ func NewSchedule(conf map[string][]map[string]float64) *Schedule {
 			days[DOW[weekday]] = sch
 		}
 	}
-	return &Schedule{Days: days}
+	return &Schedule{Days: days}, nil
 }
 
-func (self *Schedule) Target(at time.Time) (temp float64) {
+func (self *Schedule) Target(at time.Time) float64 {
 	day_mins := at.Hour()*60 + at.Minute()
 	sch, ok := self.Days[at.Weekday()]
-	if !ok {
-		return 0.0
-	}
-	if day_mins < sch[0].Minute {
-		// carry over last setting from yesterday
-		yst := at.Add(-24 * time.Hour)
-		sch = self.Days[yst.Weekday()]
-		temp = sch[len(sch)-1].Temp
+	if !ok || day_mins < sch[0].Minute {
+		// find last from a previous day
+		// may have to look back multiple days (eg weekends missing)
+		prev := at
+		for i := 1; i < 7; i += 1 {
+			prev = prev.Add(-24 * time.Hour)
+			if sch, ok := self.Days[prev.Weekday()]; ok {
+				return sch[len(sch)-1].Temp
+			}
+		}
 	} else {
 		// find value today
 		for _, mt := range sch {
 			if day_mins >= mt.Minute {
-				temp = mt.Temp
+				return mt.Temp
 			}
 		}
 	}
-	return
+	return 0
 }
 
 type Zone struct {
@@ -334,8 +339,13 @@ func (self *Service) ConfigUpdated(path string) {
 	sensors := map[string]*Zone{}
 	for zone, zoneConf := range conf.Zones {
 		thermostat := "thermostat." + zone
+		schedule, err := NewSchedule(zoneConf.Schedule)
+		if err != nil {
+			log.Printf("Failed to load configuration: %s\n", err)
+			return
+		}
 		z := &Zone{
-			Schedule:   NewSchedule(zoneConf.Schedule),
+			Schedule:   schedule,
 			Sensor:     zoneConf.Sensor,
 			Thermostat: thermostat,
 		}
