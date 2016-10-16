@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -28,25 +29,57 @@ func handleCommand(ev *pubsub.Event) {
 	}
 }
 
+type Action string
+
 const (
-	TargetTemperature = "TargetTemperature"
-	Identify          = "Identify"
-	Exercise          = "Exercise"
-	Diagnostics       = "Diagnostics"
-	Voltage           = "Voltage"
+	TargetTemperature Action = "TargetTemperature"
+	Identify          Action = "Identify"
+	Exercise          Action = "Exercise"
+	Diagnostics       Action = "Diagnostics"
+	Voltage           Action = "Voltage"
 )
 
 type SensorRequest struct {
-	Action string
+	Action Action
 	Value  float64
 	Repeat int
 }
 
+type SensorRequestQueue []SensorRequest
+
+func (q SensorRequestQueue) Append(s SensorRequest) SensorRequestQueue {
+	// dedup
+	var ret SensorRequestQueue
+	for _, i := range q {
+		if i.Action != s.Action {
+			ret = append(ret, i)
+		}
+	}
+	return append(ret, s)
+}
+
+func (q SensorRequestQueue) Len() int { return len(q) }
+
+func (q SensorRequestQueue) Swap(i, j int) { q[i], q[j] = q[j], q[i] }
+
+func (q SensorRequestQueue) Less(i, j int) bool {
+	if q[j].Action == TargetTemperature {
+		// i should come before j if j is TargetTemperature
+		return true
+	} else if q[i].Action == TargetTemperature {
+		// j should come before i if i is TargetTemperature
+		return false
+	} else {
+		// otherwise just use alphabetic order
+		return strings.Compare(string(q[i].Action), string(q[j].Action)) == -1
+	}
+}
+
 func (s SensorRequest) String() string {
 	if s.Action == TargetTemperature {
-		return fmt.Sprintf("Target temperature %.1fC", s.Value)
+		return fmt.Sprintf("Target temperature %.1f°C", s.Value)
 	} else {
-		return s.Action
+		return fmt.Sprint(s.Action)
 	}
 }
 
@@ -54,7 +87,7 @@ func (s SensorRequest) String() string {
 type Service struct {
 	dev     *ener314.Device
 	targets map[string]float64
-	queue   map[uint32][]SensorRequest
+	queue   map[uint32]SensorRequestQueue
 }
 
 func (self *Service) ID() string {
@@ -79,9 +112,12 @@ func emitTemp(msg *ener314.Message, record ener314.Temperature) {
 
 func (self *Service) sendQueuedRequests(sensorId uint32) {
 	if qu, ok := self.queue[sensorId]; ok {
-		var requeue []SensorRequest
+		// sort the requests, so TargetTemps are last
+		sort.Sort(qu)
+
+		var requeue SensorRequestQueue
 		for _, request := range qu {
-			log.Printf("Sending %s to sensor %06x\n", request, sensorId)
+			log.Printf("%06x Sending %s\n", sensorId, request)
 			switch request.Action {
 			case TargetTemperature:
 				self.dev.TargetTemperature(sensorId, request.Value)
@@ -117,7 +153,7 @@ func (self *Service) handleMessage(msg *ener314.Message) {
 		log.Printf("%06x Join\n", msg.SensorId)
 		self.dev.Join(msg.SensorId)
 	case ener314.Temperature:
-		log.Printf("%06x Temperature: %.2f°C\n", msg.SensorId, t.Value)
+		log.Printf("%06x Temperature: %.1f°C\n", msg.SensorId, t.Value)
 		emitTemp(msg, t)
 		// the eTRV is listening - this is the opportunity to send any queued requests
 		self.sendQueuedRequests(msg.SensorId)
@@ -163,8 +199,8 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 }
 
 func (self *Service) queueRequest(sensorId uint32, request SensorRequest) {
-	log.Printf("Queueing %s to sensor %06x\n", request, sensorId)
-	self.queue[sensorId] = append(self.queue[sensorId], request)
+	log.Printf("%06x Queueing %s\n", sensorId, request)
+	self.queue[sensorId] = self.queue[sensorId].Append(request)
 }
 
 func (self *Service) handleCommand(ev *pubsub.Event) {
@@ -188,7 +224,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 
 func (self *Service) Run() error {
 	self.targets = map[string]float64{}
-	self.queue = map[uint32][]SensorRequest{}
+	self.queue = map[uint32]SensorRequestQueue{}
 
 	ener314.SetLevel(ener314.LOG_TRACE)
 	dev := ener314.NewDevice()
