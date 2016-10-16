@@ -2,6 +2,14 @@
 	"version": 0,
 	"dependencies": [
 		{
+			"importpath": "github.com/barnybug/ener314",
+			"repository": "https://github.com/barnybug/ener314",
+			"vcs": "git",
+			"revision": "731149afe1e5161b26c5bba1dfb54bef6dd49c2d",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/stretchr/testify/assert",
 			"repository": "https://github.com/stretchr/testify",
 			"vcs": "git",

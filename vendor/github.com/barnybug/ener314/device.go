@@ -14,12 +14,12 @@ func (d *Device) Start() error {
 	var err error
 
 	logs(LOG_INFO, "Resetting...")
-	err = Reset()
+	d.hrf, err = NewHRF()
 	if err != nil {
 		return err
 	}
 
-	d.hrf, err = NewHRF()
+	err = d.hrf.Reset()
 	if err != nil {
 		return err
 	}

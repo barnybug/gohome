@@ -123,11 +123,17 @@ const (
 	OOK_BUF_SIZE           = 17
 	OOK_MSG_ADDRESS_LENGTH = 10 /* 10 bytes in address */
 
-	ResetPin = 25
+	GreenLed = 27 // GPIO 13
+	RedLed   = 22 // GPIO 15
+	ResetPin = 25 // GPIO 22
 )
 
 func NewHRF() (*HRF, error) {
 	dev, err := spi.New(0, 1, spi.SPIMode0, 9600000)
+	if err != nil {
+		return nil, err
+	}
+	err = rpio.Open()
 	if err != nil {
 		return nil, err
 	}
@@ -140,12 +146,18 @@ type Cmd struct {
 	val  byte
 }
 
-func Reset() error {
-	err := rpio.Open()
-	if err != nil {
-		return err
-	}
-	defer rpio.Close()
+func (self *HRF) Close() {
+	rpio.Close()
+}
+
+func (self *HRF) Reset() error {
+	// light both leds whilst resetting
+	green := rpio.Pin(GreenLed)
+	red := rpio.Pin(RedLed)
+	green.Output()
+	red.Output()
+	green.High()
+	red.High()
 
 	pin := rpio.Pin(ResetPin)
 	pin.Output()
@@ -154,6 +166,9 @@ func Reset() error {
 	time.Sleep(100 * time.Millisecond)
 	pin.Low()
 	time.Sleep(100 * time.Millisecond)
+
+	green.Low()
+	red.Low()
 
 	return nil
 }
@@ -227,11 +242,17 @@ func (self *HRF) GetVersion() byte {
 
 func (self *HRF) ReceiveFSKMessage() *Message {
 	if self.regR(ADDR_IRQFLAGS2)&MASK_PAYLOADRDY == MASK_PAYLOADRDY {
+		// light green whilst receiving
+		green := rpio.Pin(GreenLed)
+		green.High()
+
 		length := self.regR(ADDR_FIFO)
 		data := make([]byte, length)
 		for i := 0; i < int(length); i += 1 {
 			data[i] = self.regR(ADDR_FIFO)
 		}
+		green.Low()
+
 		cryptPacket(data)
 		logs(LOG_TRACE, "<-", hex.EncodeToString(data)) // log decrypted packet
 		message, err := decodePacket(data)
@@ -254,6 +275,10 @@ func (self *HRF) SendFSKMessage(msg *Message) error {
 	buf.WriteByte(MASK_WRITE_DATA) // address
 	buf.WriteByte(byte(len(data))) // packet length
 	buf.Write(data)                // packet
+
+	// light red whilst transmitting
+	red := rpio.Pin(RedLed)
+	red.High()
 
 	// switch to transmission mode
 	err := self.regW(ADDR_OPMODE, MODE_TRANSMITER)
@@ -278,6 +303,8 @@ func (self *HRF) SendFSKMessage(msg *Message) error {
 		return err
 	}
 	self.WaitFor(ADDR_IRQFLAGS1, MASK_MODEREADY, true)
+
+	red.Low()
 	logs(LOG_TRACE, "Sent:", msg)
 
 	return nil
