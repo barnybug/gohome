@@ -77,27 +77,22 @@ func (d *Device) Respond(sensorId uint32, record Record) {
 }
 
 func (d *Device) Identify(sensorId uint32) {
-	logf(LOG_INFO, "Requesting identify from device %06x", sensorId)
 	d.Respond(sensorId, Identify{})
 }
 
 func (d *Device) Join(sensorId uint32) {
-	logf(LOG_INFO, "Responding to Join from device %06x", sensorId)
 	d.Respond(sensorId, JoinReport{})
 }
 
 func (d *Device) Voltage(sensorId uint32) {
-	logf(LOG_INFO, "Requesting Voltage from device %06x", sensorId)
 	d.Respond(sensorId, Voltage{})
 }
 
 func (d *Device) ExerciseValve(sensorId uint32) {
-	logf(LOG_INFO, "Requesting exercise value for device %06x", sensorId)
 	d.Respond(sensorId, ExerciseValve{})
 }
 
 func (d *Device) Diagnostics(sensorId uint32) {
-	logf(LOG_INFO, "Requesting diagnostics for device %06x", sensorId)
 	d.Respond(sensorId, Diagnostics{})
 }
 
@@ -106,7 +101,6 @@ func (d *Device) TargetTemperature(sensorId uint32, temp float64) {
 		logf(LOG_WARN, "Temperature out of range: 4 < %.2f < 30, refusing", temp)
 		return
 	}
-	logf(LOG_INFO, "Setting target temperature for device %06x to %.2fC", sensorId, temp)
 	d.Respond(sensorId, Temperature{temp})
 }
 
