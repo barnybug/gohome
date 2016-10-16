@@ -3,7 +3,7 @@ package ener314
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/barnybug/ener314/rpio"
@@ -236,7 +236,7 @@ func (self *HRF) ReceiveFSKMessage() *Message {
 		logs(LOG_TRACE, "<-", hex.EncodeToString(data)) // log decrypted packet
 		message, err := decodePacket(data)
 		if err != nil {
-			fmt.Println("Error:", err)
+			log.Println(LOG_ERROR, "Error:", err)
 			return nil
 		}
 		return message
