@@ -109,10 +109,14 @@ func (self *Service) ID() string {
 	return "watchdog"
 }
 
-func (self *Service) Run() error {
+func (self *Service) ConfigUpdated(path string) {
+	if path != "gohome/config" {
+		return
+	}
+	conf := services.Config.Watchdog
 	devices = map[string]*WatchdogDevice{}
 	now := time.Now()
-	for device, timeout := range services.Config.Watchdog.Devices {
+	for device, timeout := range conf.Devices {
 		duration, err := time.ParseDuration(timeout)
 		if err != nil {
 			fmt.Println("Failed to parse:", timeout)
@@ -126,7 +130,7 @@ func (self *Service) Run() error {
 	}
 
 	// monitor gohome processes heartbeats
-	for _, process := range services.Config.Watchdog.Processes {
+	for _, process := range conf.Processes {
 		device := fmt.Sprintf("heartbeat.%s", process)
 		// if a process misses 2 heartbeats, mark as problem
 		devices[device] = &WatchdogDevice{
@@ -135,7 +139,10 @@ func (self *Service) Run() error {
 			LastEvent: now,
 		}
 	}
+}
 
+func (self *Service) Run() error {
+	self.ConfigUpdated("gohome/config")
 	ticker := time.NewTicker(time.Minute)
 	events := services.Subscriber.Channel()
 	for {
