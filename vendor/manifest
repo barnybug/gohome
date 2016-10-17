@@ -5,7 +5,7 @@
 			"importpath": "github.com/barnybug/ener314",
 			"repository": "https://github.com/barnybug/ener314",
 			"vcs": "git",
-			"revision": "96481568a1147fadfc1f3c039a969d5c93c5eca7",
+			"revision": "b17c9ad2dc353835e7c3cb5fea3cacc8e9bdde4c",
 			"branch": "master",
 			"notests": true
 		},

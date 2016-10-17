@@ -37,12 +37,16 @@ const (
 	Exercise          Action = "Exercise"
 	Diagnostics       Action = "Diagnostics"
 	Voltage           Action = "Voltage"
+	ValveState        Action = "ValveState"
+	PowerMode         Action = "Powermode"
 )
 
 type SensorRequest struct {
-	Action Action
-	Value  float64
-	Repeat int
+	Action      Action
+	Temperature float64
+	ValveState  ener314.ValveState
+	Mode        ener314.PowerMode
+	Repeat      int
 }
 
 type SensorRequestQueue []SensorRequest
@@ -76,9 +80,14 @@ func (q SensorRequestQueue) Less(i, j int) bool {
 }
 
 func (s SensorRequest) String() string {
-	if s.Action == TargetTemperature {
-		return fmt.Sprintf("Target temperature %.1f°C", s.Value)
-	} else {
+	switch s.Action {
+	case TargetTemperature:
+		return fmt.Sprintf("Target temperature %.1f°C", s.Temperature)
+	case PowerMode:
+		return fmt.Sprintf("Set Power Mode %v", s.Mode)
+	case ValveState:
+		return fmt.Sprintf("Set Valve State %v", s.ValveState)
+	default:
 		return fmt.Sprint(s.Action)
 	}
 }
@@ -120,7 +129,7 @@ func (self *Service) sendQueuedRequests(sensorId uint32) {
 			log.Printf("%06x Sending %s\n", sensorId, request)
 			switch request.Action {
 			case TargetTemperature:
-				self.dev.TargetTemperature(sensorId, request.Value)
+				self.dev.TargetTemperature(sensorId, request.Temperature)
 			case Identify:
 				self.dev.Identify(sensorId)
 			case Diagnostics:
@@ -129,6 +138,10 @@ func (self *Service) sendQueuedRequests(sensorId uint32) {
 				self.dev.ExerciseValve(sensorId)
 			case Voltage:
 				self.dev.Voltage(sensorId)
+			case ValveState:
+				self.dev.SetValveState(sensorId, request.ValveState)
+			case PowerMode:
+				self.dev.SetPowerMode(sensorId, request.Mode)
 			}
 
 			if request.Repeat > 0 {
@@ -193,7 +206,7 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 	// lookup sensorid
 	sensorId := lookupSensorId(ev.Device())
 	if sensorId != 0 {
-		self.queueRequest(sensorId, SensorRequest{Action: TargetTemperature, Value: target, Repeat: 2})
+		self.queueRequest(sensorId, SensorRequest{Action: TargetTemperature, Temperature: target, Repeat: 2})
 	}
 	self.targets[ev.Device()] = target
 }
@@ -201,6 +214,17 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 func (self *Service) queueRequest(sensorId uint32, request SensorRequest) {
 	log.Printf("%06x Queueing %s\n", sensorId, request)
 	self.queue[sensorId] = self.queue[sensorId].Append(request)
+}
+
+var valveStates = map[string]ener314.ValveState{
+	"open":   ener314.VALVE_STATE_OPEN,
+	"closed": ener314.VALVE_STATE_CLOSED,
+	"auto":   ener314.VALVE_STATE_AUTO,
+}
+
+var powerModes = map[string]ener314.PowerMode{
+	"normal": ener314.POWER_MODE_NORMAL,
+	"low":    ener314.POWER_MODE_LOW,
 }
 
 func (self *Service) handleCommand(ev *pubsub.Event) {
@@ -217,6 +241,18 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		self.queueRequest(sensorId, SensorRequest{Action: Exercise})
 	case "voltage":
 		self.queueRequest(sensorId, SensorRequest{Action: Voltage})
+	case "valvestate":
+		if state, ok := valveStates[ev.StringField("state")]; ok {
+			self.queueRequest(sensorId, SensorRequest{Action: ValveState, ValveState: state})
+		} else {
+			log.Println("Valve state: %s not understood", ev.StringField("state"))
+		}
+	case "powermode":
+		if mode, ok := powerModes[ev.StringField("mode")]; ok {
+			self.queueRequest(sensorId, SensorRequest{Action: PowerMode, Mode: mode})
+		} else {
+			log.Println("Power mode: %s not understood", ev.StringField("mode"))
+		}
 	default:
 		log.Println("Command not recognised:", ev.Command())
 	}

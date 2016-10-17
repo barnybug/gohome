@@ -5,9 +5,14 @@ import (
 	"io"
 )
 
+type ByteAndBytesWriter interface {
+	io.Writer
+	io.ByteWriter
+}
+
 type Record interface {
 	String() string
-	Encode(buf io.ByteWriter)
+	Encode(buf ByteAndBytesWriter)
 }
 
 type Join struct{}
@@ -16,7 +21,7 @@ func (j Join) String() string {
 	return "Join"
 }
 
-func (j Join) Encode(buf io.ByteWriter) {
+func (j Join) Encode(buf ByteAndBytesWriter) {
 	buf.WriteByte(OT_JOIN_CMD)
 	buf.WriteByte(0)
 }
@@ -29,11 +34,9 @@ func (t Temperature) String() string {
 	return fmt.Sprintf("Temperature{%f}", t.Value)
 }
 
-func (t Temperature) Encode(buf io.ByteWriter) {
+func (t Temperature) Encode(buf ByteAndBytesWriter) {
 	buf.WriteByte(OT_TEMP_SET)
-	for _, b := range encodeFloat64(ENC_SFPp8, t.Value) {
-		buf.WriteByte(b)
-	}
+	buf.Write(encodeFloat64(ENC_SFPp8, t.Value))
 }
 
 type Voltage struct {
@@ -44,7 +47,7 @@ func (v Voltage) String() string {
 	return fmt.Sprintf("Voltage{%f}", v.Value)
 }
 
-func (v Voltage) Encode(buf io.ByteWriter) {
+func (v Voltage) Encode(buf ByteAndBytesWriter) {
 	buf.WriteByte(OT_REQUEST_VOLTAGE)
 	buf.WriteByte(0)
 }
@@ -84,7 +87,7 @@ func (v Diagnostics) String() string {
 	return fmt.Sprintf("Diagnostics{%d,%s}", v.Value, messages)
 }
 
-func (v Diagnostics) Encode(buf io.ByteWriter) {
+func (v Diagnostics) Encode(buf ByteAndBytesWriter) {
 	buf.WriteByte(OT_REQUEST_DIAGNOSTICS)
 	buf.WriteByte(0)
 }
@@ -99,7 +102,7 @@ func (t UnhandledRecord) String() string {
 	return fmt.Sprintf("Unhandled{%02x,%02x,%v}", t.ID, t.Type, t.Value)
 }
 
-func (t UnhandledRecord) Encode(buf io.ByteWriter) {
+func (t UnhandledRecord) Encode(buf ByteAndBytesWriter) {
 	// Unhandled
 }
 
@@ -111,7 +114,7 @@ func (i Identify) String() string {
 	return "Identify"
 }
 
-func (i Identify) Encode(buf io.ByteWriter) {
+func (i Identify) Encode(buf ByteAndBytesWriter) {
 	buf.WriteByte(OT_IDENTIFY)
 	buf.WriteByte(0)
 }
@@ -122,7 +125,7 @@ func (i JoinReport) String() string {
 	return "JoinReport"
 }
 
-func (i JoinReport) Encode(buf io.ByteWriter) {
+func (i JoinReport) Encode(buf ByteAndBytesWriter) {
 	buf.WriteByte(OT_JOIN_RESP)
 	buf.WriteByte(0)
 }
@@ -133,7 +136,7 @@ func (v ExerciseValve) String() string {
 	return "ExerciseValve"
 }
 
-func (v ExerciseValve) Encode(buf io.ByteWriter) {
+func (v ExerciseValve) Encode(buf ByteAndBytesWriter) {
 	buf.WriteByte(OT_EXERCISE_VALVE)
 	buf.WriteByte(0)
 }
@@ -146,9 +149,33 @@ func (v ReportInterval) String() string {
 	return "ReportInterval"
 }
 
-func (v ReportInterval) Encode(buf io.ByteWriter) {
+func (v ReportInterval) Encode(buf ByteAndBytesWriter) {
 	buf.WriteByte(OT_SET_REPORTING_INTERVAL)
-	buf.WriteByte(0x02)
-	buf.WriteByte(byte(v.Value >> 8))
-	buf.WriteByte(byte(v.Value))
+	buf.Write(encodeInteger(ENC_UINT, uint32(v.Value)))
+}
+
+type SetValveState struct {
+	State ValveState
+}
+
+func (v SetValveState) String() string {
+	return "SetValveState"
+}
+
+func (v SetValveState) Encode(buf ByteAndBytesWriter) {
+	buf.WriteByte(OT_SET_VALVE_STATE)
+	buf.Write(encodeInteger(ENC_UINT, uint32(v.State)))
+}
+
+type SetPowerMode struct {
+	Mode PowerMode
+}
+
+func (v SetPowerMode) String() string {
+	return "SetPowerMode"
+}
+
+func (v SetPowerMode) Encode(buf ByteAndBytesWriter) {
+	buf.WriteByte(OT_SET_LOW_POWER_MODE)
+	buf.Write(encodeInteger(ENC_UINT, uint32(v.Mode)))
 }

@@ -108,6 +108,23 @@ const (
 	ENC_IEEE   = 0xf
 )
 
+type ValveState int
+
+const (
+	// For OT_SET_VALVE_STATE
+	VALVE_STATE_OPEN   ValveState = 0
+	VALVE_STATE_CLOSED ValveState = 1
+	VALVE_STATE_AUTO   ValveState = 2
+)
+
+type PowerMode int
+
+const (
+	// For OT_SET_LOW_POWER_MODE
+	POWER_MODE_NORMAL PowerMode = 0
+	POWER_MODE_LOW    PowerMode = 1
+)
+
 type Message struct {
 	ManuId   byte
 	ProdId   byte
@@ -344,62 +361,42 @@ func encodeMessage(message *Message) []byte {
 	return buf.Bytes()
 }
 
-func encodeFixedPoint(enc byte, value float64, mantissa uint, signed bool) []byte {
-	// TODO: handle signed
-	var buf bytes.Buffer
-	e := 1 << mantissa
-	var encoded uint32 = uint32(value * float64(e))
-	var bytes byte
-	if encoded <= 0xff {
-		bytes = 1
-	} else if encoded < 0xffff {
-		bytes = 2
-	} else if encoded < 0xffffff {
-		bytes = 3
-	} else {
-		bytes = 4
+func encodeInteger(encoding byte, value uint32) []byte {
+	var nbytes byte
+	for nbytes = 4; nbytes > 1; nbytes -= 1 {
+		if value>>((nbytes-1)*8) != 0 {
+			break
+		}
 	}
 
-	typeDesc := enc<<4 + bytes
-	buf.WriteByte(typeDesc)
+	var buf bytes.Buffer
+	buf.WriteByte(encoding<<4 + nbytes)
 	// Big endian
-	for ; bytes > 0; bytes -= 1 {
-		b := byte(encoded >> ((bytes - 1) * 8))
+	for ; nbytes > 0; nbytes -= 1 {
+		b := byte(value >> ((nbytes - 1) * 8))
 		buf.WriteByte(b)
 	}
-
 	return buf.Bytes()
+}
+
+func encodeFixedPoint(encoding byte, value float64, mantissa uint) []byte {
+	// TODO: handle signed
+	e := 1 << mantissa
+	var encoded uint32 = uint32(value * float64(e))
+	return encodeInteger(encoding, encoded)
 }
 
 func encodeFloat64(enc byte, value float64) []byte {
 	switch enc {
-	case ENC_UINT: // Unsigned x.0 normal integer
-		return encodeFixedPoint(enc, value, 0, false)
-	case ENC_UFPp4: // Unsigned x.4 fixed point integer
-		return encodeFixedPoint(enc, value, 4, false)
-	case ENC_UFPp8: // Unsigned x.8 fixed point integer
-		return encodeFixedPoint(enc, value, 8, false)
-	case ENC_UFPp12: // Unsigned x.12 fixed point integer
-		return encodeFixedPoint(enc, value, 12, false)
-	case ENC_UFPp16: // Unsigned x.16 fixed point integer
-		return encodeFixedPoint(enc, value, 16, false)
-	case ENC_UFPp20: // Unsigned x.20 fixed point integer
-		return encodeFixedPoint(enc, value, 20, false)
-	case ENC_UFPp24: // Unsigned x.24 fixed point integer
-		return encodeFixedPoint(enc, value, 24, false)
+	case ENC_UINT, ENC_UFPp4, ENC_UFPp8, ENC_UFPp12, ENC_UFPp16, ENC_UFPp20, ENC_UFPp24: // Unsigned x.n
+		return encodeFixedPoint(enc, value, 4*uint(enc))
 	case ENC_CHARS: // Characters
 		return []byte(fmt.Sprint(value))
-	case ENC_SINT: // Signed x.0 normal integer
-		return encodeFixedPoint(enc, value, 0, true)
-	case ENC_SFPp8: // Signed x.8 fixed point integer
-		return encodeFixedPoint(enc, value, 8, true)
-	case ENC_SFPp16: // Signed x.16 fixed point integer
-		return encodeFixedPoint(enc, value, 16, true)
-	case ENC_SFPp24: // Signed x.24 fixed point integer
-		return encodeFixedPoint(enc, value, 24, true)
+	case ENC_SINT, ENC_SFPp8, ENC_SFPp16, ENC_SFPp24: // Signed x.n
+		return encodeFixedPoint(enc, value, 8*uint(enc-ENC_SINT))
 	case ENC_ENUM: // Enumeration
 		// Just treat as unsigned integer
-		return encodeFixedPoint(ENC_UINT, value, 0, false)
+		return encodeInteger(ENC_UINT, uint32(value))
 	case ENC_RESV1, ENC_RESV2: // Reserved
 	case ENC_IEEE: // IEEE754-2008 floating point
 		// untesed - 32 or 64?

@@ -112,3 +112,11 @@ func (d *Device) ReportInterval(sensorId uint32, interval uint16) {
 	logf(LOG_INFO, "Setting report interval for device %06x to %ds", sensorId, interval)
 	d.Respond(sensorId, ReportInterval{interval})
 }
+
+func (d *Device) SetValveState(sensorId uint32, valveState ValveState) {
+	d.Respond(sensorId, SetValveState{valveState})
+}
+
+func (d *Device) SetPowerMode(sensorId uint32, mode PowerMode) {
+	d.Respond(sensorId, SetPowerMode{mode})
+}
