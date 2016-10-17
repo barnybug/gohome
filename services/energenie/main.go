@@ -14,6 +14,7 @@ import (
 	"github.com/barnybug/ener314"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
+	"github.com/barnybug/gohome/util"
 )
 
 func handleCommand(ev *pubsub.Event) {
@@ -199,6 +200,15 @@ func lookupSensorId(device string) uint32 {
 	return 0
 }
 
+func allSensorIds() []uint32 {
+	var ret []uint32
+	for sid := range services.Config.Protocols["energenie"] {
+		id, _ := strconv.ParseUint(sid, 16, 32)
+		ret = append(ret, uint32(id))
+	}
+	return ret
+}
+
 func (self *Service) handleThermostat(ev *pubsub.Event) {
 	var current float64
 	var ok bool
@@ -270,6 +280,13 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 	}
 }
 
+func (self *Service) daily() {
+	for _, sensorId := range allSensorIds() {
+		// scheduled voltage request
+		self.queueRequest(sensorId, SensorRequest{Action: Voltage})
+	}
+}
+
 func (self *Service) Run() error {
 	self.targets = map[string]float64{}
 	self.queue = map[uint32]SensorRequestQueue{}
@@ -285,6 +302,9 @@ func (self *Service) Run() error {
 	commandChannel := services.Subscriber.FilteredChannel("command")
 
 	receiveTimer := time.NewTimer(time.Millisecond)
+	offset := time.Duration(0)
+	every := 24 * time.Hour
+	dailyTicker := util.NewScheduler(offset, every)
 
 	for {
 		select {
@@ -301,6 +321,8 @@ func (self *Service) Run() error {
 			self.handleThermostat(ev)
 		case ev := <-commandChannel:
 			self.handleCommand(ev)
+		case <-dailyTicker.C:
+			self.daily()
 		}
 	}
 }
