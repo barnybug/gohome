@@ -21,7 +21,7 @@ var Clock = func() time.Time {
 	return time.Now()
 }
 
-var maxTempAge, _ = time.ParseDuration("3m")
+var maxTempAge, _ = time.ParseDuration("6m")
 
 type Schedule struct {
 	Days map[time.Weekday][]MinuteTemp
