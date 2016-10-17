@@ -264,9 +264,16 @@ func (self *Config) LookupDeviceName(ev *pubsub.Event) string {
 	}
 	topic := ev.Topic
 	source := ev.Source()
-	// try: protocol.id
+	// lookup: topic -> source
 	if device, ok := self.Protocols[topic][source]; ok {
 		return device
+	}
+	// lookup: source a -> b
+	if strings.Contains(source, ".") {
+		ps := strings.SplitN(source, ".", 2)
+		if device, ok := self.Protocols[ps[0]][ps[1]]; ok {
+			return device
+		}
 	}
 	// fallback: topic.source
 	// ignore dynamic topics (prefix _)
