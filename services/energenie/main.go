@@ -111,11 +111,22 @@ func round(f float64, dp int) float64 {
 func emitTemp(msg *ener314.Message, record ener314.Temperature) {
 	source := fmt.Sprintf("energenie.%06x", msg.SensorId)
 	value := record.Value
-	fields := map[string]interface{}{
+	fields := pubsub.Fields{
 		"source": source,
 		"temp":   round(value, 1),
 	}
 	ev := pubsub.NewEvent("temp", fields)
+	services.Publisher.Emit(ev)
+}
+
+func emitVoltage(msg *ener314.Message, record ener314.Voltage) {
+	source := fmt.Sprintf("energenie.%06x", msg.SensorId)
+	value := record.Value
+	fields := pubsub.Fields{
+		"source":  source,
+		"voltage": round(value, 2),
+	}
+	ev := pubsub.NewEvent("voltage", fields)
 	services.Publisher.Emit(ev)
 }
 
@@ -171,7 +182,8 @@ func (self *Service) handleMessage(msg *ener314.Message) {
 		// the eTRV is listening - this is the opportunity to send any queued requests
 		self.sendQueuedRequests(msg.SensorId)
 	case ener314.Voltage:
-		log.Printf("%06x Voltage: %.2fV\n", msg.SensorId, t.Value)
+		log.Printf("%06x Voltage: %.3fV\n", msg.SensorId, t.Value)
+		emitVoltage(msg, t)
 	case ener314.Diagnostics:
 		log.Printf("%06x Diagnostics report: %s\n", msg.SensorId, t)
 	}
