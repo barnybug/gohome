@@ -56,10 +56,6 @@ func (d *Device) Receive() *Message {
 		logf(LOG_WARN, "Warning: ignored message from product %d", msg.ProdId)
 		return nil
 	}
-	if len(msg.Records) == 0 {
-		logf(LOG_WARN, "Warning: ignoring message with 0 records")
-		return nil
-	}
 	return msg
 }
 

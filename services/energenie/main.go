@@ -17,19 +17,6 @@ import (
 	"github.com/barnybug/gohome/util"
 )
 
-func handleCommand(ev *pubsub.Event) {
-	dev := ev.Device()
-	command := ev.Command()
-	pids := services.Config.LookupDeviceProtocol(dev)
-	if pids["energenie"] == "" {
-		return // command not for us
-	}
-	if command != "off" && command != "on" {
-		log.Println("Command not recognised:", command)
-		return
-	}
-}
-
 type Action string
 
 const (
@@ -172,6 +159,11 @@ func (self *Service) sendQueuedRequests(sensorId uint32) {
 }
 
 func (self *Service) handleMessage(msg *ener314.Message) {
+	if len(msg.Records) == 0 {
+		log.Println("%06x Announced presence")
+		return
+	}
+
 	record := msg.Records[0] // only examine first record
 	switch t := record.(type) {
 	case ener314.Join:
