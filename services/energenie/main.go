@@ -160,7 +160,7 @@ func (self *Service) sendQueuedRequests(sensorId uint32) {
 
 func (self *Service) handleMessage(msg *ener314.Message) {
 	if len(msg.Records) == 0 {
-		log.Println("%06x Announced presence")
+		log.Printf("%06x Announced presence\n", msg.SensorId)
 		return
 	}
 
