@@ -251,6 +251,24 @@ func ExampleQueryCh() {
 	// Set to 18°C for 1 hour
 }
 
+var testScheduleTable = []struct {
+	t    time.Time
+	temp float64
+}{
+	{
+		time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC), // Friday 8am
+		18.0,
+	},
+	{
+		time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC), // Saturday 8am
+		10.0,
+	},
+	{
+		time.Date(2014, 1, 4, 16, 0, 0, 0, time.UTC), // Saturday 4pm
+		18.0,
+	},
+}
+
 func TestSchedule(t *testing.T) {
 	conf := `
 Saturday,Sunday:
@@ -264,12 +282,47 @@ Monday,Tuesday,Wednesday,Thursday,Friday:
 	var schedule config.ScheduleConf
 	yaml.Unmarshal([]byte(conf), &schedule)
 	s, _ := NewSchedule(schedule)
-	t1 := time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC) // Friday 8am
-	assert.Equal(t, 18.0, s.Target(t1))
-	t2 := time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC) // Saturday 8am
-	assert.Equal(t, 10.0, s.Target(t2))
-	t3 := time.Date(2014, 1, 4, 16, 0, 0, 0, time.UTC) // Saturday 4pm
-	assert.Equal(t, 18.0, s.Target(t3))
+	for _, tt := range testScheduleTable {
+		assert.Equal(t, tt.temp, s.Target(tt.t))
+	}
+}
+
+var testScheduleWithoutWeekendsTable = []struct {
+	t    time.Time
+	temp float64
+}{
+	{
+		time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC), // Friday 7:59am
+		10.0,
+	},
+	{
+		time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC), // Friday 7:59am
+		10.0,
+	},
+	{
+		time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC), // Friday 8am
+		17.0,
+	},
+	{
+		time.Date(2014, 1, 3, 17, 59, 0, 0, time.UTC), // Friday 5:59pm
+		17.0,
+	},
+	{
+		time.Date(2014, 1, 3, 18, 0, 0, 0, time.UTC), // Friday 6pm
+		10.0,
+	},
+	{
+		time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC), // Saturday 8am
+		10.0,
+	},
+	{
+		time.Date(2014, 1, 5, 8, 0, 0, 0, time.UTC), // Sunday 8am
+		10.0,
+	},
+	{
+		time.Date(2014, 1, 6, 8, 0, 0, 0, time.UTC), // Monday 8am
+		17.0,
+	},
 }
 
 func TestScheduleWithoutWeekends(t *testing.T) {
@@ -280,14 +333,9 @@ Monday,Tuesday,Wednesday,Thursday,Friday:
 	var schedule config.ScheduleConf
 	yaml.Unmarshal([]byte(conf), &schedule)
 	s, _ := NewSchedule(schedule)
-	t1 := time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC) // Friday 8am
-	assert.Equal(t, 17.0, s.Target(t1))
-	t2 := time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC) // Saturday 8am
-	assert.Equal(t, 10.0, s.Target(t2))
-	t4 := time.Date(2014, 1, 5, 8, 0, 0, 0, time.UTC) // Sunday 8am
-	assert.Equal(t, 10.0, s.Target(t4))
-	t5 := time.Date(2014, 1, 6, 8, 0, 0, 0, time.UTC) // Monday 8am
-	assert.Equal(t, 17.0, s.Target(t5))
+	for _, tt := range testScheduleWithoutWeekendsTable {
+		assert.Equal(t, tt.temp, s.Target(tt.t))
+	}
 }
 
 func TestScheduleParseError(t *testing.T) {

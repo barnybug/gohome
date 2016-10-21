@@ -91,11 +91,14 @@ func (self *Schedule) Target(at time.Time) float64 {
 		}
 	} else {
 		// find value today
+		var target float64
 		for _, mt := range sch {
-			if day_mins >= mt.Minute {
-				return mt.Temp
+			if day_mins < mt.Minute {
+				break
 			}
+			target = mt.Temp
 		}
+		return target
 	}
 	return 0
 }
