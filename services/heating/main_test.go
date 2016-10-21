@@ -256,7 +256,23 @@ var testScheduleTable = []struct {
 	temp float64
 }{
 	{
-		time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC), // Friday 8am
+		time.Date(2014, 1, 6, 8, 0, 0, 0, time.UTC), // Monday 8am
+		18.0,
+	},
+	{
+		time.Date(2014, 1, 6, 8, 10, 0, 0, time.UTC), // Monday 8:10am
+		14.0,
+	},
+	{
+		time.Date(2014, 1, 6, 17, 20, 0, 0, time.UTC), // Monday 5:29pm
+		14.0,
+	},
+	{
+		time.Date(2014, 1, 6, 17, 30, 0, 0, time.UTC), // Monday 5:30pm
+		18.0,
+	},
+	{
+		time.Date(2014, 1, 6, 22, 19, 0, 0, time.UTC), // Monday 10:19pm
 		18.0,
 	},
 	{
@@ -269,8 +285,7 @@ var testScheduleTable = []struct {
 	},
 }
 
-func TestSchedule(t *testing.T) {
-	conf := `
+var scheduleConf = `
 Saturday,Sunday:
 - '10:20': 18.0
 - '22:50': 10.0
@@ -279,11 +294,24 @@ Monday,Tuesday,Wednesday,Thursday,Friday:
 - '8:10': 14.0
 - '17:30': 18.0
 - '22:20': 10.0`
+
+func TestSchedule(t *testing.T) {
 	var schedule config.ScheduleConf
-	yaml.Unmarshal([]byte(conf), &schedule)
+	yaml.Unmarshal([]byte(scheduleConf), &schedule)
 	s, _ := NewSchedule(schedule)
 	for _, tt := range testScheduleTable {
 		assert.Equal(t, tt.temp, s.Target(tt.t))
+	}
+}
+
+func TestScheduleBST(t *testing.T) {
+	var schedule config.ScheduleConf
+	yaml.Unmarshal([]byte(scheduleConf), &schedule)
+	s, _ := NewSchedule(schedule)
+	bst := time.FixedZone("BST", 3600)
+	for _, tt := range testScheduleTable {
+		bt := time.Date(tt.t.Year(), tt.t.Month(), tt.t.Day(), tt.t.Hour(), tt.t.Minute(), tt.t.Second(), tt.t.Nanosecond(), bst)
+		assert.Equal(t, tt.temp, s.Target(bt))
 	}
 }
 
