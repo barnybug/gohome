@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -283,7 +284,14 @@ func (self *Service) ShortStatus(now time.Time) string {
 
 func (self *Service) Status(now time.Time) string {
 	msg := self.ShortStatus(now)
-	for name, zone := range self.Zones {
+	var keys []string
+	for name := range self.Zones {
+		keys = append(keys, name)
+	}
+	sort.Strings(keys)
+
+	for _, name := range keys {
+		zone := self.Zones[name]
 		target := self.Target(zone, now)
 		star := ""
 		if zone.Temp < target {
