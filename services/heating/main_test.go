@@ -11,6 +11,7 @@ import (
 	"github.com/barnybug/gohome/pubsub/dummy"
 	"github.com/barnybug/gohome/services"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"gopkg.in/v1/yaml"
 )
@@ -286,7 +287,7 @@ var testScheduleTable = []struct {
 }
 
 var scheduleConf = `
-Saturday,Sunday:
+Weekends:
 - '10:20': 18.0
 - '22:50': 10.0
 Monday,Tuesday,Wednesday,Thursday,Friday:
@@ -298,7 +299,8 @@ Monday,Tuesday,Wednesday,Thursday,Friday:
 func TestSchedule(t *testing.T) {
 	var schedule config.ScheduleConf
 	yaml.Unmarshal([]byte(scheduleConf), &schedule)
-	s, _ := NewSchedule(schedule)
+	s, err := NewSchedule(schedule)
+	require.Nil(t, err)
 	for _, tt := range testScheduleTable {
 		assert.Equal(t, tt.temp, s.Target(tt.t))
 	}
@@ -307,7 +309,8 @@ func TestSchedule(t *testing.T) {
 func TestScheduleBST(t *testing.T) {
 	var schedule config.ScheduleConf
 	yaml.Unmarshal([]byte(scheduleConf), &schedule)
-	s, _ := NewSchedule(schedule)
+	s, err := NewSchedule(schedule)
+	require.Nil(t, err)
 	bst := time.FixedZone("BST", 3600)
 	for _, tt := range testScheduleTable {
 		bt := time.Date(tt.t.Year(), tt.t.Month(), tt.t.Day(), tt.t.Hour(), tt.t.Minute(), tt.t.Second(), tt.t.Nanosecond(), bst)
@@ -355,12 +358,13 @@ var testScheduleWithoutWeekendsTable = []struct {
 
 func TestScheduleWithoutWeekends(t *testing.T) {
 	conf := `
-Monday,Tuesday,Wednesday,Thursday,Friday:
+Weekdays:
 - '8:00': 17
 - '18:00': 10`
 	var schedule config.ScheduleConf
 	yaml.Unmarshal([]byte(conf), &schedule)
-	s, _ := NewSchedule(schedule)
+	s, err := NewSchedule(schedule)
+	require.Nil(t, err)
 	for _, tt := range testScheduleWithoutWeekendsTable {
 		assert.Equal(t, tt.temp, s.Target(tt.t))
 	}
