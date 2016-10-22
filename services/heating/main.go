@@ -285,8 +285,12 @@ func (self *Service) ShortStatus(now time.Time) string {
 func (self *Service) Status(now time.Time) string {
 	msg := self.ShortStatus(now)
 	var keys []string
+	length := 0
 	for name := range self.Zones {
 		keys = append(keys, name)
+		if length < len(name) {
+			length = len(name)
+		}
 	}
 	sort.Strings(keys)
 
@@ -297,10 +301,14 @@ func (self *Service) Status(now time.Time) string {
 		if zone.Temp < target {
 			star = "*"
 		}
+		f := "\n%-"
+		f += fmt.Sprint(length)
+		f += "s"
 		if zone.At.IsZero() {
-			msg += fmt.Sprintf("\n%s: unknown [%v°C]", name, target)
+			msg += fmt.Sprintf(f+" unknown [%.1f°C]", name, target)
 		} else {
-			msg += fmt.Sprintf("\n%s: %v°C at %s [%v°C]%s", name, zone.Temp, zone.At.Format(time.Stamp), target, star)
+			// pad names to same length
+			msg += fmt.Sprintf(f+" %.1f°C at %s [%.1f°C]%s", name, zone.Temp, zone.At.Format(time.Stamp), target, star)
 		}
 	}
 	return msg

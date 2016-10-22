@@ -228,9 +228,9 @@ func ExampleStatus() {
 	fmt.Println(service.Status(evBorderline.Timestamp))
 	// Output:
 	// Heating: false for unknown
-	// hallway: unknown [18°C]
+	// hallway unknown [18.0°C]
 	// Heating: true for 10m
-	// hallway: 10.1°C at Jan  4 16:00:00 [18°C]*
+	// hallway 10.1°C at Jan  4 16:00:00 [18.0°C]*
 }
 
 func ExampleQueryStatusText() {
@@ -241,7 +241,7 @@ func ExampleQueryStatusText() {
 	fmt.Println(service.queryStatus(q).Text)
 	// Output:
 	// Heating: true for 10m
-	// hallway: 10.1°C at Jan  4 16:00:00 [18°C]*
+	// hallway 10.1°C at Jan  4 16:00:00 [18.0°C]*
 }
 
 func ExampleQueryStatusJson() {
