@@ -241,10 +241,12 @@ func (self *Service) Check(now time.Time, emitEvents bool) {
 		}
 		if emitEvents {
 			// emit target event
+			trv := target + self.Slop // adjusted target for trvs
 			fields := pubsub.Fields{
 				"device": zone.Thermostat,
 				"source": "ch",
 				"target": target,
+				"trv":    trv,
 			}
 			ev := pubsub.NewEvent("thermostat", fields)
 			self.Publisher.Emit(ev)

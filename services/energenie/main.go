@@ -208,9 +208,11 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 		current = -1 // target not set
 	}
 
-	target, ok := ev.Fields["target"].(float64)
+	// use adjusted trv target - this is adjusted down because trv valves barely open +/- 0.1C of the target,
+	// which results in running the boiler without heating
+	target, ok := ev.Fields["trv"].(float64)
 	if !ok {
-		log.Println("Error: thermostat event target field invalid:", ev)
+		log.Println("Error: thermostat event trv field invalid:", ev)
 		return
 	}
 	if current == target {
