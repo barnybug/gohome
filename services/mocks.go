@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -18,7 +19,10 @@ func NewMockStore() *MockStore {
 }
 
 func (self *MockStore) Get(key string) (string, error) {
-	return self.data[key], nil
+	if value, ok := self.data[key]; ok {
+		return value, nil
+	}
+	return "", fmt.Errorf("Key missing: ", key)
 }
 
 func (self *MockStore) Set(key string, value string) error {

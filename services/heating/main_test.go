@@ -58,17 +58,24 @@ var (
 
 var mockHousePresence string = `{"device":"house.presence","source":"presence","state":"Full","timestamp":"2014-12-07 13:43:59.849429","topic":"house","trigger":"person.barnaby state=In"}`
 
-func Setup() {
+func SetupStor() {
 	// setup mock store
-	services.Config = config.ExampleConfig
 	services.Stor = services.NewMockStore()
 	services.Stor.Set("gohome/state/events/state/house.presence", mockHousePresence)
+}
 
+func SetupService() {
+	services.Config = config.ExampleConfig
 	yaml.Unmarshal([]byte(configYaml), &testConfig)
 	services.Config.Heating = testConfig
 	em = &dummy.Publisher{}
 	service = &Service{}
 	service.Initialize(em)
+}
+
+func Setup() {
+	SetupStor()
+	SetupService()
 }
 
 func TestOnOff(t *testing.T) {
@@ -146,6 +153,28 @@ func TestStaleTemperature(t *testing.T) {
 	if service.State != false {
 		t.Error("Expected State: false")
 	}
+}
+
+func TestTemperatureFromStateOn(t *testing.T) {
+	SetupStor()
+	mockTemp := `{"topic": "temp", "source": "wmr100.2", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000000"}`
+	services.Stor.Set("gohome/state/events/temp/temp.hallway", mockTemp)
+	SetupService()
+
+	service.Heartbeat(evCold.Timestamp)
+	// should start On
+	assert.True(t, service.State, "Expected State: true")
+}
+
+func TestTemperatureFromStateOff(t *testing.T) {
+	SetupStor()
+	mockTemp := `{"topic": "temp", "source": "wmr100.2", "temp": 18.0, "timestamp": "2014-01-04 16:00:00.000000"}`
+	services.Stor.Set("gohome/state/events/temp/temp.hallway", mockTemp)
+	SetupService()
+
+	service.Heartbeat(evCold.Timestamp)
+	// should start Off
+	assert.False(t, service.State, "Expected State: false")
 }
 
 func TestOccupiedToEmptyToFull(t *testing.T) {
