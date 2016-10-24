@@ -399,6 +399,26 @@ Weekdays:
 	}
 }
 
+func TestScheduleEmpty(t *testing.T) {
+	conf := `{}`
+	var schedule config.ScheduleConf
+	yaml.Unmarshal([]byte(conf), &schedule)
+	s, err := NewSchedule(schedule)
+	require.Nil(t, err)
+	assert.Equal(t, 0.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC)))
+}
+
+func TestScheduleAll(t *testing.T) {
+	conf := `
+All:
+- '0:00': 10`
+	var schedule config.ScheduleConf
+	yaml.Unmarshal([]byte(conf), &schedule)
+	s, err := NewSchedule(schedule)
+	require.Nil(t, err)
+	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC)))
+}
+
 func TestScheduleParseError(t *testing.T) {
 	conf := `
 Monkeys:

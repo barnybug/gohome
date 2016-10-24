@@ -60,12 +60,19 @@ func ParseHourMinute(at string) int {
 func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 	days := map[time.Weekday][]MinuteTemp{}
 	for weekdays, mts := range conf {
-		if weekdays == "Weekdays" {
-			weekdays = "Monday,Tuesday,Wednesday,Thursday,Friday"
-		} else if weekdays == "Weekends" {
-			weekdays = "Saturday,Sunday"
+		var ds []string
+		for _, d := range strings.Split(weekdays, ",") {
+			if d == "Weekdays" {
+				ds = append(ds, []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}...)
+			} else if d == "Weekends" {
+				ds = append(ds, []string{"Saturday", "Sunday"}...)
+			} else if d == "All" {
+				ds = append(ds, []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}...)
+			} else {
+				ds = append(ds, d)
+			}
 		}
-		for _, weekday := range strings.Split(weekdays, ",") {
+		for _, weekday := range ds {
 			if _, ok := DOW[weekday]; !ok {
 				return nil, fmt.Errorf("Invalid weekday: %s", weekday)
 			}
