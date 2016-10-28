@@ -256,29 +256,60 @@ func ExampleQueryStatusJson() {
 	// {"changed":"2014-01-04T16:00:00Z","devices":{"hallway":{"at":"2014-01-04T16:00:00Z","target":18,"temp":10.1}},"heating":true}
 }
 
-func ExampleQueryCh() {
+var testQueries = []struct {
+	query    string
+	response string
+}{
+	{
+		"",
+		"required at least device and temperature",
+	},
+	{
+		"abc",
+		"required at least device and temperature",
+	},
+	{
+		"hallway 18",
+		"Set to 18°C for 30 minutes",
+	},
+	{
+		"thermostat.hallway 18",
+		"Set to 18°C for 30 minutes",
+	},
+	{
+		"hallway 18 xyz",
+		"time: invalid duration xyz",
+	},
+	{
+		"hallway 18 1m",
+		"Set to 18°C for 1 minute",
+	},
+	{
+		"hallway 18 1h",
+		"Set to 18°C for 1 hour",
+	},
+	{
+		"hallway 18 24h",
+		"Set to 18°C for 1 day",
+	},
+	{
+		"hallway -1",
+		"Below minimum temperature",
+	},
+	{
+		"hallway 30",
+		"Above maximum temperature",
+	},
+}
+
+func TestQueries(t *testing.T) {
 	Setup()
 	Clock = func() time.Time { return evBorderline.Timestamp }
 	service.Event(evCold)
-	fmt.Println(service.queryCh(
-		services.Question{"ch", "", ""}))
-	fmt.Println(service.queryCh(
-		services.Question{"ch", "abc", ""}))
-	fmt.Println(service.queryCh(
-		services.Question{"ch", "thermostat.hallway 18", ""}))
-	fmt.Println(service.queryCh(
-		services.Question{"ch", "thermostat.hallway 18 xyz", ""}))
-	fmt.Println(service.queryCh(
-		services.Question{"ch", "thermostat.hallway 18 1m", ""}))
-	fmt.Println(service.queryCh(
-		services.Question{"ch", "thermostat.hallway 18 1h", ""}))
-	// Output:
-	// usage: ch <zone> <temp> <duration>
-	// usage: ch <zone> <temp> <duration>
-	// Set to 18°C for 30 minutes
-	// usage: ch <zone> <temp> <duration>
-	// Set to 18°C for 1 minute
-	// Set to 18°C for 1 hour
+	for _, tt := range testQueries {
+		actual := service.queryCh(services.Question{"ch", tt.query, ""})
+		assert.Equal(t, tt.response, actual)
+	}
 }
 
 var testScheduleTable = []struct {
@@ -419,13 +450,21 @@ All:
 	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC)))
 }
 
+var testScheduleParseErrorTable = []string{
+	"Monkeys: ['8:00': 17]",
+	"Monday: ['8:': 17]",
+	"Monday: [':00': 17]",
+	"Monday: [':': 17]",
+	"Monday: ['0:00': -1]",
+	"Monday: ['0:00': 60]",
+}
+
 func TestScheduleParseError(t *testing.T) {
-	conf := `
-Monkeys:
-- '8:00': 17`
-	var schedule config.ScheduleConf
-	yaml.Unmarshal([]byte(conf), &schedule)
-	s, err := NewSchedule(schedule)
-	assert.Error(t, err)
-	assert.Nil(t, s)
+	for _, conf := range testScheduleParseErrorTable {
+		var schedule config.ScheduleConf
+		yaml.Unmarshal([]byte(conf), &schedule)
+		s, err := NewSchedule(schedule)
+		assert.Error(t, err)
+		assert.Nil(t, s)
+	}
 }

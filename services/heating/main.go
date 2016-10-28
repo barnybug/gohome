@@ -33,6 +33,11 @@ type MinuteTemp struct {
 	Temp   float64
 }
 
+const (
+	MinimumTemperature = 1.0
+	MaximumTemperature = 25.0
+)
+
 var DOW = map[string]time.Weekday{
 	time.Monday.String():    time.Monday,
 	time.Tuesday.String():   time.Tuesday,
@@ -43,18 +48,20 @@ var DOW = map[string]time.Weekday{
 	time.Sunday.String():    time.Sunday,
 }
 
-func ParseHourMinute(at string) int {
+func ParseHourMinute(at string) (int, error) {
 	hm := strings.Split(at, ":")
-	if len(hm) == 2 {
-		hour, err := strconv.ParseInt(hm[0], 10, 32)
-		if err == nil {
-			min, err := strconv.ParseInt(hm[1], 10, 32)
-			if err == nil {
-				return int(hour*60 + min)
-			}
-		}
+	if len(hm) != 2 {
+		return 0, errors.New("Expected hh:mm")
 	}
-	return 0
+	hour, err := strconv.ParseInt(hm[0], 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	min, err := strconv.ParseInt(hm[1], 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int(hour*60 + min), nil
 }
 
 func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
@@ -79,7 +86,13 @@ func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 			sch := []MinuteTemp{}
 			for _, arr := range mts {
 				for at, temp := range arr {
-					min := ParseHourMinute(at)
+					min, err := ParseHourMinute(at)
+					if err != nil {
+						return nil, err
+					}
+					if temp < MinimumTemperature || temp > MaximumTemperature {
+						return nil, fmt.Errorf("Temperature %s outside range %s <= t <= %s", temp, MinimumTemperature, MaximumTemperature)
+					}
 					sch = append(sch, MinuteTemp{min, temp})
 				}
 			}
@@ -440,6 +453,14 @@ func parseSet(value string) (err error, zone string, temp float64, duration time
 	if err != nil {
 		return
 	}
+	if temp < MinimumTemperature {
+		err = errors.New("Below minimum temperature")
+		return
+	}
+	if temp > MaximumTemperature {
+		err = errors.New("Above maximum temperature")
+		return
+	}
 	duration = time.Duration(30) * time.Minute
 	if len(vs) > 2 {
 		duration, err = time.ParseDuration(vs[2])
@@ -458,6 +479,6 @@ func (self *Service) queryCh(q services.Question) string {
 		self.Check(now, false)
 		return fmt.Sprintf("Set to %v°C for %s", temp, util.FriendlyDuration(duration))
 	} else {
-		return "usage: ch <zone> <temp> <duration>"
+		return fmt.Sprint(err)
 	}
 }
