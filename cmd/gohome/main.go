@@ -131,7 +131,13 @@ func main() {
 	case "ps":
 		query("ps", []string{}, url.Values{"responses": {"1"}})
 	case "status":
-		query("status", []string{}, emptyParams)
+		if len(ps) == 0 {
+			// all services
+			query("status", []string{}, emptyParams)
+		} else {
+			// single service
+			query(ps[0]+"/status", []string{}, url.Values{"responses": {"1"}})
+		}
 	case "run":
 		service(ps)
 	case "query":
