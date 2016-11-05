@@ -350,7 +350,7 @@ var scheduleConf = `
 Weekends:
 - '10:20': 18.0
 - '22:50': 10.0
-Monday,Tuesday,Wednesday,Thursday,Friday:
+Monday,Tuesday,Wednesday,Thursday,Fri:
 - '7:30': 18.0
 - '8:10': 14.0
 - '17:30': 18.0

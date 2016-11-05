@@ -46,6 +46,13 @@ var DOW = map[string]time.Weekday{
 	time.Friday.String():    time.Friday,
 	time.Saturday.String():  time.Saturday,
 	time.Sunday.String():    time.Sunday,
+	"Mon":                   time.Monday,
+	"Tue":                   time.Tuesday,
+	"Wed":                   time.Wednesday,
+	"Thu":                   time.Thursday,
+	"Fri":                   time.Friday,
+	"Sat":                   time.Saturday,
+	"Sun":                   time.Sunday,
 }
 
 func ParseHourMinute(at string) (int, error) {
