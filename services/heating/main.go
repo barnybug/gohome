@@ -143,7 +143,13 @@ func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 					sch = append(sch, MinuteTemp{min, temp})
 				}
 			}
-			days[weekday] = sch
+
+			if existing, ok := days[weekday]; ok {
+				// append to existing schedule for the day
+				days[weekday] = append(existing, sch...)
+			} else {
+				days[weekday] = sch
+			}
 		}
 	}
 	return &Schedule{Days: days}, nil
