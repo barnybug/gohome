@@ -71,25 +71,65 @@ func ParseHourMinute(at string) (int, error) {
 	return int(hour*60 + min), nil
 }
 
+func WeekdayRange(start, end time.Weekday) []time.Weekday {
+	var days []time.Weekday
+	i := start
+	for {
+		days = append(days, i)
+		if i == end {
+			break
+		}
+		if i == time.Saturday {
+			i = time.Sunday
+		} else {
+			i += 1
+		}
+	}
+	return days
+}
+
+func ParseWeekdays(s string) ([]time.Weekday, error) {
+	var weekdays []time.Weekday
+	for _, d := range strings.Split(s, ",") {
+		if d == "Weekdays" {
+			weekdays = append(weekdays, WeekdayRange(time.Monday, time.Friday)...)
+		} else if d == "Weekends" {
+			weekdays = append(weekdays, WeekdayRange(time.Saturday, time.Sunday)...)
+		} else if d == "All" {
+			weekdays = append(weekdays, WeekdayRange(time.Monday, time.Sunday)...)
+		} else if strings.Contains(d, "-") {
+			ps := strings.SplitN(d, "-", 2)
+			if len(ps) != 2 {
+				return nil, fmt.Errorf("Invalid range: %s", d)
+			}
+			var start, end time.Weekday
+			var ok bool
+			if start, ok = DOW[ps[0]]; !ok {
+				return nil, fmt.Errorf("Invalid weekday: %s", ps[0])
+			}
+			if end, ok = DOW[ps[1]]; !ok {
+				return nil, fmt.Errorf("Invalid weekday: %s", ps[1])
+			}
+			weekdays = append(weekdays, WeekdayRange(start, end)...)
+		} else {
+			if weekday, ok := DOW[d]; ok {
+				weekdays = append(weekdays, weekday)
+			} else {
+				return nil, fmt.Errorf("Invalid weekday: %s", weekday)
+			}
+		}
+	}
+	return weekdays, nil
+}
+
 func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 	days := map[time.Weekday][]MinuteTemp{}
 	for weekdays, mts := range conf {
-		var ds []string
-		for _, d := range strings.Split(weekdays, ",") {
-			if d == "Weekdays" {
-				ds = append(ds, []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}...)
-			} else if d == "Weekends" {
-				ds = append(ds, []string{"Saturday", "Sunday"}...)
-			} else if d == "All" {
-				ds = append(ds, []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}...)
-			} else {
-				ds = append(ds, d)
-			}
+		wds, err := ParseWeekdays(weekdays)
+		if err != nil {
+			return nil, err
 		}
-		for _, weekday := range ds {
-			if _, ok := DOW[weekday]; !ok {
-				return nil, fmt.Errorf("Invalid weekday: %s", weekday)
-			}
+		for _, weekday := range wds {
 			sch := []MinuteTemp{}
 			for _, arr := range mts {
 				for at, temp := range arr {
@@ -103,7 +143,7 @@ func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 					sch = append(sch, MinuteTemp{min, temp})
 				}
 			}
-			days[DOW[weekday]] = sch
+			days[weekday] = sch
 		}
 	}
 	return &Schedule{Days: days}, nil

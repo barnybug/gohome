@@ -337,6 +337,14 @@ var testScheduleTable = []struct {
 		18.0,
 	},
 	{
+		time.Date(2014, 1, 10, 8, 0, 0, 0, time.UTC), // Friday 8am
+		18.0,
+	},
+	{
+		time.Date(2014, 1, 10, 8, 10, 0, 0, time.UTC), // Friday 8:10am
+		14.0,
+	},
+	{
 		time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC), // Saturday 8am
 		10.0,
 	},
@@ -350,7 +358,7 @@ var scheduleConf = `
 Weekends:
 - '10:20': 18.0
 - '22:50': 10.0
-Monday,Tuesday,Wednesday,Thursday,Fri:
+Monday,Tue-Thu,Fri:
 - '7:30': 18.0
 - '8:10': 14.0
 - '17:30': 18.0
