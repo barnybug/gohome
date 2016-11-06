@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -25,12 +26,13 @@ var Clock = func() time.Time {
 var maxTempAge, _ = time.ParseDuration("6m")
 
 type Schedule struct {
-	Days map[time.Weekday][]MinuteTemp
+	Days map[time.Weekday][]ScheduleTemp
 }
 
-type MinuteTemp struct {
-	Minute int
-	Temp   float64
+type ScheduleTemp struct {
+	Start int
+	End   int
+	Temp  float64
 }
 
 const (
@@ -55,20 +57,18 @@ var DOW = map[string]time.Weekday{
 	"Sun":                   time.Sunday,
 }
 
-func ParseHourMinute(at string) (int, error) {
-	hm := strings.Split(at, ":")
-	if len(hm) != 2 {
-		return 0, errors.New("Expected hh:mm")
+var reHourMinuteRange = regexp.MustCompile(`^(\d+):(\d+)-(\d+):(\d+)$`)
+
+func ParseHourMinuteRange(s string) (int, int, error) {
+	m := reHourMinuteRange.FindStringSubmatch(s)
+	if m == nil {
+		return 0, 0, errors.New("Expected hh:mm-hh:mm")
 	}
-	hour, err := strconv.ParseInt(hm[0], 10, 32)
-	if err != nil {
-		return 0, err
-	}
-	min, err := strconv.ParseInt(hm[1], 10, 32)
-	if err != nil {
-		return 0, err
-	}
-	return int(hour*60 + min), nil
+	sh, _ := strconv.Atoi(m[1])
+	sm, _ := strconv.Atoi(m[2])
+	eh, _ := strconv.Atoi(m[3])
+	em, _ := strconv.Atoi(m[4])
+	return sh*60 + sm, eh*60 + em, nil
 }
 
 func WeekdayRange(start, end time.Weekday) []time.Weekday {
@@ -123,24 +123,24 @@ func ParseWeekdays(s string) ([]time.Weekday, error) {
 }
 
 func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
-	days := map[time.Weekday][]MinuteTemp{}
+	days := map[time.Weekday][]ScheduleTemp{}
 	for weekdays, mts := range conf {
 		wds, err := ParseWeekdays(weekdays)
 		if err != nil {
 			return nil, err
 		}
 		for _, weekday := range wds {
-			sch := []MinuteTemp{}
+			sch := []ScheduleTemp{}
 			for _, arr := range mts {
 				for at, temp := range arr {
-					min, err := ParseHourMinute(at)
+					start, end, err := ParseHourMinuteRange(at)
 					if err != nil {
 						return nil, err
 					}
 					if temp < MinimumTemperature || temp > MaximumTemperature {
 						return nil, fmt.Errorf("Temperature %s outside range %s <= t <= %s", temp, MinimumTemperature, MaximumTemperature)
 					}
-					sch = append(sch, MinuteTemp{min, temp})
+					sch = append(sch, ScheduleTemp{start, end, temp})
 				}
 			}
 
@@ -157,27 +157,12 @@ func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 
 func (self *Schedule) Target(at time.Time) float64 {
 	day_mins := at.Hour()*60 + at.Minute()
-	sch, ok := self.Days[at.Weekday()]
-	if !ok || day_mins < sch[0].Minute {
-		// find last from a previous day
-		// may have to look back multiple days (eg weekends missing)
-		prev := at
-		for i := 1; i < 7; i += 1 {
-			prev = prev.Add(-24 * time.Hour)
-			if sch, ok := self.Days[prev.Weekday()]; ok {
-				return sch[len(sch)-1].Temp
+	if sts, ok := self.Days[at.Weekday()]; ok {
+		for _, st := range sts {
+			if st.Start <= day_mins && day_mins < st.End {
+				return st.Temp
 			}
 		}
-	} else {
-		// find value today
-		var target float64
-		for _, mt := range sch {
-			if day_mins < mt.Minute {
-				break
-			}
-			target = mt.Temp
-		}
-		return target
 	}
 	return 0
 }

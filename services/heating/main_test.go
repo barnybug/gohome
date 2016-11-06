@@ -19,6 +19,7 @@ import (
 var (
 	evOff        = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 10.1, "timestamp": "2014-01-04 10:19:00.000000"})
 	evCold       = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000000"})
+	evColder     = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 9.0, "timestamp": "2014-01-04 16:00:00.000000"})
 	evBorderline = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 14.2, "timestamp": "2014-01-04 16:10:00.000000"})
 	evHot        = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 19.0, "timestamp": "2014-01-04 16:31:00.000000"})
 
@@ -41,14 +42,11 @@ zones:
     sensor: temp.hallway
     schedule:
       Saturday,Sunday:
-        - '10:20': 18.0
-        - '22:50': 10.0
-      Monday,Tuesday,Wednesday,Thursday,Friday:
-        - '7:30': 18.0
-        - '8:10': 14.0
-        - '17:30': 18.0
-        - '22:20': 10.0
-unoccupied: 9.0
+        - 10:20-22:50: 18.0
+      Monday-Friday:
+        - 07:30-08:10: 18.0
+        - 17:30-22:20: 18.0
+unoccupied: 10.0
 `
 var (
 	testConfig config.HeatingConf
@@ -80,79 +78,52 @@ func Setup() {
 
 func TestOnOff(t *testing.T) {
 	Setup()
-	if service.State != false {
-		t.Error("Expected initial State: false")
-	}
+	assert.False(t, service.State)
 
 	service.Event(evCold)
 	// should switch on
-	if service.State != true {
-		t.Error("Expected new State: true")
-	}
-	if len(em.Events) != 1 {
-		t.Error("Expected 1 events, got", len(em.Events))
-	}
+	assert.True(t, service.State)
+	assert.Equal(t, 1, len(em.Events))
 	em.Events = em.Events[:0]
 
 	// should stay on at 14.2, within slop
 	service.Event(evBorderline)
-	if service.State != true {
-		t.Error("Expected State: true")
-	}
+	assert.True(t, service.State)
 
 	service.Heartbeat(evBorderline.Timestamp)
-	if service.State != true {
-		t.Error("Expected State: true")
-	}
-	if len(em.Events) != 3 {
-		t.Error("Expected 3 events, got", len(em.Events))
-	}
+	assert.True(t, service.State)
+	assert.Equal(t, 3, len(em.Events))
 	em.Events = em.Events[:0]
 
 	// should switch off
 	service.Event(evHot)
-	if service.State != false {
-		t.Error("Expected State: false")
-	}
-	if len(em.Events) != 1 {
-		t.Error("Expected 1 events, got", len(em.Events))
-	}
+	assert.False(t, service.State)
+	assert.Equal(t, 1, len(em.Events))
 }
 
 func TestTimeChange(t *testing.T) {
 	Setup()
 	service.Event(evOff)
-	// should start off
-	if service.State != false {
-		t.Error("Expected State: false")
-	}
+	assert.False(t, service.State)
 
 	service.Heartbeat(timeJustOn)
 	// should switch on
-	if service.State != true {
-		t.Error("Expected new State: true")
-	}
+	assert.True(t, service.State)
 }
 
 func TestStaleTemperature(t *testing.T) {
 	Setup()
 	service.Event(evCold)
 	// should start On
-	if service.State != true {
-		t.Error("Expected State: true")
-	}
+	assert.True(t, service.State)
 
 	// should switch off due to stale temperature data
 	service.Heartbeat(timeLater)
-	if service.State != false {
-		t.Error("Expected State: false")
-	}
+	assert.False(t, service.State)
 
 	// and stay off
 	service.Heartbeat(timeLater2)
-	if service.State != false {
-		t.Error("Expected State: false")
-	}
+	assert.False(t, service.State)
 }
 
 func TestTemperatureFromStateOn(t *testing.T) {
@@ -180,39 +151,33 @@ func TestTemperatureFromStateOff(t *testing.T) {
 func TestOccupiedToEmptyToFull(t *testing.T) {
 	Setup()
 	service.Event(evCold)
-	if service.State != true {
-		t.Error("Expected State: true")
-	}
+	assert.True(t, service.State)
 
 	// should switch off due to house being empty
 	service.Event(evEmpty)
-	if service.State != false {
-		t.Error("Expected State: false")
-	}
+	assert.False(t, service.State)
+
+	// should switch on due to house being too cold
+	service.Event(evColder)
+	assert.True(t, service.State)
 
 	// should switch on due to house being full
 	service.Event(evFull)
-	if service.State != true {
-		t.Error("Expected State: true")
-	}
+	assert.True(t, service.State)
 }
 
 func TestPartyMode(t *testing.T) {
 	Setup()
 	service.Event(evHot)
-	if service.State != false {
-		t.Error("Expected State: false")
-	}
+	assert.False(t, service.State)
+
 	Clock = func() time.Time { return timeParty }
 	q := services.Question{Verb: "ch", Args: "thermostat.hallway 20 30m"}
 	service.queryCh(q)
-	if service.State != true {
-		t.Error("Expected State: true")
-	}
+	assert.True(t, service.State)
+
 	service.Event(evAfterParty)
-	if service.State != false {
-		t.Error("Expected State: false")
-	}
+	assert.False(t, service.State)
 }
 
 func ExampleInterfaces() {
@@ -346,7 +311,7 @@ var testScheduleTable = []struct {
 	},
 	{
 		time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC), // Saturday 8am
-		10.0,
+		0.0,
 	},
 	{
 		time.Date(2014, 1, 4, 16, 0, 0, 0, time.UTC), // Saturday 4pm
@@ -356,14 +321,13 @@ var testScheduleTable = []struct {
 
 var scheduleConf = `
 Weekends:
-- '10:20': 18.0
-- '22:50': 10.0
+- 10:20-22:50: 18.0
 Monday,Tue-Thu,Fri:
-- '7:30': 18.0
-- '8:10': 14.0
+- 07:30-08:10: 18.0
+- 08:10-17:30: 14.0
 Weekdays:
-- '17:30': 18.0
-- '22:20': 10.0`
+- 17:30-22:20: 18.0
+`
 
 func TestSchedule(t *testing.T) {
 	var schedule config.ScheduleConf
@@ -393,11 +357,11 @@ var testScheduleWithoutWeekendsTable = []struct {
 }{
 	{
 		time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC), // Friday 7:59am
-		10.0,
+		0.0,
 	},
 	{
 		time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC), // Friday 7:59am
-		10.0,
+		0.0,
 	},
 	{
 		time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC), // Friday 8am
@@ -409,15 +373,15 @@ var testScheduleWithoutWeekendsTable = []struct {
 	},
 	{
 		time.Date(2014, 1, 3, 18, 0, 0, 0, time.UTC), // Friday 6pm
-		10.0,
+		0.0,
 	},
 	{
 		time.Date(2014, 1, 4, 8, 0, 0, 0, time.UTC), // Saturday 8am
-		10.0,
+		0.0,
 	},
 	{
 		time.Date(2014, 1, 5, 8, 0, 0, 0, time.UTC), // Sunday 8am
-		10.0,
+		0.0,
 	},
 	{
 		time.Date(2014, 1, 6, 8, 0, 0, 0, time.UTC), // Monday 8am
@@ -428,8 +392,8 @@ var testScheduleWithoutWeekendsTable = []struct {
 func TestScheduleWithoutWeekends(t *testing.T) {
 	conf := `
 Weekdays:
-- '8:00': 17
-- '18:00': 10`
+- 8:00-18:00: 17
+`
 	var schedule config.ScheduleConf
 	yaml.Unmarshal([]byte(conf), &schedule)
 	s, err := NewSchedule(schedule)
@@ -451,7 +415,7 @@ func TestScheduleEmpty(t *testing.T) {
 func TestScheduleAll(t *testing.T) {
 	conf := `
 All:
-- '0:00': 10`
+- 0:00-24:00: 10`
 	var schedule config.ScheduleConf
 	yaml.Unmarshal([]byte(conf), &schedule)
 	s, err := NewSchedule(schedule)
@@ -460,12 +424,15 @@ All:
 }
 
 var testScheduleParseErrorTable = []string{
+	"Monkeys: ['8:00-9:00': 17]",
+	"Monkeys: ['8:00-9': 17]",
+	"Monkeys: ['8:00-': 17]",
 	"Monkeys: ['8:00': 17]",
 	"Monday: ['8:': 17]",
 	"Monday: [':00': 17]",
 	"Monday: [':': 17]",
-	"Monday: ['0:00': -1]",
-	"Monday: ['0:00': 60]",
+	"Monday: ['0:00-1:00': -1]",
+	"Monday: ['0:00-1:00': 60]",
 }
 
 func TestScheduleParseError(t *testing.T) {
