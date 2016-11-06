@@ -273,11 +273,12 @@ func (self *Service) Event(ev *pubsub.Event) {
 	}
 }
 
-func (self *Service) setParty(zone string, temp float64, duration time.Duration, at time.Time) {
+func (self *Service) setParty(zone string, temp float64, duration time.Duration, at time.Time) error {
 	if zone, ok := self.Zones[zone]; ok {
 		zone.setParty(temp, duration, at)
+		return nil
 	} else {
-		log.Println("Not found:", zone)
+		return errors.New("Zone not found")
 	}
 }
 
@@ -516,10 +517,11 @@ func (self *Service) queryCh(q services.Question) string {
 	err, zone, temp, duration := parseSet(q.Args)
 	if err == nil {
 		now := Clock()
-		self.setParty(zone, temp, duration, now)
-		self.Check(now, false)
-		return fmt.Sprintf("Set to %v°C for %s", temp, util.FriendlyDuration(duration))
-	} else {
-		return fmt.Sprint(err)
+		err = self.setParty(zone, temp, duration, now)
+		if err == nil {
+			self.Check(now, false)
+			return fmt.Sprintf("Set %s to %v°C for %s", zone, temp, util.FriendlyDuration(duration))
+		}
 	}
+	return fmt.Sprint(err)
 }

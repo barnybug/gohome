@@ -235,11 +235,11 @@ var testQueries = []struct {
 	},
 	{
 		"hallway 18",
-		"Set to 18°C for 30 minutes",
+		"Set hallway to 18°C for 30 minutes",
 	},
 	{
 		"thermostat.hallway 18",
-		"Set to 18°C for 30 minutes",
+		"Set hallway to 18°C for 30 minutes",
 	},
 	{
 		"hallway 18 xyz",
@@ -247,15 +247,15 @@ var testQueries = []struct {
 	},
 	{
 		"hallway 18 1m",
-		"Set to 18°C for 1 minute",
+		"Set hallway to 18°C for 1 minute",
 	},
 	{
 		"hallway 18 1h",
-		"Set to 18°C for 1 hour",
+		"Set hallway to 18°C for 1 hour",
 	},
 	{
 		"hallway 18 24h",
-		"Set to 18°C for 1 day",
+		"Set hallway to 18°C for 1 day",
 	},
 	{
 		"hallway -1",
