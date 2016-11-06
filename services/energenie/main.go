@@ -281,9 +281,68 @@ func (self *Service) daily() {
 	}
 }
 
-func (self *Service) Run() error {
+func (self *Service) QueryHandlers() services.QueryHandlers {
+	return services.QueryHandlers{
+		"status":      services.TextHandler(self.queryStatus),
+		"identify":    services.TextHandler(self.queryIdentify),
+		"diagnostics": services.TextHandler(self.queryDiagnostics),
+		"exercise":    services.TextHandler(self.queryExercise),
+		"voltage":     services.TextHandler(self.queryVoltage),
+		"help": services.StaticHandler("" +
+			"status: get status\n" +
+			"identify sensor: ask sensor to identify\n" +
+			"diagnostics sensor: ask sensor for diagnostics\n" +
+			"exercise sensor: ask sensor to exercise\n" +
+			"voltage sensor: ask sensor for voltage\n"),
+	}
+}
+
+func (self *Service) queryStatus(q services.Question) string {
+	msg := "Queue:"
+	for id, q := range self.queue {
+		for _, i := range q {
+			msg += fmt.Sprintf("\n%d: %s", id, i)
+		}
+	}
+	return msg
+}
+
+func (self *Service) queryIdentify(q services.Question) string {
+	return self.queryX(Identify, q)
+}
+
+func (self *Service) queryDiagnostics(q services.Question) string {
+	return self.queryX(Diagnostics, q)
+}
+
+func (self *Service) queryExercise(q services.Question) string {
+	return self.queryX(Exercise, q)
+}
+
+func (self *Service) queryVoltage(q services.Question) string {
+	return self.queryX(Voltage, q)
+}
+
+func (self *Service) queryX(action Action, q services.Question) string {
+	if q.Args == "" {
+		return "Sensor name required"
+	}
+	sensorId := lookupSensorId(q.Args)
+	if sensorId == 0 {
+		return "Sensor not found"
+	}
+	req := SensorRequest{Action: action}
+	self.queueRequest(sensorId, req)
+	return fmt.Sprintf("%s queued to sensor: %06x", req, sensorId)
+}
+
+func (self *Service) Initialize() {
 	self.targets = map[string]float64{}
 	self.queue = map[uint32]SensorRequestQueue{}
+}
+
+func (self *Service) Run() error {
+	self.Initialize()
 
 	ener314.SetLevel(ener314.LOG_TRACE)
 	dev := ener314.NewDevice()

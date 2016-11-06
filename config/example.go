@@ -97,6 +97,9 @@ protocols:
     byronsx.0001: bell.front
   earth:
     home: earth
+  energenie:
+    00097f: trv.living
+    00098b: trv.spareroom
   heating:
     ch: heating.ch
   homeeasy:
