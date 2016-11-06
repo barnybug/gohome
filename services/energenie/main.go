@@ -201,6 +201,12 @@ func allSensorIds() []uint32 {
 	return ret
 }
 
+func lookupDevice(sensorId uint32) string {
+	sensorSid := fmt.Sprintf("%06x", sensorId)
+	device, _ := services.Config.Protocols["energenie"][sensorSid]
+	return device
+}
+
 func (self *Service) handleThermostat(ev *pubsub.Event) {
 	var current float64
 	var ok bool
@@ -301,7 +307,7 @@ func (self *Service) queryStatus(q services.Question) string {
 	msg := "Queue:"
 	for id, q := range self.queue {
 		for _, i := range q {
-			msg += fmt.Sprintf("\n%d: %s", id, i)
+			msg += fmt.Sprintf("\n%s: %s", lookupDevice(id), i)
 		}
 	}
 	return msg
