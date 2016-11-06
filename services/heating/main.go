@@ -138,7 +138,7 @@ func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 						return nil, err
 					}
 					if temp < MinimumTemperature || temp > MaximumTemperature {
-						return nil, fmt.Errorf("Temperature %s outside range %s <= t <= %s", temp, MinimumTemperature, MaximumTemperature)
+						return nil, fmt.Errorf("Temperature %.1f outside range %.1f <= t <= %.1f", temp, MinimumTemperature, MaximumTemperature)
 					}
 					sch = append(sch, ScheduleTemp{start, end, temp})
 				}
@@ -157,14 +157,17 @@ func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 
 func (self *Schedule) Target(at time.Time) float64 {
 	day_mins := at.Hour()*60 + at.Minute()
+	var target float64
 	if sts, ok := self.Days[at.Weekday()]; ok {
+		var specific = 86401
 		for _, st := range sts {
-			if st.Start <= day_mins && day_mins < st.End {
-				return st.Temp
+			if st.Start <= day_mins && day_mins < st.End && st.End-st.Start < specific {
+				target = st.Temp
+				specific = st.End - st.Start
 			}
 		}
 	}
-	return 0
+	return target
 }
 
 type Zone struct {

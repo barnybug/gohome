@@ -423,6 +423,26 @@ All:
 	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC)))
 }
 
+func TestScheduleOverlap(t *testing.T) {
+	conf := `
+All:
+- 08:00-09:00: 15
+- 00:00-24:00: 10
+Fri:
+- 08:30-08:35: 20
+`
+	var schedule config.ScheduleConf
+	yaml.Unmarshal([]byte(conf), &schedule)
+	s, err := NewSchedule(schedule)
+	require.Nil(t, err)
+	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC)))
+	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC)))
+	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 2, 8, 30, 0, 0, time.UTC))) // Thursdau
+	assert.Equal(t, 20.0, s.Target(time.Date(2014, 1, 3, 8, 30, 0, 0, time.UTC))) // Friday
+	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 3, 8, 35, 0, 0, time.UTC)))
+	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 9, 0, 0, 0, time.UTC)))
+}
+
 var testScheduleParseErrorTable = []string{
 	"Monkeys: ['8:00-9:00': 17]",
 	"Monkeys: ['8:00-9': 17]",
