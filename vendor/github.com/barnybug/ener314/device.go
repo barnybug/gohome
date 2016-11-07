@@ -93,8 +93,8 @@ func (d *Device) Diagnostics(sensorId uint32) {
 }
 
 func (d *Device) TargetTemperature(sensorId uint32, temp float64) {
-	if temp < 4 || temp > 30 {
-		logf(LOG_WARN, "Temperature out of range: 4 < %.2f < 30, refusing", temp)
+	if temp < 0 || temp > 30 {
+		logf(LOG_WARN, "Temperature out of range: 0 < %.2f < 30, refusing", temp)
 		return
 	}
 	d.Respond(sensorId, Temperature{temp})
