@@ -79,16 +79,19 @@ func (self *Wunderground) Update(fields map[string]interface{}) {
 	}
 }
 
+func toFahrenheit(temp float64) float64 {
+	return temp/5.0*9.0 + 32
+}
+
 func processEvent(ev *pubsub.Event, w *Wunderground) {
 	device := services.Config.LookupDeviceName(ev)
 	switch device {
 	case services.Config.Weather.Outside.Temp:
 		temp := ev.Fields["temp"].(float64)
-		humd := ev.Fields["humidity"].(float64)
-		w.Update(Metrics{
-			// Fahrenheit
-			"tempf":    temp/5.0*9.0 + 32,
-			"humidity": humd})
+		w.Update(Metrics{"tempf": toFahrenheit(temp)})
+		if humd, ok := ev.Fields["humidity"]; ok {
+			w.Update(Metrics{"humidity": humd})
+		}
 	case services.Config.Weather.Outside.Rain:
 		hour_rain := ev.Fields["hour_total"].(float64)
 		day_rain := ev.Fields["day_total"].(float64)
@@ -123,7 +126,7 @@ func (self *Service) ID() string {
 
 func (self *Service) Run() error {
 	w := NewWunderground(services.Config.Wunderground)
-	for ev := range services.Subscriber.Channel() {
+	for ev := range services.Subscriber.FilteredChannel("temp", "rain", "wind", "pressure") {
 		processEvent(ev, w)
 	}
 	return nil
