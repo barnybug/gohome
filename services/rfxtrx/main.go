@@ -120,7 +120,7 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		ev = pubsub.NewEvent("chime", fields)
 
 	default:
-		log.Printf("Ignored unhandled packet: %#v\n", packet)
+		log.Printf("Ignored unhandled packet: %T: %s\n", packet, packet)
 	}
 
 	return ev
