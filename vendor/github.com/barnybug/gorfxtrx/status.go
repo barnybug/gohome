@@ -33,9 +33,9 @@ func (self *Status) TypeString() string {
 // Protocols enabled for the device.
 func (self *Status) Protocols() []string {
 	devs := []string{}
-	devs = extend(devs, decodeFlags(self.data[7], []string{"ae blyss", "rubicson", "fineoffset/viking", "lighting4", "rsl", "byron sx", "rfu6", "edisplay"}))
-	devs = extend(devs, decodeFlags(self.data[8], []string{"mertik", "lightwarerf", "hideki", "lacrosse", "fs20", "proguard", "blindst0", "blindst1"}))
-	devs = extend(devs, decodeFlags(self.data[9], []string{"x10", "arc", "ac", "homeeasy", "ikeakoppla", "oregon", "ati", "visonic"}))
+	devs = append(devs, decodeFlags(self.data[7], []string{"ae blyss", "rubicson", "fineoffset/viking", "lighting4", "rsl", "byron sx", "rfu6", "edisplay"})...)
+	devs = append(devs, decodeFlags(self.data[8], []string{"mertik", "lightwarerf", "hideki", "lacrosse", "fs20", "proguard", "blindst0", "blindst1"})...)
+	devs = append(devs, decodeFlags(self.data[9], []string{"x10", "arc", "ac", "homeeasy", "ikeakoppla", "oregon", "ati", "visonic"})...)
 	sort.Strings(devs)
 	return devs
 }
@@ -48,9 +48,4 @@ func (self *Status) Receive(data []byte) {
 
 func (self *Status) Send() []byte {
 	return []byte{0x0d, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-}
-
-// Status packet constructor
-func NewStatus() (*Status, error) {
-	return &Status{}, nil
 }

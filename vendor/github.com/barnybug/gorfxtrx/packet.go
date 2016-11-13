@@ -1,6 +1,7 @@
 package gorfxtrx
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 )
@@ -17,6 +18,23 @@ type OutPacket interface {
 	Send() []byte
 }
 
+type PacketType struct {
+	length int
+	name   string
+	packet func() Packet
+}
+
+var PacketTypes = map[byte]PacketType{
+	0x1:  PacketType{13, "Status", func() Packet { return &Status{} }},
+	0x10: PacketType{7, "LightingX10", func() Packet { return &LightingX10{} }},
+	0x11: PacketType{11, "LightingHE", func() Packet { return &LightingHE{} }},
+	0x16: PacketType{7, "Chime", func() Packet { return &Chime{} }},
+	0x50: PacketType{8, "Temp", func() Packet { return &Temp{} }},
+	0x52: PacketType{10, "TempHumid", func() Packet { return &TempHumid{} }},
+	0x55: PacketType{11, "Rain", func() Packet { return &Rain{} }},
+	0x56: PacketType{16, "Wind", func() Packet { return &Wind{} }},
+}
+
 // Parse a packet from a byte array.
 func Parse(data []byte) (Packet, error) {
 	if data[0] == 0 {
@@ -29,52 +47,32 @@ func Parse(data []byte) (Packet, error) {
 	}
 
 	var pkt Packet
-	switch data[1] {
-	case 0x01:
-		if dlen != 13 {
-			return nil, errors.New("Status packet too short")
+	if packetType, ok := PacketTypes[data[1]]; ok {
+		if dlen != packetType.length {
+			return nil, fmt.Errorf("%s packet incorrect length, expected: %d actual: %d",
+				packetType.name, packetType.length, dlen)
 		}
-		pkt = &Status{}
-	case 0x10:
-		if dlen != 7 {
-			return nil, errors.New("LightingX10 packet too short")
-		}
-		pkt = &LightingX10{}
-	case 0x11:
-		if dlen != 11 {
-			return nil, errors.New("LightingHE packet too short")
-		}
-		pkt = &LightingHE{}
-	// 0x12-0x15: lighting - to add support
-	case 0x16:
-		if dlen != 7 {
-			return nil, errors.New("Chime packet too short")
-		}
-		pkt = &Chime{}
-	case 0x50:
-		if dlen != 8 {
-			return nil, errors.New("Temp packet too short")
-		}
-		pkt = &Temp{}
-	case 0x52:
-		if dlen != 10 {
-			return nil, errors.New("TempHumid packet too short")
-		}
-		pkt = &TempHumid{}
-	case 0x55:
-		if dlen != 11 {
-			return nil, errors.New("Rain packet too short")
-		}
-		pkt = &Rain{}
-	case 0x56:
-		if dlen != 16 {
-			return nil, errors.New("Wind packet too short")
-		}
-		pkt = &Wind{}
+		pkt = packetType.packet()
+	} else {
+		pkt = &Unknown{}
 	}
-
-	if pkt != nil {
-		pkt.Receive(data)
-	}
+	pkt.Receive(data)
 	return pkt, nil
+}
+
+// Struct for an Unknown packet type.
+type Unknown struct {
+	data []byte
+}
+
+func (self *Unknown) Receive(data []byte) {
+	self.data = data
+}
+
+func (self *Unknown) Send() []byte {
+	return self.data
+}
+
+func (self *Unknown) String() string {
+	return "Unknown: " + hex.EncodeToString(self.data)
 }

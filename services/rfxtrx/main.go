@@ -211,15 +211,15 @@ func transmitCommands(dev *gorfxtrx.Device) {
 
 func getStatus(dev *gorfxtrx.Device) {
 	log.Println("Setting mode")
-	pkt, _ := gorfxtrx.NewSetMode()
-	err := dev.Send(pkt)
+	setmode := &gorfxtrx.SetMode{}
+	err := dev.Send(setmode)
 	if err != nil {
 		log.Println("Error sending packet:", err)
 	}
 
 	log.Println("Getting status")
-	pkt2, _ := gorfxtrx.NewStatus()
-	err = dev.Send(pkt2)
+	status := &gorfxtrx.Status{}
+	err = dev.Send(status)
 	if err != nil {
 		log.Println("Error sending packet:", err)
 	}

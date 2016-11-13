@@ -19,10 +19,3 @@ func decodeFlags(v byte, words []string) []string {
 	}
 	return s
 }
-
-func extend(arr []string, elements []string) []string {
-	for _, el := range elements {
-		arr = append(arr, el)
-	}
-	return arr
-}
