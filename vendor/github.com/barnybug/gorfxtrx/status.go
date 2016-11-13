@@ -1,6 +1,10 @@
 package gorfxtrx
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+	"strings"
+)
 
 // Struct for the Status packet type.
 type Status struct {
@@ -48,4 +52,9 @@ func (self *Status) Receive(data []byte) {
 
 func (self *Status) Send() []byte {
 	return []byte{0x0d, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+}
+
+func (self *Status) String() string {
+	protocols := strings.Join(self.Protocols(), ", ")
+	return fmt.Sprintf("Status: type: %s transceiver: %d firmware: %d protocols: %s", self.TypeString(), self.TransceiverType, self.FirmwareVersion, protocols)
 }
