@@ -26,6 +26,7 @@ type PacketType struct {
 
 var PacketTypes = map[byte]PacketType{
 	0x1:  PacketType{20, "Status", func() Packet { return &Status{} }},
+	0x2:  PacketType{4, "TransmitAck", func() Packet { return &TransmitAck{} }},
 	0x10: PacketType{7, "LightingX10", func() Packet { return &LightingX10{} }},
 	0x11: PacketType{11, "LightingHE", func() Packet { return &LightingHE{} }},
 	0x16: PacketType{7, "Chime", func() Packet { return &Chime{} }},

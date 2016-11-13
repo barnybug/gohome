@@ -130,6 +130,11 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		}
 		ev = pubsub.NewEvent("power", fields)
 
+	case *gorfxtrx.TransmitAck:
+		if !p.OK() {
+			log.Printf("Transmit failed: %s\n", packet)
+		}
+
 	default:
 		log.Printf("Ignored unhandled packet: %T: %s\n", packet, packet)
 	}
