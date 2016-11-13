@@ -124,9 +124,12 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		fields := map[string]interface{}{
 			"source":  source,
 			"power":   p.Power,
-			"total":   p.Total,
 			"battery": p.Battery,
 			"signal":  p.Signal,
+		}
+		if p.Total != 0 {
+			// owl reports zero values occasionally
+			fields["total"] = p.Total
 		}
 		ev = pubsub.NewEvent("power", fields)
 
