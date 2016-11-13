@@ -33,6 +33,7 @@ var PacketTypes = map[byte]PacketType{
 	0x52: PacketType{10, "TempHumid", func() Packet { return &TempHumid{} }},
 	0x55: PacketType{11, "Rain", func() Packet { return &Rain{} }},
 	0x56: PacketType{16, "Wind", func() Packet { return &Wind{} }},
+	0x5a: PacketType{17, "Power", func() Packet { return &Power{} }},
 }
 
 // Parse a packet from a byte array.

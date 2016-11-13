@@ -13,7 +13,7 @@
 			"importpath": "github.com/barnybug/gorfxtrx",
 			"repository": "https://github.com/barnybug/gorfxtrx",
 			"vcs": "git",
-			"revision": "3ab4009245a3fe8477748adae103f13a590c0a51",
+			"revision": "379c373a2fdb1b2ed575632cf04ea050d7a160df",
 			"branch": "master",
 			"notests": true
 		},

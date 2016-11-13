@@ -119,6 +119,17 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		}
 		ev = pubsub.NewEvent("chime", fields)
 
+	case *gorfxtrx.Power:
+		source := fmt.Sprintf("%04x", p.SensorId)
+		fields := map[string]interface{}{
+			"source":  source,
+			"power":   p.Power,
+			"total":   p.Total,
+			"battery": p.Battery,
+			"signal":  p.Signal,
+		}
+		ev = pubsub.NewEvent("power", fields)
+
 	default:
 		log.Printf("Ignored unhandled packet: %T: %s\n", packet, packet)
 	}
