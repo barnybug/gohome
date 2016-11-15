@@ -19,8 +19,8 @@ processes:
     cmd: gohome service nonexistent
 bill:
   electricity:
-    primary_rate: 8.89
-    standing_charge: 35.5
+    primary_rate: 8.54
+    standing_charge: 18.9
   gas:
     calorific_value: 39.3
     conversion_factor: 1.02264

@@ -59,11 +59,11 @@ func electricityBill() string {
 	}
 	// cost in currency units
 	units := total / 1000 // kwh
-	cost := (units * services.Config.Bill.Electricity.Primary_Rate) * vat / 100
-	cost += services.Config.Bill.Electricity.Standing_Charge / 365
+	cost := (units * services.Config.Bill.Electricity.Primary_Rate) * (100 + vat) / 100
+	cost += services.Config.Bill.Electricity.Standing_Charge
 
 	msg := fmt.Sprintf("Electricity: yesterday I used %.2f kwh (%.2f day / %.2f night), costing %s%.2f. Peak was around %s.",
-		units, day/1000, night/1000, services.Config.Bill.Currency, cost,
+		units, day/1000, night/1000, services.Config.Bill.Currency, cost/100,
 		peak.Format(time.Kitchen))
 	return msg
 }
