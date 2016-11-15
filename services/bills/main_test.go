@@ -17,5 +17,5 @@ func ExampleElectricityBill() {
 	s := electricityBill()
 	fmt.Println(s)
 	// Output:
-	// Electricity: yesterday I used 9.51 kwh (5.78 day / 3.73 night), costing £1.01. Peak was around 1:15PM.
+	// Electricity: yesterday I used 9.51 kwh (5.78 day / 3.73 night), costing £1.00. Peak was around 1:15PM.
 }

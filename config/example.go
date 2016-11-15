@@ -27,7 +27,7 @@ bill:
     multiplier: 0.01
     primary_rate: 3.16
     standing_charge: 35.4
-  vat: 5
+  vat: 0
   currency: £
 earth:
   latitude: 51.5072
