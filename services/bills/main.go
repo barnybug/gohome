@@ -20,44 +20,50 @@ func tweet(message string, subtopic string, interval int64) {
 	services.SendAlert(message, "twitter", subtopic, interval)
 }
 
-func tick(t time.Time) {
-	// send weather stats
+func daily(t time.Time) {
+	// send daily stats
 	msg := electricityBill()
 	if msg != "" {
 		tweet(msg, "bill", 0)
 	}
 }
 
-func getAvgYesterday(metric string) (total float64, peak time.Time) {
+func getHourlyTotals(metric string) []graphite.Datapoint {
 	// get hourly average usage
-	target := fmt.Sprintf(`summarize(%s,"1h","avg")`, metric)
-	data, err := gr.Query("midnight yesterday", "midnight", target)
+	target := fmt.Sprintf(`derivative(smartSummarize(%s,"1h","last"))`, metric)
+	data, err := gr.Query("midnight-25h", "midnight", target)
 	if err != nil {
 		log.Println("Failed to get graphite data")
-		return
+		return nil
 	}
-	dps := data[0].Datapoints[:24]
-	max := 0.0
+	dps := data[0].Datapoints
+	return dps[1:]
+}
+
+func electricityBill() string {
+	vat := services.Config.Bill.Vat/100 + 1
+	dps := getHourlyTotals("sensor.power.total.avg")
+	var max, total, day, night float64
+	var peak time.Time
 	for _, dp := range dps {
 		total += dp.Value
 		if dp.Value > max {
 			peak = dp.At
 			max = dp.Value
 		}
+		if dp.At.Hour() >= 6 && dp.At.Hour() < 18 {
+			day += dp.Value
+		} else {
+			night += dp.Value
+		}
 	}
-	return
-}
-
-func electricityBill() string {
-	vat := services.Config.Bill.Vat/100 + 1
-	total, peak := getAvgYesterday("sensor.power.power.avg")
-	units := total / 1000 // kwh
 	// cost in currency units
+	units := total / 1000 // kwh
 	cost := (units * services.Config.Bill.Electricity.Primary_Rate) * vat / 100
 	cost += services.Config.Bill.Electricity.Standing_Charge / 365
 
-	msg := fmt.Sprintf("Electricity: yesterday I used %.2f kwh, costing %s%.2f. Peak was around %s.",
-		units, services.Config.Bill.Currency, cost,
+	msg := fmt.Sprintf("Electricity: yesterday I used %.2f kwh (%.2f day / %.2f night), costing %s%.2f. Peak was around %s.",
+		units, day/1000, night/1000, services.Config.Bill.Currency, cost,
 		peak.Format(time.Kitchen))
 	return msg
 }
@@ -80,7 +86,7 @@ func (self *Service) Run() error {
 	repeat, _ := time.ParseDuration("24h")
 	ticker := util.NewScheduler(offset, repeat)
 	for t := range ticker.C {
-		tick(t)
+		daily(t)
 	}
 	return nil
 }

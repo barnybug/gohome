@@ -32,14 +32,14 @@ type Datapoint struct {
 	Value float64
 }
 
-func (graphite *Datapoint) UnmarshalJSON(data []byte) error {
+func (dp *Datapoint) UnmarshalJSON(data []byte) error {
 	var v []float64
 	json.Unmarshal(data, &v)
 	if len(v) != 2 {
 		return errors.New("Datapoint incorrect length")
 	}
-	graphite.Value = v[0]
-	graphite.At = time.Unix(int64(v[1]), 0)
+	dp.Value = v[0]
+	dp.At = time.Unix(int64(v[1]), 0)
 	return nil
 }
 
