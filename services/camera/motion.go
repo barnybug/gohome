@@ -2,9 +2,10 @@ package camera
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/config"
 	"net/http"
 	"time"
+
+	"github.com/barnybug/gohome/config"
 )
 
 type Motion struct {
@@ -36,9 +37,9 @@ var DetectCommands = map[bool]string{
 func (self *Motion) Detect(b bool) (err error) {
 	url := fmt.Sprintf("%s/%s", self.Conf.Url, DetectCommands[b])
 	resp, err := http.Get(url)
-	defer resp.Body.Close()
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 	return
 }

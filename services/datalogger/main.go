@@ -44,11 +44,11 @@ func writeToLogFile(ev *pubsub.Event) {
 	// TODO: could this be done more smartly by checking inode and only
 	// reopening when it changes?
 	fio, err := os.OpenFile(p, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
-	defer fio.Close()
 	if err != nil {
 		log.Println("Couldn't write file:", err)
 		return
 	}
+	defer fio.Close()
 
 	fio.Write(ev.Bytes())
 	fio.WriteString("\n")
