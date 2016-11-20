@@ -221,7 +221,8 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 		log.Println("Error: thermostat event trv field invalid:", ev)
 		return
 	}
-	if current == target {
+	// resend on the hour
+	if current == target && ev.Timestamp.Minute() != 0 {
 		return // nothing to do
 	}
 
