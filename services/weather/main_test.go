@@ -2,10 +2,14 @@ package weather
 
 import (
 	"fmt"
+
+	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/lib/graphite"
+	"github.com/barnybug/gohome/services"
 )
 
 func ExampleWeatherStatsNoData() {
+	services.Config = config.ExampleConfig
 	response := `
 [
     {
@@ -24,6 +28,7 @@ func ExampleWeatherStatsNoData() {
 }
 
 func ExampleWeatherStats() {
+	services.Config = config.ExampleConfig
 	response := `
 [
     {
