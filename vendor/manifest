@@ -10,6 +10,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/barnybug/go-cast",
+			"repository": "https://github.com/barnybug/go-cast",
+			"vcs": "git",
+			"revision": "eb5488f36d1679c97bd520ebe61e6f93ba0d601f",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/barnybug/gorfxtrx",
 			"repository": "https://github.com/barnybug/gorfxtrx",
 			"vcs": "git",
