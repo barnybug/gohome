@@ -1,6 +1,7 @@
 language: go
 go:
-- 1.5
+- 1.7
+- master
 sudo: false
 before_script:
 - 'mkdir -p $GOPATH/bin && wget -q https://github.com/barnybug/gohome/releases/download/1.0.0/upx -O $GOPATH/bin/upx && chmod +x $GOPATH/bin/upx'
@@ -19,3 +20,4 @@ deploy:
   on:
     repo: barnybug/gohome
     tags: true
+    go: 1.7
