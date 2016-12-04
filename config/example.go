@@ -41,40 +41,27 @@ general:
     server: localhost:25
 heating:
   device: heater.boiler
-  schedule:
-    hallway:
-      Monday,Tuesday,Wednesday,Thursday,Friday:
-      - '0:00': 0
-      Saturday,Sunday:
-      - '9:00': 15.5
-      - '22:30': 10
-    living:
+  hallway:
+    schedule:
+      Weekdays:
+      - 00:00-23:59: 0
+      Weekends:
+      - 09:00-22:30: 15.5
+  living:
+    schedule:
       Friday:
-      - '7:45': 16
-      - '8:10': 14
-      - '16:45': 17
-      - '22:20': 10
+      - 07:45-08:10: 16
       Monday,Tuesday,Wednesday,Thursday:
-      - '7:40': 16.5
-      - '8:10': 14
-      - '17:30': 17
-      - '22:15': 10
+      - 07:40-08:10: 16.5
+      Weekends:
+      - 09:00-22:50: 16
+  office:
+    schedule:
+      Weekdays:
+      - 09:00-18:00: 16
       Saturday,Sunday:
-      - '9:00': 16
-      - '22:50': 10
-    office:
-      Monday,Tuesday,Wednesday,Thursday,Friday:
-      - '9:00': 16
-      - '18:00': 10
-      Saturday,Sunday:
-      - '0:00': 0
-    unoccupied:
-      Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday:
-      - '0:00': 6
-  sensors:
-  - temp.hallway
-  - temp.living
-  - temp.office
+      - 00:00-23:59: 0
+  minimum: 10
   slop: 0.1
 irrigation:
   at: 6h

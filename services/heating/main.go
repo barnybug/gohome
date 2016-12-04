@@ -155,9 +155,9 @@ func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 	return &Schedule{Days: days}, nil
 }
 
-func (self *Schedule) Target(at time.Time) float64 {
+func (self *Schedule) Target(at time.Time, def float64) float64 {
 	day_mins := at.Hour()*60 + at.Minute()
-	var target float64
+	target := def
 	if sts, ok := self.Days[at.Weekday()]; ok {
 		var specific = 86401
 		for _, st := range sts {
@@ -200,15 +200,15 @@ func (self *Zone) setParty(temp float64, duration time.Duration, at time.Time) {
 
 // Service heating
 type Service struct {
-	HeatingDevice    string
-	Slop             float64
-	Zones            map[string]*Zone
-	Sensors          map[string]*Zone
-	State            bool
-	StateChanged     time.Time
-	Occupied         bool
-	UnoccupiedTarget float64
-	Publisher        pubsub.Publisher
+	HeatingDevice string
+	Slop          float64
+	Zones         map[string]*Zone
+	Sensors       map[string]*Zone
+	State         bool
+	StateChanged  time.Time
+	Occupied      bool
+	Minimum       float64
+	Publisher     pubsub.Publisher
 }
 
 func isOccupied() bool {
@@ -286,9 +286,9 @@ func (self *Service) Target(zone *Zone, now time.Time) float64 {
 	if now.Before(zone.PartyUntil) {
 		return zone.PartyTemp
 	} else if self.Occupied {
-		return zone.Schedule.Target(now)
+		return zone.Schedule.Target(now, self.Minimum)
 	} else {
-		return self.UnoccupiedTarget
+		return self.Minimum
 	}
 }
 
@@ -462,7 +462,7 @@ func (self *Service) ConfigUpdated(path string) {
 	self.Slop = conf.Slop
 	self.Zones = zones
 	self.Sensors = sensors
-	self.UnoccupiedTarget = conf.Unoccupied
+	self.Minimum = conf.Minimum
 }
 
 func (self *Service) QueryHandlers() services.QueryHandlers {

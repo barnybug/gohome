@@ -46,7 +46,7 @@ zones:
       Monday-Friday:
         - 07:30-08:10: 18.0
         - 17:30-22:20: 18.0
-unoccupied: 10.0
+minimum: 10.0
 `
 var (
 	testConfig config.HeatingConf
@@ -335,7 +335,7 @@ func TestSchedule(t *testing.T) {
 	s, err := NewSchedule(schedule)
 	require.Nil(t, err)
 	for _, tt := range testScheduleTable {
-		assert.Equal(t, tt.temp, s.Target(tt.t))
+		assert.Equal(t, tt.temp, s.Target(tt.t, 0))
 	}
 }
 
@@ -347,7 +347,7 @@ func TestScheduleBST(t *testing.T) {
 	bst := time.FixedZone("BST", 3600)
 	for _, tt := range testScheduleTable {
 		bt := time.Date(tt.t.Year(), tt.t.Month(), tt.t.Day(), tt.t.Hour(), tt.t.Minute(), tt.t.Second(), tt.t.Nanosecond(), bst)
-		assert.Equal(t, tt.temp, s.Target(bt))
+		assert.Equal(t, tt.temp, s.Target(bt, 0))
 	}
 }
 
@@ -399,7 +399,7 @@ Weekdays:
 	s, err := NewSchedule(schedule)
 	require.Nil(t, err)
 	for _, tt := range testScheduleWithoutWeekendsTable {
-		assert.Equal(t, tt.temp, s.Target(tt.t))
+		assert.Equal(t, tt.temp, s.Target(tt.t, 0))
 	}
 }
 
@@ -409,7 +409,7 @@ func TestScheduleEmpty(t *testing.T) {
 	yaml.Unmarshal([]byte(conf), &schedule)
 	s, err := NewSchedule(schedule)
 	require.Nil(t, err)
-	assert.Equal(t, 0.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC)))
+	assert.Equal(t, 1.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC), 1))
 }
 
 func TestScheduleAll(t *testing.T) {
@@ -420,7 +420,7 @@ All:
 	yaml.Unmarshal([]byte(conf), &schedule)
 	s, err := NewSchedule(schedule)
 	require.Nil(t, err)
-	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC)))
+	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC), 0))
 }
 
 func TestScheduleOverlap(t *testing.T) {
@@ -435,12 +435,12 @@ Fri:
 	yaml.Unmarshal([]byte(conf), &schedule)
 	s, err := NewSchedule(schedule)
 	require.Nil(t, err)
-	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC)))
-	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC)))
-	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 2, 8, 30, 0, 0, time.UTC))) // Thursdau
-	assert.Equal(t, 20.0, s.Target(time.Date(2014, 1, 3, 8, 30, 0, 0, time.UTC))) // Friday
-	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 3, 8, 35, 0, 0, time.UTC)))
-	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 9, 0, 0, 0, time.UTC)))
+	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 7, 59, 0, 0, time.UTC), 0))
+	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 3, 8, 0, 0, 0, time.UTC), 0))
+	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 2, 8, 30, 0, 0, time.UTC), 0)) // Thursdau
+	assert.Equal(t, 20.0, s.Target(time.Date(2014, 1, 3, 8, 30, 0, 0, time.UTC), 0)) // Friday
+	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 3, 8, 35, 0, 0, time.UTC), 0))
+	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 9, 0, 0, 0, time.UTC), 0))
 }
 
 var testScheduleParseErrorTable = []string{
