@@ -140,6 +140,13 @@ func main() {
 		}
 	case "run":
 		service(ps)
+	case "switch":
+		if len(ps) == 0 {
+			usage()
+			return
+		}
+
+		query("switch", ps, emptyParams)
 	case "query":
 		if len(ps) == 0 {
 			usage()
