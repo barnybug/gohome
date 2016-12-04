@@ -175,7 +175,7 @@ func (self *Service) queryTag(q services.Question) string {
 	if _, ok := services.Config.Devices["rfid."+tagName]; !ok {
 		return fmt.Sprintf("Tag %s not found", tagName)
 	}
-	fields := map[string]interface{}{
+	fields := pubsub.Fields{
 		"source":  tagName,
 		"command": "tag",
 	}
@@ -443,7 +443,7 @@ func (self *Service) appendLog(msg string) {
 	logMsg := fmt.Sprintf("%s: %s", now.Format(time.StampMilli), msg)
 	fmt.Fprintln(self.log, logMsg)
 
-	fields := map[string]interface{}{
+	fields := pubsub.Fields{
 		"message": msg,
 		"source":  "event",
 	}
@@ -476,14 +476,10 @@ func (self EventAction) Speak(msg string) {
 
 func (self EventAction) Video(device string, preset int64, secs float64, ir bool) {
 	log.Printf("Video: %s at %d for %.1fs (ir: %v)", device, preset, secs, ir)
-	fields := pubsub.Fields{
-		"device":  device,
-		"command": "video",
-		"timeout": secs,
-		"preset":  preset,
-		"ir":      ir,
-	}
-	ev := pubsub.NewEvent("command", fields)
+	ev := pubsub.NewCommand(device, "video")
+	ev.SetField("timeout", secs)
+	ev.SetField("preset", preset)
+	ev.SetField("ir", ir)
 	services.Publisher.Emit(ev)
 }
 
@@ -567,7 +563,7 @@ func (self EventAction) StartTimer(name string, d int64) {
 
 	timer := time.AfterFunc(duration, func() {
 		// emit timer event
-		fields := map[string]interface{}{
+		fields := pubsub.Fields{
 			"source":  name,
 			"command": "on",
 		}

@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -24,10 +25,11 @@ func NewEvent(topic string, fields map[string]interface{}) *Event {
 
 func NewCommand(device string, command string) *Event {
 	fields := map[string]interface{}{
+		"topic":   "command",
 		"device":  device,
 		"command": command,
 	}
-	return NewEvent("command", fields)
+	return NewEvent(fmt.Sprintf("command/%s", device), fields)
 }
 
 const TimeFormat = "2006-01-02 15:04:05.000000"
@@ -67,6 +69,12 @@ func (event *Event) SetRepeat(repeat int) {
 
 func (event *Event) SetField(name string, value interface{}) {
 	event.Fields[name] = value
+}
+
+func (event *Event) SetFields(fields map[string]interface{}) {
+	for key, value := range fields {
+		event.Fields[key] = value
+	}
 }
 
 func (event *Event) Target() string {
