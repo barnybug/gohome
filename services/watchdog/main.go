@@ -184,7 +184,7 @@ func (self *Service) setupPings(now time.Time) {
 	// create and run pinger
 	p := fastping.NewPinger()
 	p.Network("udp") // use unprivileged
-	p.MaxRTT = 60 * time.Second
+	p.MaxRTT = 20 * time.Second
 	lookup := map[string]string{}
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
 		host := lookup[addr.String()]
