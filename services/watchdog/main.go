@@ -6,6 +6,7 @@ package watchdog
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/smtp"
 	"sort"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
+	fastping "github.com/tatsushid/go-fastping"
 )
 
 type WatchdogDevice struct {
@@ -63,6 +65,10 @@ func sendEmail(name, state string, since time.Time) {
 func checkEvent(ev *pubsub.Event) {
 	// check if in devices monitored
 	device := services.Config.LookupDeviceName(ev)
+	touch(device, ev.Timestamp)
+}
+
+func touch(device string, timestamp time.Time) {
 	w := devices[device]
 	if w == nil {
 		return
@@ -73,7 +79,12 @@ func checkEvent(ev *pubsub.Event) {
 		w.Alerted = false
 		sendEmail(w.Name, "RECOVERED", w.LastEvent)
 	}
-	w.LastEvent = ev.Timestamp
+	w.LastEvent = timestamp
+}
+
+func processPing(host string) {
+	device := fmt.Sprintf("ping.%s", host)
+	touch(device, time.Now())
 }
 
 func checkTimeouts() {
@@ -103,7 +114,10 @@ func checkTimeouts() {
 }
 
 // Service watchdog
-type Service struct{}
+type Service struct {
+	pings  chan string
+	pinger *fastping.Pinger
+}
 
 func (self *Service) ID() string {
 	return "watchdog"
@@ -113,10 +127,19 @@ func (self *Service) ConfigUpdated(path string) {
 	if path != "gohome/config" {
 		return
 	}
-	conf := services.Config.Watchdog
+	self.setup()
+}
+
+func (self *Service) setup() {
 	devices = map[string]*WatchdogDevice{}
 	now := time.Now()
-	for device, timeout := range conf.Devices {
+	self.setupDevices(now)
+	self.setupHeartbeats(now)
+	self.setupPings(now)
+}
+
+func (self *Service) setupDevices(now time.Time) {
+	for device, timeout := range services.Config.Watchdog.Devices {
 		duration, err := time.ParseDuration(timeout)
 		if err != nil {
 			fmt.Println("Failed to parse:", timeout)
@@ -128,9 +151,11 @@ func (self *Service) ConfigUpdated(path string) {
 			LastEvent: now,
 		}
 	}
+}
 
+func (self *Service) setupHeartbeats(now time.Time) {
 	// monitor gohome processes heartbeats
-	for _, process := range conf.Processes {
+	for _, process := range services.Config.Watchdog.Processes {
 		device := fmt.Sprintf("heartbeat.%s", process)
 		// if a process misses 2 heartbeats, mark as problem
 		devices[device] = &WatchdogDevice{
@@ -141,8 +166,47 @@ func (self *Service) ConfigUpdated(path string) {
 	}
 }
 
+func (self *Service) setupPings(now time.Time) {
+	if self.pinger != nil {
+		// reconfiguring - stop previous pinger
+		self.pinger.Stop()
+	}
+
+	for _, host := range services.Config.Watchdog.Pings {
+		device := fmt.Sprintf("ping.%s", host)
+		devices[device] = &WatchdogDevice{
+			Name:      fmt.Sprintf("Ping %s", host),
+			Timeout:   time.Second * 61,
+			LastEvent: now,
+		}
+	}
+
+	// create and run pinger
+	p := fastping.NewPinger()
+	p.Network("udp") // use unprivileged
+	p.MaxRTT = 60 * time.Second
+	lookup := map[string]string{}
+	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
+		host := lookup[addr.String()]
+		self.pings <- host
+	}
+	for _, host := range services.Config.Watchdog.Pings {
+		addr, err := net.ResolveIPAddr("ip4:icmp", host)
+		if err != nil {
+			log.Printf("Failed to resolve host - delaying ping: %s", err)
+		} else {
+			log.Printf("Resolved %s to %s", host, addr)
+			lookup[addr.String()] = host
+			p.AddIPAddr(addr)
+		}
+	}
+	p.RunLoop()
+	self.pinger = p
+}
+
 func (self *Service) Run() error {
-	self.ConfigUpdated("gohome/config")
+	self.pings = make(chan string, 10)
+	self.setup()
 	ticker := time.NewTicker(time.Minute)
 	events := services.Subscriber.Channel()
 	for {
@@ -151,6 +215,8 @@ func (self *Service) Run() error {
 			checkEvent(ev)
 		case <-ticker.C:
 			checkTimeouts()
+		case ping := <-self.pings:
+			processPing(ping)
 		}
 	}
 	return nil

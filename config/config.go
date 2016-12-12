@@ -181,6 +181,7 @@ type WeatherConf struct {
 type WatchdogConf struct {
 	Devices   map[string]string
 	Processes []string
+	Pings     []string
 }
 
 type WundergroundConf struct {

@@ -68,6 +68,14 @@
 			"revision": "b3440c3c63556c3fd67e915be3b92195bc70294a",
 			"branch": "master",
 			"notests": true
+		},
+		{
+			"importpath": "github.com/tatsushid/go-fastping",
+			"repository": "https://github.com/tatsushid/go-fastping",
+			"vcs": "git",
+			"revision": "d7bb493dee3e090e2ffb6914adddf17c1e7c026c",
+			"branch": "master",
+			"notests": true
 		}
 	]
 }
