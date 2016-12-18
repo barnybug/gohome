@@ -45,12 +45,12 @@ var repeatInterval, _ = time.ParseDuration("12h")
 
 func sendEmail(name, state string, since time.Time) {
 	log.Printf("Sending %s watchdog alert for: %s\n", state, name)
-	subject := fmt.Sprintf("%s: %s", state, name)
+	subject := name
 	var body string
 	if state == "PROBLEM" {
-		body = fmt.Sprintf("Since %s", since.Local().Format(time.Stamp))
+		body = fmt.Sprintf("%s last %s", state, since.Local().Format(time.Stamp))
 	} else {
-		body = fmt.Sprintf("At %s", time.Now().Local().Format(time.Stamp))
+		body = fmt.Sprintf("%s at %s", state, time.Now().Local().Format(time.Stamp))
 	}
 
 	email := services.Config.General.Email
