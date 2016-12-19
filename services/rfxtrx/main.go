@@ -151,7 +151,6 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 	command := ev.Command()
 	pids := services.Config.LookupDeviceProtocol(device)
 	if len(pids) == 0 {
-		log.Println("Device not found for:", device)
 		return nil, nil
 	}
 
