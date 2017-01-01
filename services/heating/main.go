@@ -519,7 +519,7 @@ func (self *Service) queryCh(q services.Question) string {
 		now := Clock()
 		err = self.setParty(zone, temp, duration, now)
 		if err == nil {
-			self.Check(now, false)
+			self.Check(now, true)
 			return fmt.Sprintf("Set %s to %v°C for %s", zone, temp, util.FriendlyDuration(duration))
 		}
 	}
