@@ -205,6 +205,7 @@ var switchable = map[string]bool{
 	"lock":     true,
 	"pump":     true,
 	"ringer":   true,
+	"switch":   true,
 }
 
 func (self *Service) querySwitch(q services.Question) string {
