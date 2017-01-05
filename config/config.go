@@ -170,10 +170,11 @@ type SlackConf struct {
 type VoiceConf map[string]string
 
 type WeatherConf struct {
-	Outside struct {
-		Rain string
-		Temp string
-		Wind string
+	Sensors struct {
+		Rain     string
+		Temp     string
+		Wind     string
+		Pressure string
 	}
 	Windy float64
 }

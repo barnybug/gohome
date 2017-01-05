@@ -86,13 +86,13 @@ func toFahrenheit(temp float64) float64 {
 func processEvent(ev *pubsub.Event, w *Wunderground) {
 	device := services.Config.LookupDeviceName(ev)
 	switch device {
-	case services.Config.Weather.Outside.Temp:
+	case services.Config.Weather.Sensors.Temp:
 		temp := ev.Fields["temp"].(float64)
 		w.Update(Metrics{"tempf": toFahrenheit(temp)})
 		if humd, ok := ev.Fields["humidity"]; ok {
 			w.Update(Metrics{"humidity": humd})
 		}
-	case services.Config.Weather.Outside.Rain:
+	case services.Config.Weather.Sensors.Rain:
 		hour_rain := ev.Fields["hour_total"].(float64)
 		day_rain := ev.Fields["day_total"].(float64)
 		w.Update(Metrics{
@@ -100,7 +100,7 @@ func processEvent(ev *pubsub.Event, w *Wunderground) {
 			"rainin":      hour_rain / 25.4,
 			"dailyrainin": day_rain / 25.4,
 		})
-	case services.Config.Weather.Outside.Wind:
+	case services.Config.Weather.Sensors.Wind:
 		speed := ev.Fields["speed"].(float64)
 		dir := ev.Fields["dir"].(float64)
 		w.Update(Metrics{
@@ -108,7 +108,7 @@ func processEvent(ev *pubsub.Event, w *Wunderground) {
 			"windspeedmph": speed * 2.237,
 			"winddir":      dir,
 		})
-	case "pressure.pressure":
+	case services.Config.Weather.Sensors.Pressure:
 		pressure := ev.Fields["pressure"].(float64)
 		w.Update(Metrics{
 			// Convert millibars -> Inches

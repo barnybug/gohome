@@ -56,7 +56,7 @@ func tweet(message string, subtopic string, interval int64) {
 func checkEvent(ev *pubsub.Event) {
 	device := services.Config.LookupDeviceName(ev)
 	switch device {
-	case services.Config.Weather.Outside.Rain:
+	case services.Config.Weather.Sensors.Rain:
 		rain := ev.Fields["all_total"].(float64)
 		if lastRainTotal != 0.0 && rain > lastRainTotal {
 			dayTotal := ev.Fields["day_total"]
@@ -64,7 +64,7 @@ func checkEvent(ev *pubsub.Event) {
 			tweet(message, "rain", 7200)
 		}
 		lastRainTotal = rain
-	case services.Config.Weather.Outside.Temp:
+	case services.Config.Weather.Sensors.Temp:
 		temp := ev.Fields["temp"].(float64)
 		if lastOutsideTemp != 0.0 && lastOutsideTemp >= 0 && temp < 0 {
 			tweet("Brrr, it's gone below zero!", "temp", 7200)
@@ -76,7 +76,7 @@ func checkEvent(ev *pubsub.Event) {
 			tweet("Looks like rain...", "humidity", 7200)
 		}
 		lastOutsideHumd = humd
-	case services.Config.Weather.Outside.Wind:
+	case services.Config.Weather.Sensors.Wind:
 		speed := ev.Fields["speed"].(float64)
 		// about 2 minutes worth moving average
 		avgWind = avgWind*39/40 + speed*1/40
@@ -100,7 +100,7 @@ func getTempDesc(t float64, temps []td) string {
 
 // Generate weather message for yesterday
 func weatherStats() string {
-	ps := strings.Split(services.Config.Weather.Outside.Temp, ".")
+	ps := strings.Split(services.Config.Weather.Sensors.Temp, ".")
 	sensor := ps[len(ps)-1] + ".temp"
 	highest := getLast24(sensor, "max")
 	highestDesc := getTempDesc(highest, highTemperatures)
