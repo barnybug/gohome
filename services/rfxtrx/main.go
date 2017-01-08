@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"path/filepath"
 	"strings"
 	"time"
@@ -184,8 +185,6 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 	return nil, nil
 }
 
-var RepeatInterval, _ = time.ParseDuration("3s")
-
 var repeats map[string]*time.Timer = map[string]*time.Timer{}
 
 func repeatSend(dev *gorfxtrx.Device, device string, pkt gorfxtrx.OutPacket, repeat int64) error {
@@ -201,7 +200,8 @@ func repeatSend(dev *gorfxtrx.Device, device string, pkt gorfxtrx.OutPacket, rep
 	}
 
 	if repeat > 1 {
-		repeats[device] = time.AfterFunc(RepeatInterval, func() {
+		duration := time.Duration((rand.Float64()*2 + 1) * float64(time.Second))
+		repeats[device] = time.AfterFunc(duration, func() {
 			repeatSend(dev, device, pkt, repeat-1)
 		})
 	}
