@@ -262,7 +262,7 @@ func switchCommand(name string, command string, repeat int, level int) {
 	dev := services.Config.Devices[name]
 	ev := pubsub.NewCommand(dev.Id, command)
 	ev.SetRepeat(repeat)
-	if dev.Type == "dimlight" {
+	if dev.Type == "dimlight" && command != "off" {
 		ev.SetField("level", level)
 	}
 	services.Publisher.Emit(ev)
