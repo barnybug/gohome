@@ -208,6 +208,23 @@ var switchable = map[string]bool{
 	"switch":   true,
 }
 
+func matchDevices(name string) []string {
+	matches := []string{}
+	for iname, idev := range services.Config.Devices {
+		if strings.Contains(iname, name) && switchable[idev.Type] {
+			matches = append(matches, iname)
+		}
+	}
+	return matches
+}
+
+func parseInt(str string, def int) int {
+	if num, err := strconv.Atoi(str); err == nil {
+		return num
+	}
+	return def
+}
+
 func (self *Service) querySwitch(q services.Question) string {
 	if q.Args == "" {
 		// return a list of the devices
@@ -220,15 +237,7 @@ func (self *Service) querySwitch(q services.Question) string {
 	}
 	args := strings.Split(q.Args, " ")
 	name := args[0]
-	matches := []string{}
-	var dev config.DeviceConf
-	for iname, idev := range services.Config.Devices {
-		if strings.Contains(iname, name) && switchable[idev.Type] {
-			dev = idev
-			matches = append(matches, iname)
-		}
-	}
-
+	matches := matchDevices(name)
 	if len(matches) == 0 {
 		return fmt.Sprintf("device %s not found", name)
 	}
@@ -242,23 +251,21 @@ func (self *Service) querySwitch(q services.Question) string {
 	if c, ok := kwargs[""]; ok {
 		command = c
 	}
-	repeat := 3
-	ev := pubsub.NewCommand(dev.Id, command)
-	if dev.Type == "dimlight" {
-		if level, ok := kwargs["level"]; ok {
-			if level, err := strconv.Atoi(level); err == nil {
-				ev.SetField("level", level)
-				ev.SetRepeat(repeat)
-			}
-		}
-		// avoid setting repeat on a dimmable without a level, as
-		// this triggers dim cycle on homeeasy lights
-	} else {
-		ev.SetRepeat(repeat)
-	}
-
-	services.Publisher.Emit(ev)
+	repeat := parseInt(kwargs["repeat"], 3)
+	level := parseInt(kwargs["level"], 8)
+	switchCommand(name, command, repeat, level)
+	dev := services.Config.Devices[matches[0]]
 	return fmt.Sprintf("Switched %s %s", dev.Name, command)
+}
+
+func switchCommand(name string, command string, repeat int, level int) {
+	dev := services.Config.Devices[name]
+	ev := pubsub.NewCommand(dev.Id, command)
+	ev.SetRepeat(repeat)
+	if dev.Type == "dimlight" {
+		ev.SetField("level", level)
+	}
+	services.Publisher.Emit(ev)
 }
 
 func (self *Service) queryScript(q services.Question) string {
@@ -539,12 +546,11 @@ func (self EventAction) Command(device string, cmd string) {
 }
 
 func (self EventAction) Switch(device string, state bool) {
-	on := "off"
+	command := "off"
 	if state {
-		on = "on"
+		command = "on"
 	}
-	log.Printf("Switching %s %s", device, on)
-	command(device, on)
+	switchCommand(device, command, 3, 8)
 }
 
 func (self EventAction) Dim(device string, level int) {
