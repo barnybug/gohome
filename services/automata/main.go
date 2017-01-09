@@ -245,6 +245,7 @@ func (self *Service) querySwitch(q services.Question) string {
 		return fmt.Sprintf("device %s is ambiguous", strings.Join(matches, ", "))
 	}
 
+	dev := services.Config.Devices[matches[0]]
 	// rest of key=value arguments
 	kwargs := keywordArgs(args[1:])
 	command := "on"
@@ -253,8 +254,7 @@ func (self *Service) querySwitch(q services.Question) string {
 	}
 	repeat := parseInt(kwargs["repeat"], 3)
 	level := parseInt(kwargs["level"], 8)
-	switchCommand(name, command, repeat, level)
-	dev := services.Config.Devices[matches[0]]
+	switchCommand(matches[0], command, repeat, level)
 	return fmt.Sprintf("Switched %s %s", dev.Name, command)
 }
 
@@ -545,11 +545,13 @@ func (self EventAction) Command(device string, cmd string) {
 	command(device, cmd)
 }
 
+var stateCommand = map[bool]string{
+	false: "off",
+	true:  "on",
+}
+
 func (self EventAction) Switch(device string, state bool) {
-	command := "off"
-	if state {
-		command = "on"
-	}
+	command := stateCommand[state]
 	switchCommand(device, command, 3, 8)
 }
 
