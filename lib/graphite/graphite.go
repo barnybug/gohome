@@ -1,6 +1,7 @@
 package graphite
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -75,7 +76,7 @@ type Writer interface {
 
 type GraphiteWriter struct {
 	host   string
-	buffer string
+	buffer bytes.Buffer
 }
 
 var dialer = func(network, address string) (io.ReadWriteCloser, error) {
@@ -88,8 +89,8 @@ func NewWriter(host string) *GraphiteWriter {
 
 func (graphite *GraphiteWriter) Add(path string, timestamp int64, value float64) error {
 	line := fmt.Sprintf("%s %v %d\n", path, value, timestamp)
-	graphite.buffer += line
-	if len(graphite.buffer) > BatchSize {
+	graphite.buffer.WriteString(line)
+	if graphite.buffer.Len() > BatchSize {
 		return graphite.Flush()
 	}
 	return nil
@@ -100,8 +101,8 @@ func (graphite *GraphiteWriter) Flush() error {
 	if err != nil {
 		return err
 	}
-	conn.Write([]byte(graphite.buffer))
+	io.Copy(conn, &graphite.buffer)
 	conn.Close()
-	graphite.buffer = ""
+	graphite.buffer.Reset()
 	return nil
 }
