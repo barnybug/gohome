@@ -28,6 +28,8 @@ var ignoredFields = map[string]bool{
 	"repeat":    true,
 }
 
+var eventsTotal = map[string]int{}
+
 func sendToGraphite(ev *pubsub.Event) {
 	device := services.Config.LookupDeviceName(ev)
 	if device == "" {
@@ -57,7 +59,7 @@ func sendToGraphite(ev *pubsub.Event) {
 		case uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64:
 			floatValue = value.(float64)
 		default:
-			//log.Printf("Ignoring non-numeric value: %s:%s %v\n", device, metric, value)
+			// ignore non-numeric values
 			continue
 		}
 
@@ -66,6 +68,11 @@ func sendToGraphite(ev *pubsub.Event) {
 			gr.Add(path, timestamp, floatValue)
 		}
 
+		// total events counter
+		path := fmt.Sprintf("sensor.%s.%s.%s", device, metric, "total")
+		eventsTotal[path] += 1
+		total := eventsTotal[path]
+		gr.Add(path, timestamp, float64(total))
 	}
 
 	if err := gr.Flush(); err != nil {
