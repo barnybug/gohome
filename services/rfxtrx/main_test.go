@@ -23,16 +23,18 @@ func ExampleTranslateCommand() {
 }
 
 func ExampleTranslatePacketStatus() {
+	service := &Service{}
 	pkt, _ := gorfxtrx.Parse([]byte{0x0d, 0x01, 0x00, 0x01, 0x02, 0x53, 0x3e, 0x00, 0x0c, 0x2f, 0x01, 0x01, 0x00, 0x00})
-	ev := translatePacket(pkt)
+	ev := service.translatePacket(pkt)
 	fmt.Println(ev)
 	// Output:
 	// <nil>
 }
 
 func ExampleTranslatePacketX10() {
+	service := &Service{}
 	pkt, _ := gorfxtrx.Parse([]byte{0x07, 0x10, 0x00, 0x2a, 0x45, 0x05, 0x01, 0x70})
-	ev := translatePacket(pkt)
+	ev := service.translatePacket(pkt)
 	loc, _ := time.LoadLocation("UTC")
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)
@@ -41,8 +43,9 @@ func ExampleTranslatePacketX10() {
 }
 
 func ExampleTranslatePacketHE() {
+	service := &Service{}
 	pkt, _ := gorfxtrx.Parse([]byte{0x0b, 0x11, 0x00, 0x2a, 0x01, 0x23, 0x45, 0x67, 0x05, 0x02, 0x08, 0x70})
-	ev := translatePacket(pkt)
+	ev := service.translatePacket(pkt)
 	loc, _ := time.LoadLocation("UTC")
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)
@@ -51,8 +54,9 @@ func ExampleTranslatePacketHE() {
 }
 
 func ExampleTranslatePacketChime() {
+	service := &Service{}
 	pkt, _ := gorfxtrx.Parse([]byte{0x07, 0x16, 0x00, 0x06, 0x00, 0x7a, 0x01, 0x70})
-	ev := translatePacket(pkt)
+	ev := service.translatePacket(pkt)
 	loc, _ := time.LoadLocation("UTC")
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)

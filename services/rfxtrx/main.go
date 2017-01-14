@@ -17,8 +17,17 @@ import (
 	"github.com/barnybug/gorfxtrx"
 )
 
+// Service rfxtrx
+type Service struct {
+	inflight chan *pubsub.Event
+}
+
+func deviceName(s string) string {
+	return strings.Replace(strings.ToLower(s), " ", "", -1)
+}
+
 // Read events from the rfxtrx
-func readEvents(dev *gorfxtrx.Device) {
+func (self *Service) readEvents(dev *gorfxtrx.Device) {
 	for {
 		packet, err := dev.Read()
 		if err != nil {
@@ -29,7 +38,7 @@ func readEvents(dev *gorfxtrx.Device) {
 			continue
 		}
 
-		ev := translatePacket(packet)
+		ev := self.translatePacket(packet)
 
 		if ev != nil {
 			services.Publisher.Emit(ev)
@@ -38,13 +47,7 @@ func readEvents(dev *gorfxtrx.Device) {
 	}
 }
 
-const Origin = "rfxtrx"
-
-func deviceName(s string) string {
-	return strings.Replace(strings.ToLower(s), " ", "", -1)
-}
-
-func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
+func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 	var ev *pubsub.Event
 	switch p := packet.(type) {
 	case *gorfxtrx.Status:
@@ -135,8 +138,15 @@ func translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		ev = pubsub.NewEvent("power", fields)
 
 	case *gorfxtrx.TransmitAck:
-		if !p.OK() {
-			log.Printf("Transmit failed: %s\n", packet)
+		pending := <-self.inflight
+		if p.OK() {
+			fields := map[string]interface{}{
+				"device": pending.Device(),
+				"ack":    pending.Command(),
+			}
+			ev = pubsub.NewEvent("ack", fields)
+		} else {
+			log.Printf("Transmit failed: %s for %s\n", packet, pending)
 		}
 
 	default:
@@ -187,8 +197,9 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 
 var repeats map[string]*time.Timer = map[string]*time.Timer{}
 
-func repeatSend(dev *gorfxtrx.Device, device string, pkt gorfxtrx.OutPacket, repeat int64) error {
+func (self *Service) repeatSend(dev *gorfxtrx.Device, event *pubsub.Event, pkt gorfxtrx.OutPacket, repeat int64) error {
 	// cancel any existing timer
+	device := event.Device()
 	if t, ok := repeats[device]; ok {
 		delete(repeats, device)
 		t.Stop()
@@ -198,17 +209,18 @@ func repeatSend(dev *gorfxtrx.Device, device string, pkt gorfxtrx.OutPacket, rep
 	if err != nil {
 		return err
 	}
+	self.inflight <- event
 
 	if repeat > 1 {
 		duration := time.Duration((rand.Float64()*2 + 1) * float64(time.Second))
 		repeats[device] = time.AfterFunc(duration, func() {
-			repeatSend(dev, device, pkt, repeat-1)
+			self.repeatSend(dev, event, pkt, repeat-1)
 		})
 	}
 	return nil
 }
 
-func transmitCommands(dev *gorfxtrx.Device) {
+func (self *Service) transmitCommands(dev *gorfxtrx.Device) {
 	for ev := range services.Subscriber.FilteredChannel("command") {
 		pkt, err := translateCommands(ev)
 		if err != nil {
@@ -220,7 +232,7 @@ func transmitCommands(dev *gorfxtrx.Device) {
 			continue
 		}
 		repeat := ev.IntField("repeat")
-		err = repeatSend(dev, ev.Device(), pkt, repeat)
+		err = self.repeatSend(dev, ev, pkt, repeat)
 		if err != nil {
 			log.Fatalln("Exiting after error sending:", err)
 		}
@@ -251,14 +263,25 @@ func defaultDevName() string {
 	return ""
 }
 
-// Service rfxtrx
-type Service struct{}
-
 func (self *Service) ID() string {
 	return "rfxtrx"
 }
 
+func (self *Service) emptyInflight() {
+	more := true
+	for more {
+		select {
+		case <-self.inflight:
+			break
+		default:
+			more = false
+			break
+		}
+	}
+}
+
 func (self *Service) Run() error {
+	self.inflight = make(chan *pubsub.Event, 10)
 	devname := defaultDevName()
 	if devname == "" {
 		return errors.New("rfxtrx device not found")
@@ -274,11 +297,13 @@ func (self *Service) Run() error {
 		// get device status 300ms after reset
 		time.AfterFunc(300*time.Millisecond, func() { getStatus(dev) })
 
-		go transmitCommands(dev)
-		readEvents(dev)
+		go self.transmitCommands(dev)
+		self.readEvents(dev)
 
 		log.Println("Disconnected")
 		dev.Close()
+
+		self.emptyInflight()
 	}
 	return nil
 }
