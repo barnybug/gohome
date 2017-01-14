@@ -400,10 +400,7 @@ func (self *Service) Run() error {
 	for {
 		select {
 		case ev := <-ch:
-			if ev.Topic == "alert" || ev.Topic == "heating" || strings.HasPrefix(ev.Topic, "_") {
-				continue
-			}
-			if ev.Command() == "" && ev.State() == "" {
+			if ev.Command() == "" && ev.State() == "" && ev.Ack() == "" {
 				continue
 			}
 
