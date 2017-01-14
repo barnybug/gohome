@@ -98,6 +98,8 @@ func (self EventWrapper) String() string {
 		s += fmt.Sprintf(" command=%s", self.event.Command())
 	} else if self.event.State() != "" {
 		s += fmt.Sprintf(" state=%s", self.event.State())
+	} else if self.event.Ack() != "" {
+		s += fmt.Sprintf(" ack=%s", self.event.Ack())
 	}
 	return s
 }

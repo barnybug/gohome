@@ -97,6 +97,10 @@ func (event *Event) State() string {
 	return event.StringField("state")
 }
 
+func (event *Event) Ack() string {
+	return event.StringField("ack")
+}
+
 func Parse(msg string) *Event {
 	// extract json
 	var fields map[string]interface{}
