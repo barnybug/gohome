@@ -48,17 +48,17 @@ LOOP:
 		case events.AppStarted:
 			log.Printf("%s: App started: %s (%s)", client.Name(), data.DisplayName, data.AppID)
 			fields := map[string]interface{}{
-				"ack":    "on",
-				"source": client.Name(),
-				"app":    data.DisplayName,
+				"command": "on",
+				"source":  client.Name(),
+				"app":     data.DisplayName,
 			}
 			event := pubsub.NewEvent("cast", fields)
 			services.Publisher.Emit(event)
 		case events.AppStopped:
 			log.Printf("%s: App stopped: %s (%s)", client.Name(), data.DisplayName, data.AppID)
 			fields := map[string]interface{}{
-				"ack":    "off",
-				"source": client.Name(),
+				"command": "off",
+				"source":  client.Name(),
 			}
 			event := pubsub.NewEvent("cast", fields)
 			services.Publisher.Emit(event)

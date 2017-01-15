@@ -141,8 +141,8 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		pending := <-self.inflight
 		if p.OK() {
 			fields := map[string]interface{}{
-				"device": pending.Device(),
-				"ack":    pending.Command(),
+				"device":  pending.Device(),
+				"command": pending.Command(),
 			}
 			ev = pubsub.NewEvent("ack", fields)
 		} else {

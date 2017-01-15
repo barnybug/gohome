@@ -98,8 +98,6 @@ func (self EventWrapper) String() string {
 		s += fmt.Sprintf(" command=%s", self.event.Command())
 	} else if self.event.State() != "" {
 		s += fmt.Sprintf(" state=%s", self.event.State())
-	} else if self.event.Ack() != "" {
-		s += fmt.Sprintf(" ack=%s", self.event.Ack())
 	}
 	return s
 }
@@ -400,7 +398,11 @@ func (self *Service) Run() error {
 	for {
 		select {
 		case ev := <-ch:
-			if ev.Command() == "" && ev.State() == "" && ev.Ack() == "" {
+			if ev.Topic == "command" {
+				// ignore direct commands - ack/homeeasy events indicate commands completing.
+				continue
+			}
+			if ev.Command() == "" && ev.State() == "" {
 				continue
 			}
 
