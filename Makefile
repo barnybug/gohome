@@ -18,8 +18,16 @@ coverage:
 	go tool cover -html=/tmp/coverage.out -o /tmp/coverage.html
 	xdg-open /tmp/coverage.html
 
-release:
-	GOOS=linux GOARCH=amd64 go build -o release/gohome-linux-amd64 $(exe)
-	GOOS=linux GOARCH=386 go build -o release/gohome-linux-386 $(exe)
+release-arm:
 	GOOS=linux GOARCH=arm go build -o release/gohome-linux-arm $(exe)
+
+release-amd64:
+	GOOS=linux GOARCH=amd64 go build -o release/gohome-linux-amd64 $(exe)
+
+release-386:
+	GOOS=linux GOARCH=386 go build -o release/gohome-linux-386 $(exe)
+
+upx:
 	upx release/*
+
+release: release-amd64 release-386 release-arm upx
