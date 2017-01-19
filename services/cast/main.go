@@ -5,6 +5,7 @@
 package cast
 
 import (
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -90,6 +91,9 @@ func (service *Service) listener(discover *discovery.Service) {
 
 // Run the service
 func (service *Service) Run() error {
+	// mdns is rather noisy. Disable logging for now.
+	log.SetFlags(0)
+	log.SetOutput(ioutil.Discard)
 	ctx := context.Background()
 	discover := discovery.NewService(ctx)
 
