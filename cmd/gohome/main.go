@@ -28,6 +28,7 @@ import (
 	"github.com/barnybug/gohome/services/orvibo"
 	"github.com/barnybug/gohome/services/pubsub"
 	"github.com/barnybug/gohome/services/pushbullet"
+	"github.com/barnybug/gohome/services/raspi"
 	"github.com/barnybug/gohome/services/rfid"
 	"github.com/barnybug/gohome/services/rfxtrx"
 	"github.com/barnybug/gohome/services/script"
@@ -64,6 +65,7 @@ func registerServices() {
 	services.Register(&orvibo.Service{})
 	services.Register(&pubsub.Service{})
 	services.Register(&pushbullet.Service{})
+	services.Register(&raspi.Service{})
 	services.Register(&rfid.Service{})
 	services.Register(&rfxtrx.Service{})
 	services.Register(&script.Service{})

@@ -26,6 +26,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/stianeikeland/go-rpio",
+			"repository": "https://github.com/stianeikeland/go-rpio",
+			"vcs": "git",
+			"revision": "896db2ee1c7f95240dd6a09e56edf9cece107a34",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/stretchr/testify/assert",
 			"repository": "https://github.com/stretchr/testify",
 			"vcs": "git",
