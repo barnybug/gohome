@@ -351,7 +351,7 @@ func (self *Service) Initialize() {
 func (self *Service) Run() error {
 	self.Initialize()
 
-	ener314.SetLevel(ener314.LOG_TRACE)
+	ener314.SetLevel(ener314.LOG_INFO)
 	dev := ener314.NewDevice()
 	self.dev = dev
 	err := dev.Start()
