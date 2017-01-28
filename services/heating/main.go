@@ -409,6 +409,7 @@ func (self *Service) ID() string {
 }
 
 func (self *Service) Initialize(em pubsub.Publisher) {
+	services.SetupStore()
 	self.State = false
 	self.Occupied = isOccupied()
 	self.Publisher = em

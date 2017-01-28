@@ -372,6 +372,7 @@ func timeit(name string, fn func()) {
 
 // Run the service
 func (self *Service) Run() error {
+	services.SetupStore()
 	self.log = openLogFile()
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)

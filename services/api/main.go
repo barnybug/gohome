@@ -437,6 +437,7 @@ func recordEvents() {
 
 // Run the service
 func (service *Service) Run() error {
+	services.SetupStore()
 	go recordEvents()
 	httpEndpoint()
 	return nil

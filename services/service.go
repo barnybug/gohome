@@ -69,6 +69,10 @@ func ConfigWatcher() {
 }
 
 func SetupStore() {
+	if Stor != nil {
+		return
+	}
+
 	var err error
 
 	address := "redis://:6379"

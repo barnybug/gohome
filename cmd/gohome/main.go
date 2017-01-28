@@ -163,7 +163,6 @@ func main() {
 // Start builtin services
 func service(ss []string) {
 	services.Setup()
-	services.SetupStore()
 	registerServices()
 	services.Launch(ss)
 }
