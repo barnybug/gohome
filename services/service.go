@@ -10,7 +10,7 @@ import (
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/pubsub/mqtt"
-	"github.com/barnybug/gohome/pubsub/nanomsg"
+	"github.com/barnybug/gohome/util"
 )
 
 // Service interface
@@ -35,30 +35,28 @@ var Publisher pubsub.Publisher
 var Subscriber pubsub.Subscriber
 var Stor Store
 
+var Configured = util.NewEvent()
+
 func SetupLogging() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.SetOutput(os.Stdout)
-}
-
-func SetupConfigFile() {
-	var err error
-	Config, err = config.Open()
-	if err != nil {
-		log.Fatalln("Error opening config:", err)
-	}
 }
 
 func ConfigWatcher() {
 	for ev := range Subscriber.FilteredChannel("config") {
 		path := ev.StringField("path")
 		if path == "gohome/config" {
-			// reload config
-			err := loadConfigFromStore()
+			// (re)load config
+			value := ev.StringField("config")
+			conf, err := config.OpenRaw([]byte(value))
 			if err != nil {
 				log.Println("Error reloading config:", err)
 				continue
 			}
-			log.Println("Config updated")
+			Config = conf
+			if Configured.Set() {
+				log.Println("Config updated")
+			}
 		}
 
 		// notify any interested services
@@ -98,26 +96,6 @@ func SetupStore() {
 	}
 }
 
-func loadConfigFromStore() error {
-	value, err := Stor.Get("gohome/config")
-	if err != nil {
-		return err
-	}
-	conf, err := config.OpenRaw([]byte(value))
-	if err != nil {
-		return err
-	}
-	Config = conf
-	return nil
-}
-
-func SetupConfig() {
-	err := loadConfigFromStore()
-	if err != nil {
-		log.Fatalln("Error opening config:", err)
-	}
-}
-
 func SetupFlags() {
 	for _, service := range enabled {
 		// any service specific flags
@@ -128,34 +106,28 @@ func SetupFlags() {
 	flag.Parse()
 }
 
-func SetupEndpoints() {
+func Setup() {
 	// create Publisher
-	ep := Config.Endpoints
-	var broker *mqtt.Broker
-	if ep.Mqtt.Broker != "" {
-		broker = mqtt.NewBroker(ep.Mqtt.Broker)
-		Publisher = broker.Publisher()
-	} else if ep.Nanomsg.Pub != "" {
-		Publisher = nanomsg.NewPublisher(ep.Nanomsg.Pub, true)
+	url := os.Getenv("GOHOME_MQTT")
+	if url == "" {
+		log.Fatalln("Set GOHOME_MQTT to the mqtt server. eg: tcp://127.0.0.1:1883")
 	}
+
+	var broker *mqtt.Broker
+	broker = mqtt.NewBroker(url)
+	Publisher = broker.Publisher()
 	if Publisher == nil {
 		log.Fatalln("Failed to initialise pub endpoint")
 	}
-
-	// create Subscriber
-	if ep.Mqtt.Broker != "" {
-		Subscriber = broker.Subscriber()
-	} else if ep.Nanomsg.Sub != "" {
-		Subscriber = nanomsg.NewSubscriber(ep.Nanomsg.Sub, "", true)
-	}
+	Subscriber = broker.Subscriber()
 	if Subscriber == nil {
 		log.Fatalln("Failed to initialise sub endpoint")
 	}
 
 	// listen for config changes
 	go ConfigWatcher()
-	// listen for commands
-	go QuerySubscriber()
+	// wait for initial config
+	Configured.Wait()
 }
 
 func Launch(ss []string) {
@@ -168,8 +140,10 @@ func Launch(ss []string) {
 		}
 	}
 
-	SetupEndpoints()
 	SetupFlags()
+
+	// listen for commands
+	go QuerySubscriber()
 
 	for _, service := range enabled {
 		log.Printf("Starting %s\n", service.ID())
@@ -200,12 +174,6 @@ func Heartbeat(id string) {
 		Publisher.Emit(ev)
 		time.Sleep(time.Second * 60)
 	}
-}
-
-func Setup() {
-	SetupLogging()
-	SetupStore()
-	SetupConfig()
 }
 
 func Register(service Service) {
