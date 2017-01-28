@@ -22,6 +22,9 @@ func (pub *Publisher) ID() string {
 func (pub *Publisher) Emit(ev *pubsub.Event) {
 	// put all topics under gohome/
 	topic := "gohome/" + ev.Topic
-	r := pub.client.Publish(MQTT.QOS_ONE, topic, ev.Bytes())
+	msg := MQTT.NewMessage(ev.Bytes())
+	msg.SetQoS(MQTT.QOS_ONE)
+	msg.SetRetainedFlag(ev.Retained)
+	r := pub.client.PublishMessage(topic, msg)
 	<-r
 }

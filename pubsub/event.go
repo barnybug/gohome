@@ -12,6 +12,7 @@ type Event struct {
 	Topic     string
 	Timestamp time.Time
 	Fields    Fields
+	Retained  bool
 }
 
 func NewEvent(topic string, fields map[string]interface{}) *Event {
@@ -75,6 +76,10 @@ func (event *Event) SetFields(fields map[string]interface{}) {
 	for key, value := range fields {
 		event.Fields[key] = value
 	}
+}
+
+func (event *Event) SetRetained(retained bool) {
+	event.Retained = retained
 }
 
 func (event *Event) Target() string {

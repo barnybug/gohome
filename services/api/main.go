@@ -317,9 +317,15 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, err)
 		return
 	}
+	if !strings.HasPrefix(path, "config") {
+		err := errors.New("path should begin with config")
+		badRequest(w, err)
+		return
+	}
 
 	// retrieve key from store
-	value, err := services.Stor.Get(q.Get("path"))
+	storeKey := "gohome/" + path
+	value, err := services.Stor.Get(storeKey)
 	if err != nil {
 		errorResponse(w, err)
 		return
@@ -338,12 +344,14 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 		sout := string(data)
 		if sout != value {
 			// set store
-			services.Stor.Set(path, sout)
+			services.Stor.Set(storeKey, sout)
 			// emit event
 			fields := pubsub.Fields{
-				"path": path,
+				"path":   storeKey,
+				"config": sout,
 			}
-			ev := pubsub.NewEvent("config", fields)
+			ev := pubsub.NewEvent(path, fields)
+			ev.SetRetained(true) // config messages are retained
 			services.Publisher.Emit(ev)
 			log.Printf("%s changed, emitted config event", path)
 		}
