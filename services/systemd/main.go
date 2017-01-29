@@ -209,9 +209,22 @@ func (self *Service) queryStartStopRestart(q services.Question) string {
 		return "Expected a process argument"
 	}
 
+	units := getStatus()
+	names := map[string]bool{}
+	for _, unit := range units {
+		names[unit.Process] = true
+	}
+
 	pnames := []string{}
 	for _, n := range args {
-		pnames = append(pnames, "gohome@"+n+".service")
+		// ignore any units not directed to us
+		if _, ok := names[n]; ok {
+			pnames = append(pnames, "gohome@"+n+".service")
+		}
+	}
+	if len(pnames) == 0 {
+		// no units
+		return ""
 	}
 	return systemctl(q.Verb, pnames...)
 }
