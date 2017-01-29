@@ -125,10 +125,11 @@ func (self *Service) Run() error {
 	interrupts := make(chan InterruptEvent, 10)
 
 	setupPins(interrupts)
+	commands := services.Subscriber.FilteredChannel("command")
 
 	for {
 		select {
-		case ev := <-services.Subscriber.FilteredChannel("command"):
+		case ev := <-commands:
 			handleCommand(ev)
 		case iv := <-interrupts:
 			handleInterrupt(iv)
