@@ -131,7 +131,7 @@ func main() {
 	case "restart":
 		query("restart", ps, emptyParams)
 	case "ps":
-		query("ps", []string{}, url.Values{"responses": {"1"}})
+		query("ps", []string{}, url.Values{"timeout": {"1000"}})
 	case "status":
 		if len(ps) == 0 {
 			// all services
