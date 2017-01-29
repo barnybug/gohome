@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -127,13 +128,14 @@ func (a ByStatus) Less(i, j int) bool {
 }
 
 func (self *Service) queryStatus(q services.Question) string {
+	host, _ := os.Hostname()
 	table := [][]string{
-		[]string{"Process", "Status", "PID", "Started"},
+		[]string{"Process", "Host", "Status", "PID", "Started"},
 	}
 	units := getStatus()
 	sort.Sort(ByStatus(units))
 	for _, unit := range units {
-		table = append(table, []string{unit.Process, unit.Status, unit.MainPid, unit.Started})
+		table = append(table, []string{unit.Process, host, unit.Status, unit.MainPid, unit.Started})
 	}
 	return writeTable(table)
 }
