@@ -6,7 +6,9 @@ package espeaker
 
 import (
 	"io"
+	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -15,13 +17,31 @@ import (
 
 var espeakStdin io.WriteCloser
 
-func say(msg string) {
+func say(msg string) error {
 	log.Println("Saying:", msg)
-	data := []byte(msg + "\n")
-	_, err := espeakStdin.Write(data)
+	f, err := ioutil.TempFile("", "espeaker")
 	if err != nil {
-		log.Println("Error Writing to stdin:", err)
+		return err
 	}
+	f.Close()
+	defer os.Remove(f.Name())
+
+	args := strings.Split(services.Config.Espeak.Args, " ")
+	args = append(args, []string{"-w", f.Name()}...)
+	args = append(args, msg)
+	cmd := exec.Command("espeak", args...)
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	cmd = exec.Command("aplay", f.Name())
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Service espeaker
@@ -35,19 +55,6 @@ func (self *Service) ID() string {
 
 // Run the service
 func (self *Service) Run() error {
-	// start espeak process
-	args := strings.Split(services.Config.Espeak.Args, " ")
-	cmd := exec.Command("espeak", args...)
-	var err error
-	espeakStdin, err = cmd.StdinPipe()
-	if err != nil {
-		log.Fatalln("Couldn't create StdinPipe:", err)
-	}
-	err = cmd.Start()
-	if err != nil {
-		log.Fatalln("Couldn't start espeak:", err)
-	}
-
 	for ev := range services.Subscriber.FilteredChannel("alert") {
 		msg, ok := ev.Fields["message"].(string)
 		if ev.Target() == "espeak" && ok {
