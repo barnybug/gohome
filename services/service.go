@@ -2,6 +2,7 @@ package services
 
 import (
 	"flag"
+	"hash/fnv"
 	"log"
 	"net/url"
 	"os"
@@ -42,12 +43,27 @@ func SetupLogging() {
 	log.SetOutput(os.Stdout)
 }
 
+func hash(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
+}
+
 func ConfigWatcher() {
+	seen := map[string]uint32{}
+
 	for ev := range Subscriber.FilteredChannel("config") {
 		path := ev.StringField("path")
+		value := ev.StringField("config")
+		hashValue := hash(value)
+		previous := seen[path]
+		if previous == hashValue {
+			// ignore duplicate events - from services subscribing to gohome/#.
+			continue
+		}
+		seen[path] = hashValue
 		if path == "gohome/config" {
 			// (re)load config
-			value := ev.StringField("config")
 			conf, err := config.OpenRaw([]byte(value))
 			if err != nil {
 				log.Println("Error reloading config:", err)

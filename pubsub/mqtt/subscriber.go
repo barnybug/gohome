@@ -1,6 +1,9 @@
 package mqtt
 
 import (
+	"fmt"
+	"regexp"
+	"strings"
 	"sync"
 
 	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
@@ -79,17 +82,20 @@ func (self *Subscriber) Channel() <-chan *pubsub.Event {
 	return ch.C
 }
 
-func stringSet(li []string) map[string]bool {
-	ret := map[string]bool{}
-	for _, i := range li {
-		ret[i] = true
+func topicRegex(topics []string) *regexp.Regexp {
+	expr := fmt.Sprintf("^(%s)($|/)", strings.Join(topics, "|"))
+	return regexp.MustCompile(expr)
+}
+
+func eventMatcher(topics []string) eventFilter {
+	re := topicRegex(topics)
+	return func(ev *pubsub.Event) bool {
+		return re.MatchString(ev.Topic)
 	}
-	return ret
 }
 
 func (self *Subscriber) FilteredChannel(topics ...string) <-chan *pubsub.Event {
-	topicSet := stringSet(topics)
-	ch := self.addChannel(func(ev *pubsub.Event) bool { return topicSet[ev.Topic] }, topics)
+	ch := self.addChannel(eventMatcher(topics), topics)
 	return ch.C
 }
 
