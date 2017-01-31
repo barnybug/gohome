@@ -124,7 +124,7 @@ func (self *Service) ID() string {
 }
 
 func (self *Service) ConfigUpdated(path string) {
-	if path != "gohome/config" {
+	if path != "config" {
 		return
 	}
 	self.setup()

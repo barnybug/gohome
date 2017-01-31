@@ -53,7 +53,7 @@ func ConfigWatcher() {
 	seen := map[string]uint32{}
 
 	for ev := range Subscriber.FilteredChannel("config") {
-		path := ev.StringField("path")
+		path := ev.Topic
 		value := ev.StringField("config")
 		hashValue := hash(value)
 		previous := seen[path]
@@ -62,7 +62,7 @@ func ConfigWatcher() {
 			continue
 		}
 		seen[path] = hashValue
-		if path == "gohome/config" {
+		if path == "config" {
 			// (re)load config
 			conf, err := config.OpenRaw([]byte(value))
 			if err != nil {

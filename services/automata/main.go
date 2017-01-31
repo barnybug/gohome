@@ -103,7 +103,7 @@ func (self EventWrapper) String() string {
 }
 
 func (self *Service) ConfigUpdated(path string) {
-	if path == "gohome/config/automata" {
+	if path == "config/automata" {
 		// trigger reload in main loop
 		self.configUpdated <- true
 	}

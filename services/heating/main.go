@@ -434,7 +434,7 @@ func (self *Service) Run() error {
 }
 
 func (self *Service) ConfigUpdated(path string) {
-	if path != "gohome/config" {
+	if path != "config" {
 		return
 	}
 	conf := services.Config.Heating

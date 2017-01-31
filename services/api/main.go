@@ -2,7 +2,7 @@
 //
 // The endpoints supported are:
 //
-// http://localhost:8723/config?path=gohome/config - GET configuration or POST to update configuration
+// http://localhost:8723/config?path=config - GET configuration or POST to update configuration
 //
 // http://localhost:8723/devices - list of devices and events
 //
@@ -347,7 +347,6 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 			services.Stor.Set(storeKey, sout)
 			// emit event
 			fields := pubsub.Fields{
-				"path":   storeKey,
 				"config": sout,
 			}
 			ev := pubsub.NewEvent(path, fields)
