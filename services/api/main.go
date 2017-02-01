@@ -93,7 +93,7 @@ func query(endpoint string, q string, timeout int64, responses int64, w http.Res
 
 	var n int64 = 0
 	for ev := range ch {
-		fmt.Fprintf(w, ev.String()+"\r\n")
+		fmt.Fprintf(w, "%s\r\n", ev.String())
 		w.(http.Flusher).Flush()
 		n++
 		if n >= responses {
