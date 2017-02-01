@@ -26,6 +26,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/mdlayher/apcupsd",
+			"repository": "https://github.com/mdlayher/apcupsd",
+			"vcs": "git",
+			"revision": "888a66ab0fe0e6366797886a163ca8fc9b7f4154",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/stianeikeland/go-rpio",
 			"repository": "https://github.com/stianeikeland/go-rpio",
 			"vcs": "git",

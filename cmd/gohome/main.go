@@ -37,6 +37,7 @@ import (
 	"github.com/barnybug/gohome/services/sms"
 	"github.com/barnybug/gohome/services/systemd"
 	"github.com/barnybug/gohome/services/twitter"
+	"github.com/barnybug/gohome/services/ups"
 	"github.com/barnybug/gohome/services/watchdog"
 	"github.com/barnybug/gohome/services/weather"
 	"github.com/barnybug/gohome/services/wunderground"
@@ -74,6 +75,7 @@ func registerServices() {
 	services.Register(&sms.Service{})
 	services.Register(&systemd.Service{})
 	services.Register(&twitter.Service{})
+	services.Register(&ups.Service{})
 	services.Register(&watchdog.Service{})
 	services.Register(&weather.Service{})
 	services.Register(&wunderground.Service{})
