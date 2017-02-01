@@ -74,7 +74,7 @@ func (self *Service) ConfigUpdated(path string) {
 }
 
 func (self *Service) Run() error {
-	self.ConfigUpdated("gohome/config")
+	self.ConfigUpdated("config")
 	for ev := range services.Subscriber.Channel() {
 		event(ev)
 	}

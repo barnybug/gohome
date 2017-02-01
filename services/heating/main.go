@@ -413,7 +413,7 @@ func (self *Service) Initialize(em pubsub.Publisher) {
 	self.State = false
 	self.Occupied = isOccupied()
 	self.Publisher = em
-	self.ConfigUpdated("gohome/config")
+	self.ConfigUpdated("config")
 }
 
 // Run the service
