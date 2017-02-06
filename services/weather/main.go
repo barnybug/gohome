@@ -7,7 +7,6 @@ package weather
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/barnybug/gohome/lib/graphite"
@@ -100,8 +99,7 @@ func getTempDesc(t float64, temps []td) string {
 
 // Generate weather message for yesterday
 func weatherStats() string {
-	ps := strings.Split(services.Config.Weather.Sensors.Temp, ".")
-	sensor := ps[len(ps)-1] + ".temp"
+	sensor := services.Config.Weather.Sensors.Temp + ".temp"
 	highest := getLast24(sensor, "max")
 	highestDesc := getTempDesc(highest, highTemperatures)
 	lowest := getLast24(sensor, "min")

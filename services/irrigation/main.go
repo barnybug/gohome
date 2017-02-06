@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/barnybug/gohome/lib/graphite"
@@ -21,11 +20,7 @@ import (
 var gr graphite.Querier
 
 func calculateDuration() (duration time.Duration, avgTemp float64) {
-	parts := strings.SplitN(services.Config.Irrigation.Sensor, ".", 2)
-	stat := "sensor.garden.temp.avg"
-	if len(parts) == 2 {
-		stat = fmt.Sprintf("sensor.%s.%s.avg", parts[1], parts[0])
-	}
+	stat := fmt.Sprintf("sensor.%s.temp.avg", services.Config.Irrigation.Sensor)
 	avgTemp = getLastN("-12h", stat)
 
 	// linear scale between min_temp - max_temp

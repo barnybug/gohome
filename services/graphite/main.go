@@ -4,7 +4,6 @@ package graphite
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/barnybug/gohome/lib/graphite"
@@ -39,9 +38,6 @@ func sendToGraphite(ev *pubsub.Event) {
 		return
 	}
 
-	// drop type from device name
-	p := strings.Split(device, ".")
-	device = p[len(p)-1]
 	timestamp := time.Now().UTC().Unix()
 	for metric, value := range ev.Fields {
 		if ignoredFields[metric] {

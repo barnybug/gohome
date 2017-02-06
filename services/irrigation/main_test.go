@@ -2,6 +2,7 @@ package irrigation
 
 import (
 	"fmt"
+
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/services"
@@ -9,7 +10,7 @@ import (
 
 func ExampleColdDay() {
 	services.Config = config.ExampleConfig
-	response := `[{"target": "summarize(sensor.garden.temp.avg, \"1y\", \"avg\")", "datapoints": [[5.8, 1387584000]]}]`
+	response := `[{"target": "summarize(sensor.temp.garden.temp.avg, \"1y\", \"avg\")", "datapoints": [[5.8, 1387584000]]}]`
 	gr = &graphite.MockGraphite{Response: response}
 	msg, _ := irrigationStats()
 	fmt.Println(msg)
@@ -21,7 +22,7 @@ func ExampleHotDay() {
 	services.Config = config.ExampleConfig
 	// services.Config = config.Open()
 	// fmt.Println(services.Config.Irrigation)
-	response := `[{"target": "summarize(sensor.garden.temp.avg, \"1y\", \"avg\")", "datapoints": [[25.0, 1387584000]]}]`
+	response := `[{"target": "summarize(sensor.temp.garden.temp.avg, \"1y\", \"avg\")", "datapoints": [[25.0, 1387584000]]}]`
 	gr = &graphite.MockGraphite{Response: response}
 	msg, _ := irrigationStats()
 	fmt.Println(msg)

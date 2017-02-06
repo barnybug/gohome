@@ -42,7 +42,7 @@ func getHourlyTotals(metric string) []graphite.Datapoint {
 
 func electricityBill() string {
 	vat := services.Config.Bill.Vat/100 + 1
-	dps := getHourlyTotals("sensor.power.total.avg")
+	dps := getHourlyTotals("sensor.power.power.total.avg")
 	var max, total, day, night float64
 	var peak time.Time
 	for _, dp := range dps {
