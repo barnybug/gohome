@@ -216,15 +216,18 @@ func (self *Service) queryStartStopRestart(q services.Question) string {
 	}
 
 	pnames := []string{}
+	fnames := []string{}
 	for _, n := range args {
 		// ignore any units not directed to us
 		if _, ok := names[n]; ok {
 			pnames = append(pnames, "gohome@"+n+".service")
+			fnames = append(fnames, n)
 		}
 	}
 	if len(pnames) == 0 {
 		// no units
 		return ""
 	}
-	return systemctl(q.Verb, pnames...)
+	systemctl(q.Verb, pnames...)
+	return fmt.Sprintf("%sed %s", q.Verb, strings.Join(fnames, ", "))
 }
