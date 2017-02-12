@@ -21,6 +21,9 @@ coverage:
 release-arm:
 	GOOS=linux GOARCH=arm go build -o release/gohome-linux-arm $(exe)
 
+release-arm64:
+	GOOS=linux GOARCH=arm64 go build -o release/gohome-linux-arm64 $(exe)
+
 release-amd64:
 	GOOS=linux GOARCH=amd64 go build -o release/gohome-linux-amd64 $(exe)
 
