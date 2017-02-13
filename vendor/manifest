@@ -13,7 +13,7 @@
 			"importpath": "github.com/barnybug/go-cast",
 			"repository": "https://github.com/barnybug/go-cast",
 			"vcs": "git",
-			"revision": "8197169ba2e3d3e3e4e0fd1b8e8172ec53956943",
+			"revision": "3896d2c05eb1917a4d0356a014b8823ea0244d8b",
 			"branch": "master",
 			"notests": true
 		},
