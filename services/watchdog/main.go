@@ -55,7 +55,7 @@ func sendEmail(name, state string, since time.Time) {
 
 	email := services.Config.General.Email
 	to := []string{email.Admin}
-	msg := fmt.Sprintf("Subject: %s\n\n%s\n", subject, body)
+	msg := fmt.Sprintf("From: Gohome <%s>\nTo: <%s>\nSubject: %s\n\n%s\n", email.From, email.Admin, subject, body)
 	err := smtp.SendMail(email.Server, nil, email.From, to, []byte(msg))
 	if err != nil {
 		log.Println("Error sending email:", err)
