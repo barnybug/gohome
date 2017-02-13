@@ -19,9 +19,9 @@ type Querier interface {
 }
 
 type GraphiteQuerier struct {
-	url    string
-	host   string
-	buffer string
+	url     string
+	address string
+	buffer  string
 }
 
 func NewQuerier(url string) Querier {
@@ -75,16 +75,16 @@ type Writer interface {
 }
 
 type GraphiteWriter struct {
-	host   string
-	buffer bytes.Buffer
+	address string
+	buffer  bytes.Buffer
 }
 
 var dialer = func(network, address string) (io.ReadWriteCloser, error) {
 	return net.Dial(network, address)
 }
 
-func NewWriter(host string) *GraphiteWriter {
-	return &GraphiteWriter{host: host}
+func NewWriter(address string) *GraphiteWriter {
+	return &GraphiteWriter{address: address}
 }
 
 func (graphite *GraphiteWriter) Add(path string, timestamp int64, value float64) error {
@@ -97,7 +97,7 @@ func (graphite *GraphiteWriter) Add(path string, timestamp int64, value float64)
 }
 
 func (graphite *GraphiteWriter) Flush() error {
-	conn, err := dialer("tcp", graphite.host+":2003")
+	conn, err := dialer("tcp", graphite.address)
 	if err != nil {
 		return err
 	}

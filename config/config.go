@@ -96,8 +96,8 @@ func (self *Duration) SetYAML(tag string, value interface{}) bool {
 }
 
 type GraphiteConf struct {
-	Url  string
-	Host string
+	Url string
+	Tcp string
 }
 
 type ScheduleConf map[string][]map[string]float64
