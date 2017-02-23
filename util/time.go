@@ -2,6 +2,9 @@ package util
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"errors"
@@ -129,4 +132,41 @@ func ShortDuration(d time.Duration) string {
 		return number(ms, "ms")
 	}
 	return "0s"
+}
+
+var reParts = regexp.MustCompile(`([0-9]+(?:\.[0-9]+)?)([smhdwy])\s*`)
+
+var durationUnits = map[string]time.Duration{
+	"s": time.Second,
+	"m": time.Minute,
+	"h": time.Hour,
+	"d": 24 * time.Hour,
+	"w": 7 * 24 * time.Hour,
+	"y": 365 * 24 * time.Hour,
+}
+
+// ParseDuration does the same as time.ParseDuration but understands more
+// units (d for day, w for week, y for year).
+func ParseDuration(s string) (total time.Duration, err error) {
+	s = strings.TrimSpace(s)
+	previous := 0
+	for _, submatch := range reParts.FindAllStringSubmatchIndex(s, -1) {
+		if submatch[0] != previous {
+			err = fmt.Errorf("time: invalid duration %s", s[previous:submatch[0]])
+			break
+		}
+		previous = submatch[1]
+		n := s[submatch[2]:submatch[3]]
+		u := s[submatch[4]:submatch[5]]
+		i, er := strconv.Atoi(n)
+		if er != nil {
+			err = er
+			break
+		}
+		total += time.Duration(i) * durationUnits[u]
+	}
+	if previous != len(s) {
+		err = fmt.Errorf("time: invalid duration %s", s[previous:])
+	}
+	return
 }

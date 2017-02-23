@@ -2,7 +2,10 @@ package util
 
 import (
 	"fmt"
+	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleNextSchedule() {
@@ -79,4 +82,47 @@ func ExampleShortDuration() {
 	// 1s
 	// 500ms
 	// 0s
+}
+
+var testParseDurationTable = []struct {
+	s string
+	t time.Duration
+}{
+	{"1s", time.Second},
+	{"1s ", time.Second},
+	{" 1s ", time.Second},
+	{"1m", time.Minute},
+	{"60m", time.Hour},
+	{"1h", time.Hour},
+	{"1h 5m", 65 * time.Minute},
+	{"1h  5m", 65 * time.Minute},
+	{"1d", 24 * time.Hour},
+	{"1w", 7 * 24 * time.Hour},
+	{"1y", 365 * 24 * time.Hour},
+}
+
+func TestParseDuration(t *testing.T) {
+	for _, conf := range testParseDurationTable {
+		result, err := ParseDuration(conf.s)
+		assert.NoError(t, err)
+		assert.Equal(t, conf.t, result)
+	}
+}
+
+var testParseDurationErrorTable = []string{
+	"xyz",
+	"1x",
+	"12",
+	"h5m",
+	"1h.5m",
+	"1h 5x",
+	"-1h",
+	"1hh",
+}
+
+func TestParseDurationError(t *testing.T) {
+	for _, s := range testParseDurationErrorTable {
+		_, err := ParseDuration(s)
+		assert.Error(t, err)
+	}
 }

@@ -506,7 +506,7 @@ func parseSet(value string) (err error, zone string, temp float64, duration time
 	}
 	duration = time.Duration(30) * time.Minute
 	if len(vs) > 2 {
-		duration, err = time.ParseDuration(vs[2])
+		duration, err = util.ParseDuration(vs[2])
 		if err != nil {
 			return
 		}
