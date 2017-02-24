@@ -179,6 +179,7 @@ func Launch(ss []string) {
 func Heartbeat(id string) {
 	started := time.Now()
 	fields := pubsub.Fields{
+		"device":  "heartbeat." + id,
 		"pid":     os.Getpid(),
 		"started": started.Format(time.RFC3339),
 		"source":  id,

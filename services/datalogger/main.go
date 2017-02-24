@@ -32,10 +32,6 @@ func ensureDirectory(path string) {
 
 func writeToLogFile(ev *pubsub.Event) {
 	name := ev.Topic
-	device := services.Config.LookupDeviceName(ev)
-	if device != "" {
-		ev.Fields["device"] = device
-	}
 	p := path.Join(logDir, name)
 	ensureDirectory(p)
 	p = path.Join(p, "data.log")

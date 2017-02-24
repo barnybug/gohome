@@ -153,6 +153,10 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		log.Printf("Ignored unhandled packet: %T: %s\n", packet, packet)
 	}
 
+	if ev != nil && ev.Device() == "" {
+		services.Config.AddDeviceToEvent(ev)
+	}
+
 	return ev
 }
 

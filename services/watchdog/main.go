@@ -20,6 +20,7 @@ import (
 
 type WatchdogDevice struct {
 	Name        string
+	Type        string
 	Timeout     time.Duration
 	Alerted     bool
 	LastAlerted time.Time
@@ -63,12 +64,15 @@ func sendEmail(name, state string, since time.Time) {
 }
 
 func checkEvent(ev *pubsub.Event) {
-	// check if in devices monitored
-	device := services.Config.LookupDeviceName(ev)
+	device := ev.Device()
+	if ev.Topic == "heartbeat" {
+		device = fmt.Sprintf("heartbeat.%s", ev.Source())
+	}
 	touch(device, ev.Timestamp)
 }
 
 func touch(device string, timestamp time.Time) {
+	// check if in devices monitored
 	w := devices[device]
 	if w == nil {
 		return
@@ -145,8 +149,10 @@ func (self *Service) setupDevices(now time.Time) {
 			fmt.Println("Failed to parse:", timeout)
 		}
 		// give devices grace period for first event
+		d := services.Config.Devices[device]
 		devices[device] = &WatchdogDevice{
-			Name:      services.Config.Devices[device].Name,
+			Name:      d.Name,
+			Type:      d.Type,
 			Timeout:   duration,
 			LastEvent: now,
 		}
@@ -159,7 +165,8 @@ func (self *Service) setupHeartbeats(now time.Time) {
 		device := fmt.Sprintf("heartbeat.%s", process)
 		// if a process misses 2 heartbeats, mark as problem
 		devices[device] = &WatchdogDevice{
-			Name:      fmt.Sprintf("Process %s", process),
+			Name:      process,
+			Type:      "process",
 			Timeout:   time.Second * 121,
 			LastEvent: now,
 		}
@@ -175,7 +182,8 @@ func (self *Service) setupPings(now time.Time) {
 	for _, host := range services.Config.Watchdog.Pings {
 		device := fmt.Sprintf("ping.%s", host)
 		devices[device] = &WatchdogDevice{
-			Name:      fmt.Sprintf("Ping %s", host),
+			Name:      host,
+			Type:      "ping",
 			Timeout:   time.Second * 61,
 			LastEvent: now,
 		}
@@ -245,7 +253,7 @@ func (self *Service) queryStatus(q services.Question) string {
 			problem = "PROBLEM"
 		}
 		ago := util.ShortDuration(now.Sub(w.LastEvent))
-		out += fmt.Sprintf("- %-6s %s %s\n", ago, w.Name, problem)
+		out += fmt.Sprintf("- %-6s %7s %s %s\n", ago, w.Type, w.Name, problem)
 	}
 	return out
 }

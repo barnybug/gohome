@@ -104,6 +104,7 @@ func emitTemp(msg *ener314.Message, record ener314.Temperature) {
 		"temp":   round(value, 1),
 	}
 	ev := pubsub.NewEvent("temp", fields)
+	services.Config.AddDeviceToEvent(ev)
 	services.Publisher.Emit(ev)
 }
 
@@ -115,6 +116,7 @@ func emitVoltage(msg *ener314.Message, record ener314.Voltage) {
 		"voltage": round(value, 2),
 	}
 	ev := pubsub.NewEvent("voltage", fields)
+	services.Config.AddDeviceToEvent(ev)
 	services.Publisher.Emit(ev)
 }
 

@@ -105,12 +105,11 @@ func handleInterrupt(iv InterruptEvent) {
 	if iv.state == rpio.High {
 		command = "on"
 	}
-	device := services.Config.Protocols["raspi"][iv.name]
 	fields := map[string]interface{}{
-		"device":  device,
 		"command": command,
 	}
 	ev := pubsub.NewEvent("raspi", fields)
+	services.Config.AddDeviceToEvent(ev)
 	services.Publisher.Emit(ev)
 }
 

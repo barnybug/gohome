@@ -30,10 +30,7 @@ var ignoredFields = map[string]bool{
 var eventsTotal = map[string]int{}
 
 func sendToGraphite(ev *pubsub.Event) {
-	device := services.Config.LookupDeviceName(ev)
-	if device == "" {
-		return
-	}
+	device := ev.Device()
 	if _, ok := services.Config.Devices[device]; !ok {
 		return
 	}

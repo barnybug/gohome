@@ -31,8 +31,9 @@ func emit(code string) {
 		"command": "tag",
 		"source":  code,
 	}
-	event := pubsub.NewEvent("rfid", fields)
-	services.Publisher.Emit(event)
+	ev := pubsub.NewEvent("rfid", fields)
+	services.Config.AddDeviceToEvent(ev)
+	services.Publisher.Emit(ev)
 }
 
 func readEvents(dev *evdev.InputDevice) error {

@@ -271,10 +271,6 @@ func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
 
 	for ev := range ch {
 		data := ev.Map()
-		device := services.Config.LookupDeviceName(ev)
-		if device != "" {
-			data["device"] = device
-		}
 		encoder := json.NewEncoder(w)
 		err := encoder.Encode(data)
 		if err == nil {
@@ -426,9 +422,8 @@ func httpEndpoint() {
 func recordEvents() {
 	for ev := range services.Subscriber.Channel() {
 		// record to store
-		device := services.Config.LookupDeviceName(ev)
-		if device != "" {
-			key := fmt.Sprintf("gohome/state/events/%s/%s", ev.Topic, device)
+		if ev.Device() != "" {
+			key := fmt.Sprintf("gohome/state/events/%s/%s", ev.Topic, ev.Device())
 			services.Stor.Set(key, ev.String())
 		}
 	}

@@ -84,8 +84,7 @@ func toFahrenheit(temp float64) float64 {
 }
 
 func processEvent(ev *pubsub.Event, w *Wunderground) {
-	device := services.Config.LookupDeviceName(ev)
-	switch device {
+	switch ev.Device() {
 	case services.Config.Weather.Sensors.Temp:
 		temp := ev.Fields["temp"].(float64)
 		w.Update(Metrics{"tempf": toFahrenheit(temp)})

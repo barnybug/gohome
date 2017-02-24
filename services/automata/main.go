@@ -92,8 +92,7 @@ type EventWrapper struct {
 }
 
 func (self EventWrapper) String() string {
-	device := services.Config.LookupDeviceName(self.event)
-	s := device
+	s := self.event.Device()
 	if self.event.Command() != "" {
 		s += fmt.Sprintf(" command=%s", self.event.Command())
 	} else if self.event.State() != "" {
@@ -172,14 +171,16 @@ func (self *Service) queryStatus(q services.Question) string {
 
 func (self *Service) queryTag(q services.Question) string {
 	tagName := strings.ToLower(q.Args)
-	if _, ok := services.Config.Devices["rfid."+tagName]; !ok {
+	device := fmt.Sprintf("rfid.%s", tagName)
+	if _, ok := services.Config.Devices[device]; !ok {
 		return fmt.Sprintf("Tag %s not found", tagName)
 	}
 	fields := pubsub.Fields{
-		"source":  tagName,
+		"device":  device,
 		"command": "tag",
+		"source":  tagName,
 	}
-	ev := pubsub.NewEvent("person", fields)
+	ev := pubsub.NewEvent("rfid", fields)
 	services.Publisher.Emit(ev)
 	return fmt.Sprintf("Emitted tag for %s", tagName)
 }
@@ -462,7 +463,7 @@ func (self *Service) appendLog(msg string) {
 }
 
 func (self EventAction) substitute(msg string) string {
-	device := services.Config.LookupDeviceName(self.event)
+	device := self.event.Device()
 	name := services.Config.Devices[device].Name
 	now := time.Now()
 	vals := map[string]string{
@@ -575,10 +576,11 @@ func (self EventAction) StartTimer(name string, d int64) {
 	timer := time.AfterFunc(duration, func() {
 		// emit timer event
 		fields := pubsub.Fields{
-			"source":  name,
+			"device":  "timer." + name,
 			"command": "on",
 		}
 		ev := pubsub.NewEvent("timer", fields)
+
 		services.Publisher.Emit(ev)
 	})
 	self.service.timers[name] = timer

@@ -258,31 +258,15 @@ func OpenRaw(data []byte) (*Config, error) {
 	return self, nil
 }
 
-// Find the device name
-func (self *Config) LookupDeviceName(ev *pubsub.Event) string {
-	// silly question: is device set on the event
-	if ev.Device() != "" {
-		return ev.Device()
+func (self *Config) DeviceFromTopicSource(topic string, source string) string {
+	return self.Protocols[topic][source]
+}
+
+func (self *Config) AddDeviceToEvent(ev *pubsub.Event) {
+	device := self.DeviceFromTopicSource(ev.Topic, ev.Source())
+	if device != "" {
+		ev.SetField("device", device)
 	}
-	topic := ev.Topic
-	source := ev.Source()
-	// lookup: topic -> source
-	if device, ok := self.Protocols[topic][source]; ok {
-		return device
-	}
-	// lookup: source a -> b
-	if strings.Contains(source, ".") {
-		ps := strings.SplitN(source, ".", 2)
-		if device, ok := self.Protocols[ps[0]][ps[1]]; ok {
-			return device
-		}
-	}
-	// fallback: topic.source
-	// ignore dynamic topics (prefix _)
-	if topic != "" && source != "" && !strings.HasPrefix(topic, "_") {
-		return topic + "." + source
-	}
-	return ""
 }
 
 // Find the protocol and identifier for by device name

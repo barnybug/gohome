@@ -256,14 +256,14 @@ func (self *Service) Event(ev *pubsub.Event) {
 	switch ev.Topic {
 	case "temp":
 		// temperature device update
-		device := services.Config.LookupDeviceName(ev)
+		device := ev.Device()
 		if zone, ok := self.Sensors[device]; ok {
 			temp, _ := ev.Fields["temp"].(float64)
 			zone.Update(temp, now)
 			self.Check(now, false)
 		}
 	case "state":
-		device := services.Config.LookupDeviceName(ev)
+		device := ev.Device()
 		if device == "house.presence" {
 			// house state update
 			state := ev.Fields["state"]

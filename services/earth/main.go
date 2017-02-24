@@ -80,7 +80,7 @@ func (self *Service) Run() error {
 	}
 	for tev := range eventChannel(loc) {
 		ev := pubsub.NewEvent("earth",
-			pubsub.Fields{"command": tev.Event, "source": "home"})
+			pubsub.Fields{"device": "earth", "command": tev.Event, "source": "home"})
 		services.Publisher.Emit(ev)
 	}
 	return nil

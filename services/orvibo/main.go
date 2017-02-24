@@ -42,6 +42,7 @@ func handleStateChange(msg *StateChangedMessage) {
 		"command": command,
 	}
 	ev := pubsub.NewEvent("orvibo", fields)
+	services.Config.AddDeviceToEvent(ev)
 	services.Publisher.Emit(ev)
 }
 

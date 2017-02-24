@@ -72,6 +72,7 @@ func (self *Service) Run() error {
 			"selftest": status.Selftest,
 		}
 		ev := pubsub.NewEvent("ups", fields)
+		services.Config.AddDeviceToEvent(ev)
 		services.Publisher.Emit(ev)
 		c.Close()
 

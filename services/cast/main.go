@@ -53,16 +53,18 @@ LOOP:
 				"source":  client.Name(),
 				"app":     data.DisplayName,
 			}
-			event := pubsub.NewEvent("cast", fields)
-			services.Publisher.Emit(event)
+			ev := pubsub.NewEvent("cast", fields)
+			services.Config.AddDeviceToEvent(ev)
+			services.Publisher.Emit(ev)
 		case events.AppStopped:
 			log.Printf("%s: App stopped: %s (%s)", client.Name(), data.DisplayName, data.AppID)
 			fields := map[string]interface{}{
 				"command": "off",
 				"source":  client.Name(),
 			}
-			event := pubsub.NewEvent("cast", fields)
-			services.Publisher.Emit(event)
+			ev := pubsub.NewEvent("cast", fields)
+			services.Config.AddDeviceToEvent(ev)
+			services.Publisher.Emit(ev)
 		default:
 			// ignored
 		}

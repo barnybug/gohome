@@ -84,8 +84,9 @@ func (service *Service) Run() error {
 				"command": command,
 				"source":  source,
 			}
-			event := pubsub.NewEvent("xpl", fields)
-			services.Publisher.Emit(event)
+			ev := pubsub.NewEvent("xpl", fields)
+			services.Config.AddDeviceToEvent(ev)
+			services.Publisher.Emit(ev)
 		}
 	}
 }

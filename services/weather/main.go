@@ -53,8 +53,7 @@ func tweet(message string, subtopic string, interval int64) {
 }
 
 func checkEvent(ev *pubsub.Event) {
-	device := services.Config.LookupDeviceName(ev)
-	switch device {
+	switch ev.Device() {
 	case services.Config.Weather.Sensors.Rain:
 		rain := ev.Fields["all_total"].(float64)
 		if lastRainTotal != 0.0 && rain > lastRainTotal {
