@@ -2,6 +2,7 @@ package services
 
 import (
 	"flag"
+	"fmt"
 	"hash/fnv"
 	"log"
 	"net/url"
@@ -178,11 +179,11 @@ func Launch(ss []string) {
 
 func Heartbeat(id string) {
 	started := time.Now()
+	device := fmt.Sprintf("heartbeat.", id)
 	fields := pubsub.Fields{
-		"device":  "heartbeat." + id,
+		"device":  device,
 		"pid":     os.Getpid(),
 		"started": started.Format(time.RFC3339),
-		"source":  id,
 	}
 
 	// wait 5 seconds before heartbeating - if the process dies very soon

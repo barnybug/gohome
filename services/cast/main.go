@@ -5,6 +5,7 @@
 package cast
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"time"
@@ -48,9 +49,10 @@ LOOP:
 			}
 		case events.AppStarted:
 			log.Printf("%s: App started: %s (%s)", client.Name(), data.DisplayName, data.AppID)
+			source := fmt.Sprintf("cast.%s", client.Name())
 			fields := map[string]interface{}{
 				"command": "on",
-				"source":  client.Name(),
+				"source":  source,
 				"app":     data.DisplayName,
 			}
 			ev := pubsub.NewEvent("cast", fields)
@@ -58,9 +60,10 @@ LOOP:
 			services.Publisher.Emit(ev)
 		case events.AppStopped:
 			log.Printf("%s: App stopped: %s (%s)", client.Name(), data.DisplayName, data.AppID)
+			source := fmt.Sprintf("cast.%s", client.Name())
 			fields := map[string]interface{}{
 				"command": "off",
-				"source":  client.Name(),
+				"source":  source,
 			}
 			ev := pubsub.NewEvent("cast", fields)
 			services.Config.AddDeviceToEvent(ev)

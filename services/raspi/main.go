@@ -105,7 +105,9 @@ func handleInterrupt(iv InterruptEvent) {
 	if iv.state == rpio.High {
 		command = "on"
 	}
-	fields := map[string]interface{}{
+	source := fmt.Sprintf("raspi.%s", iv.name)
+	fields := pubsub.Fields{
+		"source":  source,
 		"command": command,
 	}
 	ev := pubsub.NewEvent("raspi", fields)

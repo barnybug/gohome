@@ -3,6 +3,7 @@
 package orvibo
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -32,7 +33,7 @@ func handleCommand(ev *pubsub.Event) {
 func handleStateChange(msg *StateChangedMessage) {
 	log.Printf("Device %s changed to %t\n", msg.Device.MACAddress, msg.State)
 
-	source := msg.Device.MACAddress
+	source := fmt.Sprintf("orvibo.%s", msg.Device.MACAddress)
 	command := "off"
 	if msg.State {
 		command = "on"

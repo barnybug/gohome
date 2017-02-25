@@ -39,7 +39,7 @@ func ExampleTranslatePacketX10() {
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)
 	// Output:
-	// {"command":"on","group":"e","source":"e05","timestamp":"2014-01-02 03:04:05.987654","topic":"x10"}
+	// {"command":"on","group":"e","source":"x10.e05","timestamp":"2014-01-02 03:04:05.987654","topic":"x10"}
 }
 
 func ExampleTranslatePacketHE() {
@@ -50,7 +50,7 @@ func ExampleTranslatePacketHE() {
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)
 	// Output:
-	// {"command":"set level","source":"12345675","timestamp":"2014-01-02 03:04:05.987654","topic":"homeeasy"}
+	// {"command":"set level","source":"homeeasy.12345675","timestamp":"2014-01-02 03:04:05.987654","topic":"homeeasy"}
 }
 
 func ExampleTranslatePacketChime() {

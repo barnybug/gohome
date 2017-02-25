@@ -258,12 +258,15 @@ func OpenRaw(data []byte) (*Config, error) {
 	return self, nil
 }
 
-func (self *Config) DeviceFromTopicSource(topic string, source string) string {
-	return self.Protocols[topic][source]
-}
-
 func (self *Config) AddDeviceToEvent(ev *pubsub.Event) {
-	device := self.DeviceFromTopicSource(ev.Topic, ev.Source())
+	// split source into protocol.id
+	ps := strings.SplitN(ev.Source(), ".", 2)
+	protocol := ps[0]
+	var id string
+	if len(ps) > 1 {
+		id = ps[1]
+	}
+	device := self.Protocols[protocol][id]
 	if device != "" {
 		ev.SetField("device", device)
 	}

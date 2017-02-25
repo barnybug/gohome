@@ -81,8 +81,8 @@ func (service *Service) Run() error {
 				command = "off"
 			}
 			fields := map[string]interface{}{
-				"command": command,
 				"source":  source,
+				"command": command,
 			}
 			ev := pubsub.NewEvent("xpl", fields)
 			services.Config.AddDeviceToEvent(ev)

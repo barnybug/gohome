@@ -60,8 +60,9 @@ func (self *Service) Run() error {
 			log.Fatalln("Failed to get status from apcupsd:", err)
 		}
 
+		source := fmt.Sprintf("apc.%s", status.SerialNumber)
 		fields := pubsub.Fields{
-			"source":   status.SerialNumber,
+			"source":   source,
 			"status":   status.Status,
 			"linev":    status.LineVoltage,
 			"loadpct":  status.LoadPercent,

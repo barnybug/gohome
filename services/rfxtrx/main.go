@@ -55,17 +55,18 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		protocols := strings.Join(p.Protocols(), ", ")
 		log.Printf("Status: type: %s transceiver: %d firmware: %d protocols: %s", p.TypeString(), p.TransceiverType, p.FirmwareVersion, protocols)
 	case *gorfxtrx.LightingX10:
+		source := fmt.Sprintf("x10.%s", p.Id())
 		fields := map[string]interface{}{
-			"source":  p.Id(),
+			"source":  source,
 			"group":   p.Id()[:1],
 			"command": p.Command(),
 		}
 		ev = pubsub.NewEvent("x10", fields)
 
 	case *gorfxtrx.LightingHE:
-		id := fmt.Sprintf("%07X%1X", p.HouseCode, p.UnitCode)
+		source := fmt.Sprintf("homeeasy.%07X%1X", p.HouseCode, p.UnitCode)
 		fields := map[string]interface{}{
-			"source":  id,
+			"source":  source,
 			"command": p.Command(),
 		}
 		ev = pubsub.NewEvent("homeeasy", fields)
@@ -91,7 +92,7 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		ev = pubsub.NewEvent("temp", fields)
 
 	case *gorfxtrx.Wind:
-		source := strings.ToLower(p.Type())
+		source := strings.ToLower(p.Type()) + ".0"
 		fields := map[string]interface{}{
 			"source":   source,
 			"speed":    p.Gust,
@@ -124,7 +125,7 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		ev = pubsub.NewEvent("chime", fields)
 
 	case *gorfxtrx.Power:
-		source := fmt.Sprintf("%04x", p.SensorId)
+		source := fmt.Sprintf("owl.%04x", p.SensorId)
 		fields := map[string]interface{}{
 			"source":  source,
 			"power":   p.Power,

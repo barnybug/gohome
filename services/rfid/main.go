@@ -6,6 +6,7 @@
 package rfid
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/barnybug/gohome/lib/evdev"
@@ -27,9 +28,10 @@ func convertKeyCode(code uint16) uint16 {
 
 func emit(code string) {
 	log.Println("Publishing:", code)
+	source := fmt.Sprintf("rfid.%s", code)
 	fields := map[string]interface{}{
+		"source":  source,
 		"command": "on",
-		"source":  code,
 	}
 	ev := pubsub.NewEvent("rfid", fields)
 	services.Config.AddDeviceToEvent(ev)
