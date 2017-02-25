@@ -211,17 +211,6 @@ type Service struct {
 	Publisher     pubsub.Publisher
 }
 
-func isOccupied() bool {
-	// get presence from store
-	value, err := services.Stor.Get("gohome/state/events/state/house.presence")
-	if err != nil {
-		log.Println("Couldn't get current presence:", err)
-		return true
-	}
-	event := pubsub.Parse(value)
-	return (event.Fields["state"] != "Empty")
-}
-
 func sensorTemp(sensor string) (temp float64, at time.Time) {
 	// get temp from store
 	value, err := services.Stor.Get("gohome/state/events/temp/" + sensor)
@@ -411,7 +400,7 @@ func (self *Service) ID() string {
 func (self *Service) Initialize(em pubsub.Publisher) {
 	services.SetupStore()
 	self.State = false
-	self.Occupied = isOccupied()
+	self.Occupied = false // updated by retained state topic
 	self.Publisher = em
 	self.ConfigUpdated("config")
 }

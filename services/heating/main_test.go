@@ -54,12 +54,9 @@ var (
 	service    *Service
 )
 
-var mockHousePresence string = `{"device":"house.presence","source":"presence","state":"Full","timestamp":"2014-12-07 13:43:59.849429","topic":"house","trigger":"person.barnaby state=In"}`
-
 func SetupStor() {
 	// setup mock store
 	services.Stor = services.NewMockStore()
-	services.Stor.Set("gohome/state/events/state/house.presence", mockHousePresence)
 }
 
 func SetupService() {
@@ -69,6 +66,7 @@ func SetupService() {
 	em = &dummy.Publisher{}
 	service = &Service{}
 	service.Initialize(em)
+	service.Event(evFull) // retained state
 }
 
 func Setup() {
