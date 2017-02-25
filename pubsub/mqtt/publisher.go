@@ -20,8 +20,11 @@ func (pub *Publisher) ID() string {
 
 // Emit an event
 func (pub *Publisher) Emit(ev *pubsub.Event) {
-	// put all topics under gohome/
+	// put all topics under gohome/<topic>/<device>
 	topic := "gohome/" + ev.Topic
+	if ev.Device() != "" {
+		topic += "/" + ev.Device()
+	}
 	msg := MQTT.NewMessage(ev.Bytes())
 	msg.SetQoS(MQTT.QOS_ONE)
 	msg.SetRetainedFlag(ev.Retained)
