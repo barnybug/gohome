@@ -65,9 +65,6 @@ func sendEmail(name, state string, since time.Time) {
 
 func checkEvent(ev *pubsub.Event) {
 	device := ev.Device()
-	if ev.Topic == "heartbeat" {
-		device = fmt.Sprintf("heartbeat.%s", ev.Source())
-	}
 	touch(device, ev.Timestamp)
 }
 

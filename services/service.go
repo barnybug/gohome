@@ -179,7 +179,7 @@ func Launch(ss []string) {
 
 func Heartbeat(id string) {
 	started := time.Now()
-	device := fmt.Sprintf("heartbeat.", id)
+	device := fmt.Sprintf("heartbeat.%s", id)
 	fields := pubsub.Fields{
 		"device":  device,
 		"pid":     os.Getpid(),
