@@ -28,7 +28,7 @@ func convertKeyCode(code uint16) uint16 {
 func emit(code string) {
 	log.Println("Publishing:", code)
 	fields := map[string]interface{}{
-		"command": "tag",
+		"command": "on",
 		"source":  code,
 	}
 	ev := pubsub.NewEvent("rfid", fields)

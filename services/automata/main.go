@@ -171,13 +171,13 @@ func (self *Service) queryStatus(q services.Question) string {
 
 func (self *Service) queryTag(q services.Question) string {
 	tagName := strings.ToLower(q.Args)
-	device := fmt.Sprintf("rfid.%s", tagName)
+	device := fmt.Sprintf("person.%s", tagName)
 	if _, ok := services.Config.Devices[device]; !ok {
 		return fmt.Sprintf("Tag %s not found", tagName)
 	}
 	fields := pubsub.Fields{
 		"device":  device,
-		"command": "tag",
+		"command": "on",
 		"source":  tagName,
 	}
 	ev := pubsub.NewEvent("rfid", fields)
