@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 )
 
@@ -30,7 +29,7 @@ func NewCommand(device string, command string) *Event {
 		"device":  device,
 		"command": command,
 	}
-	return NewEvent(fmt.Sprintf("command/%s", device), fields)
+	return NewEvent("command", fields)
 }
 
 const TimeFormat = "2006-01-02 15:04:05.000000"
