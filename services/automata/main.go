@@ -424,6 +424,7 @@ func (self *Service) Run() error {
 				"trigger": trigger.String(),
 			}
 			ev := pubsub.NewEvent("state", fields)
+			ev.SetRetained(true)
 			services.Publisher.Emit(ev)
 
 		case action := <-self.automata.Actions:
