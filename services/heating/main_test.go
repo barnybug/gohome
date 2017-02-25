@@ -17,16 +17,16 @@ import (
 )
 
 var (
-	evOff        = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 10.1, "timestamp": "2014-01-04 10:19:00.000000"})
-	evCold       = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000000"})
-	evColder     = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 9.0, "timestamp": "2014-01-04 16:00:00.000000"})
-	evBorderline = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 14.2, "timestamp": "2014-01-04 16:10:00.000000"})
-	evHot        = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 19.0, "timestamp": "2014-01-04 16:31:00.000000"})
+	evOff        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-04 10:19:00.000000"})
+	evCold       = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000000"})
+	evColder     = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 9.0, "timestamp": "2014-01-04 16:00:00.000000"})
+	evBorderline = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 14.2, "timestamp": "2014-01-04 16:10:00.000000"})
+	evHot        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 16:31:00.000000"})
 
 	evEmpty = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Empty", "timestamp": "2014-01-04 16:00:00.000000"})
 	evFull  = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Full", "timestamp": "2014-01-04 16:00:00.000000"})
 
-	evAfterParty = pubsub.NewEvent("temp", map[string]interface{}{"source": "wmr100.2", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000000"})
+	evAfterParty = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000000"})
 )
 var (
 	timeLater  = evHot.Timestamp
