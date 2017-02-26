@@ -29,7 +29,7 @@ import (
 )
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
-	fmt.Printf("Received message on topic: %s %t\nMessage: %s\n", message.Topic(), message.Payload())
+	fmt.Printf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 }
 
 var i int64
@@ -64,6 +64,7 @@ func main() {
 		MaxReconnectInterval: 1 * time.Second,
 		KeepAlive:            30 * time.Second,
 		TLSConfig:            tls.Config{InsecureSkipVerify: true, ClientAuth: tls.NoClientCert},
+		PingTimeout:          10 * time.Second,
 	}
 	connOpts.AddBroker(*server)
 	connOpts.OnConnect = func(c MQTT.Client) {
