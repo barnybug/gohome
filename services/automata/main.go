@@ -404,6 +404,10 @@ func (self *Service) Run() error {
 				// ignore direct commands - ack/homeeasy events indicate commands completing.
 				continue
 			}
+			if ev.Retained {
+				// ignore retained events from reconnecting
+				continue
+			}
 			if ev.Command() == "" && ev.State() == "" {
 				continue
 			}
