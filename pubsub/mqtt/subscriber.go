@@ -55,14 +55,12 @@ func (self *Subscriber) publishHandler(client MQTT.Client, msg MQTT.Message) {
 
 func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventChannel {
 	// subscribe topics not yet subscribed to
+	subs := map[string]byte{}
 	for _, topic := range topics {
 		_, exists := self.topicCount[topic]
 		if !exists {
 			// fmt.Println("Subscribe", topicName(topic))
-			// nil = all messages go to the default handler
-			if token := self.broker.client.Subscribe(topicName(topic), 1, nil); token.Wait() && token.Error() != nil {
-				log.Println("Error subscribing:", token.Error())
-			}
+			subs[topicName(topic)] = 1
 		}
 		self.topicCount[topic] += 1
 	}
@@ -75,6 +73,12 @@ func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventCha
 	self.channelsLock.Lock()
 	self.channels = append(self.channels, ch)
 	self.channelsLock.Unlock()
+
+	// nil = all messages go to the default handler
+	if token := self.broker.client.SubscribeMultiple(subs, nil); token.Wait() && token.Error() != nil {
+		log.Println("Error subscribing:", token.Error())
+	}
+
 	return ch
 }
 
