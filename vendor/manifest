@@ -26,6 +26,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/eclipse/paho.mqtt.golang",
+			"repository": "https://github.com/eclipse/paho.mqtt.golang",
+			"vcs": "git",
+			"revision": "d4f545eb108a2d19f9b1a735689dbfb719bc21fb",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/mdlayher/apcupsd",
 			"repository": "https://github.com/mdlayher/apcupsd",
 			"vcs": "git",
@@ -91,6 +99,15 @@
 			"vcs": "git",
 			"revision": "d7bb493dee3e090e2ffb6914adddf17c1e7c026c",
 			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/net/websocket",
+			"repository": "https://go.googlesource.com/net",
+			"vcs": "git",
+			"revision": "10c134ea0df15f7e34d789338c7a2d76cc7a3ab9",
+			"branch": "master",
+			"path": "/websocket",
 			"notests": true
 		}
 	]

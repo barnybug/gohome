@@ -1,15 +1,17 @@
 package mqtt
 
 import (
+	"log"
+
 	"github.com/barnybug/gohome/pubsub"
 
-	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 // Publisher for mqtt
 type Publisher struct {
 	broker  string
-	client  *MQTT.MqttClient
+	client  MQTT.Client
 	channel chan *pubsub.Event
 }
 
@@ -25,9 +27,8 @@ func (pub *Publisher) Emit(ev *pubsub.Event) {
 	if ev.Device() != "" {
 		topic += "/" + ev.Device()
 	}
-	msg := MQTT.NewMessage(ev.Bytes())
-	msg.SetQoS(MQTT.QOS_ONE)
-	msg.SetRetainedFlag(ev.Retained)
-	r := pub.client.PublishMessage(topic, msg)
-	<-r
+	token := pub.client.Publish(topic, 1, ev.Retained, ev.Bytes())
+	if token.Wait() && token.Error() != nil {
+		log.Println("Failed to publish message:", token.Error())
+	}
 }

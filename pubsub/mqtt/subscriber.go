@@ -2,12 +2,13 @@ package mqtt
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"sync"
 
-	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 	"github.com/barnybug/gohome/pubsub"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 type eventFilter func(*pubsub.Event) bool
@@ -26,22 +27,21 @@ type Subscriber struct {
 	topicCount   map[string]int
 }
 
-func NewSubscriber(broker *Broker) pubsub.Subscriber {
-	self := &Subscriber{broker: broker, topicCount: map[string]int{}}
-	self.broker.opts.SetDefaultPublishHandler(self.publishHandler)
-	return self
+func NewSubscriber(broker *Broker) *Subscriber {
+	return &Subscriber{broker: broker, topicCount: map[string]int{}}
 }
 
 func (self *Subscriber) ID() string {
 	return self.broker.Id()
 }
 
-func (self *Subscriber) publishHandler(client *MQTT.MqttClient, msg MQTT.Message) {
+func (self *Subscriber) publishHandler(client MQTT.Client, msg MQTT.Message) {
 	body := string(msg.Payload())
 	event := pubsub.Parse(body)
 	if event == nil {
 		return
 	}
+	event.SetRetained(msg.Retained())
 	self.channelsLock.Lock()
 	// fmt.Printf("Event: %+v\n", event)
 	for _, ch := range self.channels {
@@ -58,10 +58,11 @@ func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventCha
 	for _, topic := range topics {
 		_, exists := self.topicCount[topic]
 		if !exists {
-			filter, _ := MQTT.NewTopicFilter(topicName(topic), 1)
-			// fmt.Printf("StartSubscription: %+v\n", filter)
+			// fmt.Println("Subscribe", topicName(topic))
 			// nil = all messages go to the default handler
-			self.broker.client.StartSubscription(nil, filter)
+			if token := self.broker.client.Subscribe(topicName(topic), 1, nil); token.Wait() && token.Error() != nil {
+				log.Println("Error subscribing:", token.Error())
+			}
 		}
 		self.topicCount[topic] += 1
 	}
@@ -113,8 +114,10 @@ func (self *Subscriber) Close(channel <-chan *pubsub.Event) {
 			for _, topic := range ch.topics {
 				self.topicCount[topic] -= 1
 				if self.topicCount[topic] == 0 {
-					// fmt.Printf("EndSubscription: %+v\n", topicName(topic))
-					self.broker.client.EndSubscription(topicName(topic))
+					// fmt.Printf("Unsubscribe: %+v\n", topicName(topic))
+					if token := self.broker.client.Unsubscribe(topicName(topic)); token.Wait() && token.Error() != nil {
+						log.Println("Error unsubscribing:", token.Error())
+					}
 				}
 			}
 			close(ch.C)

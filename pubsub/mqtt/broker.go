@@ -6,17 +6,17 @@ import (
 	"math/rand"
 	"os"
 
-	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 	"github.com/barnybug/gohome/pubsub"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
 type Broker struct {
-	broker string
-	client *MQTT.MqttClient
-	opts   *MQTT.ClientOptions
+	broker     string
+	subscriber *Subscriber
+	client     MQTT.Client
 }
 
-func createClient(broker string) (*MQTT.MqttClient, *MQTT.ClientOptions) {
+func createClientOpts(broker string) *MQTT.ClientOptions {
 	// generate a client id
 	hostname, _ := os.Hostname()
 	pid := os.Getpid()
@@ -24,20 +24,23 @@ func createClient(broker string) (*MQTT.MqttClient, *MQTT.ClientOptions) {
 	clientId := fmt.Sprintf("gohome/%s-%d-%d", hostname, pid, r)
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(broker)
-	opts.SetClientId(clientId)
+	opts.SetClientID(clientId)
 	opts.SetCleanSession(true)
-
-	client := MQTT.NewClient(opts)
-	_, err := client.Start()
-	if err != nil {
-		log.Fatalln("Couldn't Start mqtt:", err)
-	}
-	return client, opts
+	return opts
 }
 
 func NewBroker(broker string) *Broker {
-	client, opts := createClient(broker)
-	return &Broker{broker, client, opts}
+	opts := createClientOpts(broker)
+	ret := &Broker{broker: broker}
+	ret.subscriber = NewSubscriber(ret)
+	opts.SetDefaultPublishHandler(ret.subscriber.publishHandler)
+
+	client := MQTT.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		log.Fatalln("Couldn't Start mqtt:", token.Error())
+	}
+	ret.client = client
+	return ret
 }
 
 func (self *Broker) Id() string {
@@ -45,7 +48,7 @@ func (self *Broker) Id() string {
 }
 
 func (self *Broker) Subscriber() pubsub.Subscriber {
-	return NewSubscriber(self)
+	return self.subscriber
 }
 
 func (self *Broker) Publisher() *Publisher {
