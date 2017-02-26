@@ -74,9 +74,11 @@ func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventCha
 	self.channels = append(self.channels, ch)
 	self.channelsLock.Unlock()
 
-	// nil = all messages go to the default handler
-	if token := self.broker.client.SubscribeMultiple(subs, nil); token.Wait() && token.Error() != nil {
-		log.Println("Error subscribing:", token.Error())
+	if len(subs) > 0 {
+		// nil = all messages go to the default handler
+		if token := self.broker.client.SubscribeMultiple(subs, nil); token.Wait() && token.Error() != nil {
+			log.Println("Error subscribing:", token.Error())
+		}
 	}
 
 	return ch
