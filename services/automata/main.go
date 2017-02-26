@@ -480,6 +480,7 @@ func (self EventAction) substitute(msg string) string {
 func (self EventAction) Log(msg string) {
 	msg = self.substitute(msg)
 	self.service.appendLog(msg)
+	log.Println("Log: ", msg)
 }
 
 func (self EventAction) Speak(msg string) {
