@@ -564,11 +564,8 @@ func (self EventAction) Switch(device string, state bool) {
 	switchCommand(device, command, 3, 8)
 }
 
-func (self EventAction) Dim(device string, level int) {
-	log.Printf("Switching %s level %d", device, level)
-	ev := pubsub.NewCommand(device, "on")
-	ev.SetField("level", level)
-	services.Publisher.Emit(ev)
+func (self EventAction) Dim(device string, level int64) {
+	switchCommand(device, "on", 3, int(level))
 }
 
 func (self EventAction) StartTimer(name string, d int64) {
