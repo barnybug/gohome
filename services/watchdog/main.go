@@ -164,7 +164,7 @@ func (self *Service) setupHeartbeats(now time.Time) {
 		devices[device] = &WatchdogDevice{
 			Name:      process,
 			Type:      "process",
-			Timeout:   time.Second * 121,
+			Timeout:   time.Second * 241,
 			LastEvent: now,
 		}
 	}
