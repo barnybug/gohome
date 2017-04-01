@@ -111,8 +111,6 @@ script into gohome, allowing quick and easy integration.
 
 To build yourself from source:
 
-    $ go get github.com/barnybug/gohome
-    $ cd $GOPATH/src/github.com/barnybug/gohome
-    $ make install
+    $ go get github.com/barnybug/gohome/cmd/gohome
 
 This will produce a binary `gohome` in `~/go/bin` (ie. $GOPATH/bin), after this follow the steps as above.
