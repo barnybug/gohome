@@ -140,6 +140,8 @@ type PushbulletConf struct {
 	Token string
 }
 
+type PresenceConf map[string][]string
+
 type ProcessConf struct {
 	Cmd  string
 	Path string
@@ -209,6 +211,7 @@ type Config struct {
 	Irrigation   IrrigationConf
 	Jabber       JabberConf
 	Orvibo       OrviboConf
+	Presence     PresenceConf
 	Pushbullet   PushbulletConf
 	Rfid         RfidConf
 	Slack        SlackConf
