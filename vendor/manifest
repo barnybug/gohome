@@ -26,6 +26,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/barnybug/miflora",
+			"repository": "https://github.com/barnybug/miflora",
+			"vcs": "git",
+			"revision": "a1f9c5226e324d77448ed6de8ce86123906bf6c6",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/eclipse/paho.mqtt.golang",
 			"repository": "https://github.com/eclipse/paho.mqtt.golang",
 			"vcs": "git",
