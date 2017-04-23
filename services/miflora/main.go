@@ -10,6 +10,8 @@ import (
 	"github.com/barnybug/miflora"
 )
 
+const MaxRetries = 5
+
 // Service miflora
 type Service struct{}
 
@@ -19,6 +21,8 @@ func (self *Service) ID() string {
 }
 
 var adapter = "hci0"
+
+var devices = map[string]*miflora.Miflora{}
 
 func sendEvent(device string, sensors miflora.Sensors) {
 	fields := map[string]interface{}{
@@ -32,28 +36,51 @@ func sendEvent(device string, sensors miflora.Sensors) {
 	services.Publisher.Emit(ev)
 }
 
-func readSensors() {
-	for mac, device := range services.Config.Protocols["miflora"] {
-		dev := miflora.NewMiflora(mac, adapter)
-		for i := 0; i < 3; i += 1 {
-			sensors, err := dev.ReadSensors()
+func iterateSensors(f func(name string, dev *miflora.Miflora) error) {
+	for name, dev := range devices {
+		for i := 0; i < MaxRetries; i += 1 {
+			err := f(name, dev)
 			if err == nil {
-				// send data
-				log.Printf("%s: %+v (%d attempt)\n", device, sensors, i+1)
-				sendEvent(device, sensors)
 				break
 			}
-			if i == 2 {
+			if i == MaxRetries-1 {
 				// last retry
-				log.Printf("Failed to read %s after 3 retries: %s", device, err)
+				log.Printf("Failed to read %s after %d retries: %s", name, err, MaxRetries)
 			}
 		}
 	}
 
 }
 
+func readFirmware() {
+	iterateSensors(func(name string, dev *miflora.Miflora) error {
+		firmware, err := dev.ReadFirmware()
+		if err == nil {
+			log.Printf("%s: Firmware: %+v", name, firmware)
+		}
+		return err
+	})
+}
+
+func readSensors() {
+	iterateSensors(func(name string, dev *miflora.Miflora) error {
+		sensors, err := dev.ReadSensors()
+		if err == nil {
+			// send data
+			log.Printf("%s: %+v\n", name, sensors)
+			sendEvent(name, sensors)
+		}
+		return err
+	})
+}
+
 // Run the service
 func (self *Service) Run() error {
+	for mac, name := range services.Config.Protocols["miflora"] {
+		devices[name] = miflora.NewMiflora(mac, adapter)
+	}
+
+	readFirmware()
 	readSensors()
 	ticker := time.NewTicker(30 * time.Minute)
 	for range ticker.C {
