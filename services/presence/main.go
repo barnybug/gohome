@@ -46,7 +46,7 @@ type Watchdog struct {
 }
 
 type Checker interface {
-	Start(alive chan bool)
+	Start(alive chan string)
 	Ping()
 }
 
@@ -57,8 +57,8 @@ type Sniffer struct {
 func NewSniffer(mac string) Checker {
 	return &Sniffer{mac: mac}
 }
-func (s *Sniffer) run(alive chan bool) {
-	cmd := exec.Command("sudo", "tcpdump", "-p", "-n", "-l", "ether", "host", s.mac)
+func (s *Sniffer) run(alive chan string) {
+	cmd := exec.Command("sudo", "stdbuf", "-oL", "tcpdump", "-p", "-n", "-l", "ether", "host", s.mac)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Printf("Failed to start tcpdump: %s", err)
@@ -81,7 +81,7 @@ func (s *Sniffer) run(alive chan bool) {
 	// read stdout by line, send an event for each line
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
-		alive <- true
+		alive <- "sniffed"
 		// fmt.Println("sniff:", scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
@@ -90,7 +90,7 @@ func (s *Sniffer) run(alive chan bool) {
 	}
 }
 
-func (s *Sniffer) Start(alive chan bool) {
+func (s *Sniffer) Start(alive chan string) {
 	go s.run(alive)
 }
 
@@ -107,7 +107,7 @@ func NewArpinger(host string) Checker {
 	return &Arpinger{host: host, control: sync.NewCond(&sync.Mutex{})}
 }
 
-func (a *Arpinger) run(alive chan bool) {
+func (a *Arpinger) run(alive chan string) {
 	addr, err := net.ResolveIPAddr("ip4:icmp", a.host)
 	if err != nil {
 		log.Printf("Failed to resolve host, not pinging: %s", err)
@@ -129,13 +129,13 @@ func (a *Arpinger) run(alive chan bool) {
 				return
 			}
 
-			alive <- true
+			alive <- "arping"
 		}
 	}
 
 }
 
-func (a *Arpinger) Start(alive chan bool) {
+func (a *Arpinger) Start(alive chan string) {
 	go a.run(alive)
 }
 
@@ -153,14 +153,14 @@ func NewLescanner(mac string) Checker {
 
 type Hcitool struct {
 	l         sync.Locker
-	listeners map[string]chan bool
+	listeners map[string]chan string
 }
 
 // singleton
 var hcitool *Hcitool
 var hcitoolStarted sync.Once
 
-func (h *Hcitool) Register(mac string, alive chan bool) {
+func (h *Hcitool) Register(mac string, alive chan string) {
 	mac = strings.ToUpper(mac)
 	h.l.Lock()
 	h.listeners[mac] = alive
@@ -202,8 +202,8 @@ func (h *Hcitool) scan(stdout io.ReadCloser) {
 		ch, exists := h.listeners[mac]
 		h.l.Unlock()
 		if exists {
-			log.Println("Bluetooth seen:", mac)
-			ch <- true
+			// log.Println("Bluetooth seen:", mac)
+			ch <- "bluetooth"
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -214,19 +214,19 @@ func (h *Hcitool) scan(stdout io.ReadCloser) {
 func launchHcitool() {
 	hcitool = &Hcitool{
 		l:         &sync.Mutex{},
-		listeners: map[string]chan bool{},
+		listeners: map[string]chan string{},
 	}
 	hcitool.launch()
 }
 
-func (s *Lescanner) run(alive chan bool) {
+func (s *Lescanner) run(alive chan string) {
 	hcitoolStarted.Do(launchHcitool)
 	log.Printf("Scanning bluetooth %s (passive)", s.mac)
 	hcitool.Register(s.mac, alive)
 
 }
 
-func (s *Lescanner) Start(alive chan bool) {
+func (s *Lescanner) Start(alive chan string) {
 	go s.run(alive)
 }
 
@@ -236,7 +236,7 @@ func (s *Lescanner) Ping() {
 
 func (w *Watchdog) watcher() {
 	// start all
-	alive := make(chan bool)
+	alive := make(chan string)
 	for _, checker := range w.checkers {
 		checker.Start(alive)
 	}
@@ -247,11 +247,11 @@ func (w *Watchdog) watcher() {
 	ticker := time.NewTicker(interval)
 	for {
 		select {
-		case <-alive:
+		case name := <-alive:
 			responded = true
 			active = false
 			if !home {
-				log.Printf("%s home", w.device)
+				log.Printf("%s home (%s)", w.device, name)
 				home = true
 				emit(w.device, home)
 			}
