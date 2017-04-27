@@ -169,6 +169,11 @@ type SlackConf struct {
 	Token string
 }
 
+type TelegramConf struct {
+	Token   string
+	Chat_id int64
+}
+
 type VoiceConf map[string]string
 
 type WeatherConf struct {
@@ -216,6 +221,7 @@ type Config struct {
 	Rfid         RfidConf
 	Slack        SlackConf
 	SMS          SMSConf
+	Telegram     TelegramConf
 	Twitter      TwitterConf
 	Voice        VoiceConf
 	Watchdog     WatchdogConf

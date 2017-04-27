@@ -110,12 +110,28 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/technoweenie/multipartstreamer",
+			"repository": "https://github.com/technoweenie/multipartstreamer",
+			"vcs": "git",
+			"revision": "a90a01d73ae432e2611d178c18367fbaa13e0154",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "golang.org/x/net/websocket",
 			"repository": "https://go.googlesource.com/net",
 			"vcs": "git",
 			"revision": "10c134ea0df15f7e34d789338c7a2d76cc7a3ab9",
 			"branch": "master",
 			"path": "/websocket",
+			"notests": true
+		},
+		{
+			"importpath": "gopkg.in/telegram-bot-api.v4",
+			"repository": "https://gopkg.in/telegram-bot-api.v4",
+			"vcs": "git",
+			"revision": "0a57807db79efce7f6719fbb2c0e0f83fda79aec",
+			"branch": "master",
 			"notests": true
 		}
 	]
