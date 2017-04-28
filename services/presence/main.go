@@ -104,9 +104,6 @@ func (s *Sniffer) Start(alive chan string) {
 }
 
 func (s *Sniffer) Stop() {
-	// close all pipes to process
-	s.stdout.Close()
-	s.stderr.Close()
 	s.cmd.Wait()
 	log.Println("Terminated tcpdump")
 }
@@ -227,11 +224,6 @@ func (h *Hcitool) launch() {
 }
 
 func (h *Hcitool) terminate() {
-	// The only clean way of stopping hcitool is a SIGINT, any others
-	// result in an unusable hci device requiring a down/up to reset.
-	cmd := exec.Command("sudo", "killall", "-INT", "hcitool")
-	// Must sudo to kill a sudo'ed process
-	cmd.Run()
 	h.cmd.Wait()
 	log.Println("Terminated hcitool")
 }
@@ -384,10 +376,16 @@ L:
 	}
 
 	log.Println("Shutting down...")
+	// Send INT to whole process group (pid=0)
+	// Note: the only clean way of stopping hcitool is a SIGINT, any other signals
+	// result in an unusable hci device requiring a down/up to reset.
+	// Must sudo to kill the sudo'ed processes
+	cmd := exec.Command("sudo", "kill", "-INT", "0")
+	cmd.Run()
 	for _, watchdog := range watchdogs {
 		watchdog.Stop()
 	}
-	log.Println("Shut down cleanly")
+	log.Println("Shut down complete")
 
 	return nil
 }
