@@ -8,9 +8,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -48,6 +51,7 @@ type Watchdog struct {
 
 type Checker interface {
 	Start(alive chan string)
+	Stop()
 	Ping()
 }
 
@@ -95,6 +99,10 @@ func (s *Sniffer) Start(alive chan string) {
 	go s.run(alive)
 }
 
+func (s *Sniffer) Stop() {
+	// TODO
+}
+
 func (s *Sniffer) Ping() {
 	// noop
 }
@@ -140,6 +148,10 @@ func (a *Arpinger) Start(alive chan string) {
 	go a.run(alive)
 }
 
+func (a *Arpinger) Stop() {
+	// TODO
+}
+
 func (a *Arpinger) Ping() {
 	a.control.Signal()
 }
@@ -156,38 +168,63 @@ type Hcitool struct {
 	l         sync.Locker
 	listeners map[string]chan string
 	stderr    bytes.Buffer
+	cmd       *exec.Cmd
 }
 
 // singleton
-var hcitool *Hcitool
+var hcitool = &Hcitool{
+	l:         &sync.Mutex{},
+	listeners: map[string]chan string{},
+}
 var hcitoolStarted sync.Once
 
 func (h *Hcitool) Register(mac string, alive chan string) {
+	hcitoolStarted.Do(hcitool.launch)
+
 	mac = strings.ToUpper(mac)
 	h.l.Lock()
 	h.listeners[mac] = alive
 	h.l.Unlock()
 }
 
+func (h *Hcitool) Deregister(mac string) {
+	mac = strings.ToUpper(mac)
+	h.l.Lock()
+	delete(h.listeners, mac)
+	if len(h.listeners) == 0 {
+		hcitool.terminate()
+	}
+	h.l.Unlock()
+}
+
 func (h *Hcitool) launch() {
-	cmd := exec.Command("sudo", "stdbuf", "-oL", "hcitool", "lescan", "--passive", "--duplicates")
-	stdout, err := cmd.StdoutPipe()
+	h.cmd = exec.Command("sudo", "stdbuf", "-oL", "hcitool", "lescan", "--passive", "--duplicates")
+	stdout, err := h.cmd.StdoutPipe()
 	if err != nil {
 		log.Fatalf("Failed to start hcitool: %s", err)
 		return
 	}
-	stderr, err := cmd.StderrPipe()
+	stderr, err := h.cmd.StderrPipe()
 	if err != nil {
 		log.Fatalf("Failed to start hcitool: %s", err)
 		return
 	}
-	if err := cmd.Start(); err != nil {
+	if err := h.cmd.Start(); err != nil {
 		log.Fatalf("Failed to start hcitool: %s", err)
 		return
 	}
 
 	go io.Copy(&h.stderr, stderr)
 	go h.scan(stdout)
+}
+
+func (h *Hcitool) terminate() {
+	// The only clean way of stopping hcitool is a SIGINT, any others
+	// result in an unusable hci device requiring a down/up to reset.
+	cmd := exec.Command("sudo", "killall", "-INT", "hcitool")
+	// Must sudo to kill a sudo'ed process
+	cmd.Run()
+	log.Println("Terminated hcitool")
 }
 
 func (h *Hcitool) scan(stdout io.ReadCloser) {
@@ -220,16 +257,7 @@ func (h *Hcitool) scan(stdout io.ReadCloser) {
 	}
 }
 
-func launchHcitool() {
-	hcitool = &Hcitool{
-		l:         &sync.Mutex{},
-		listeners: map[string]chan string{},
-	}
-	hcitool.launch()
-}
-
 func (s *Lescanner) run(alive chan string) {
-	hcitoolStarted.Do(launchHcitool)
 	log.Printf("Scanning bluetooth %s (passive)", s.mac)
 	hcitool.Register(s.mac, alive)
 
@@ -237,6 +265,10 @@ func (s *Lescanner) run(alive chan string) {
 
 func (s *Lescanner) Start(alive chan string) {
 	go s.run(alive)
+}
+
+func (s *Lescanner) Stop() {
+	hcitool.Deregister(s.mac)
 }
 
 func (s *Lescanner) Ping() {
@@ -290,8 +322,15 @@ func (w *Watchdog) watcher() {
 	}
 }
 
+func (w *Watchdog) Stop() {
+	for _, checker := range w.checkers {
+		checker.Stop()
+	}
+}
+
 func (self *Service) Run() error {
 	people := map[string]bool{}
+	watchdogs := []*Watchdog{}
 	for device, checks := range services.Config.Presence {
 		people[device] = true
 		var checkers []Checker
@@ -312,16 +351,34 @@ func (self *Service) Run() error {
 			}
 			checkers = append(checkers, checker)
 		}
-		watchdog := Watchdog{device, checkers}
+		watchdog := &Watchdog{device, checkers}
+		watchdogs = append(watchdogs, watchdog)
 		go watchdog.watcher()
 	}
 
+	// Gracefully handle signals
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+
 	ch := services.Subscriber.FilteredChannel("command")
-	for ev := range ch {
-		// manual command login/out command
-		if _, ok := people[ev.Device()]; ok {
-			emit(ev.Device(), ev.Command() == "on")
+L:
+	for {
+		select {
+		case <-sigC:
+			break L
+		case ev := <-ch:
+			// manual command login/out command
+			if _, ok := people[ev.Device()]; ok {
+				emit(ev.Device(), ev.Command() == "on")
+			}
 		}
 	}
+
+	log.Println("Shutting down...")
+	for _, watchdog := range watchdogs {
+		watchdog.Stop()
+	}
+	log.Println("Shut down cleanly")
+
 	return nil
 }
