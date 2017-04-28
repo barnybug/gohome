@@ -242,37 +242,41 @@ func (w *Watchdog) watcher() {
 	}
 
 	home := false
-	responded := false
 	active := false
-	ticker := time.NewTicker(interval)
+	timeout := time.NewTimer(interval)
 	for {
 		select {
 		case name := <-alive:
-			responded = true
-			active = false
 			if !home {
 				log.Printf("%s home (%s)", w.device, name)
 				home = true
 				emit(w.device, home)
 			}
-		case <-ticker.C:
-			if !responded {
-				// send active pings
-				for _, checker := range w.checkers {
-					checker.Ping()
-				}
-				if !active {
-					active = true
-				} else {
-					// passive and active checkers exhausted
-					if home {
-						log.Printf("%s away", w.device)
-						home = false
-						emit(w.device, home)
-					}
+			// make next time period use passive checks
+			active = false
+			// reset timeout
+			if !timeout.Stop() {
+				<-timeout.C
+			}
+			timeout.Reset(interval)
+		case <-timeout.C:
+			// send active pings
+			for _, checker := range w.checkers {
+				checker.Ping()
+			}
+			if !active {
+				// give active pings another timeout period to respond
+				active = true
+			} else {
+				// passive and active checkers exhausted
+				if home {
+					log.Printf("%s away", w.device)
+					home = false
+					emit(w.device, home)
 				}
 			}
-			responded = false
+			// start timeout again
+			timeout.Reset(interval)
 		}
 	}
 }
