@@ -56,35 +56,39 @@ type Checker interface {
 }
 
 type Sniffer struct {
-	mac string
+	mac    string
+	cmd    *exec.Cmd
+	stdout io.ReadCloser
+	stderr io.ReadCloser
 }
 
 func NewSniffer(mac string) Checker {
 	return &Sniffer{mac: mac}
 }
 func (s *Sniffer) run(alive chan string) {
-	cmd := exec.Command("sudo", "stdbuf", "-oL", "tcpdump", "-p", "-n", "-l", "ether", "host", s.mac)
-	stdout, err := cmd.StdoutPipe()
+	s.cmd = exec.Command("sudo", "stdbuf", "-oL", "tcpdump", "-p", "-n", "-l", "ether", "host", s.mac)
+	var err error
+	s.stdout, err = s.cmd.StdoutPipe()
 	if err != nil {
 		log.Printf("Failed to start tcpdump: %s", err)
 		return
 	}
-	stderr, err := cmd.StderrPipe()
+	s.stderr, err = s.cmd.StderrPipe()
 	if err != nil {
 		log.Printf("Failed to start tcpdump: %s", err)
 		return
 	}
-	if err := cmd.Start(); err != nil {
+	if err := s.cmd.Start(); err != nil {
 		log.Printf("Failed to start tcpdump: %s", err)
 		return
 	}
 	log.Printf("Sniffing mac %s (passive)", s.mac)
 
 	// discard stderr
-	go io.Copy(ioutil.Discard, stderr)
+	go io.Copy(ioutil.Discard, s.stderr)
 
 	// read stdout by line, send an event for each line
-	scanner := bufio.NewScanner(stdout)
+	scanner := bufio.NewScanner(s.stdout)
 	for scanner.Scan() {
 		alive <- "sniffed"
 		// fmt.Println("sniff:", scanner.Text())
@@ -100,7 +104,11 @@ func (s *Sniffer) Start(alive chan string) {
 }
 
 func (s *Sniffer) Stop() {
-	// TODO
+	// close all pipes to process
+	s.stdout.Close()
+	s.stderr.Close()
+	s.cmd.Wait()
+	log.Println("Terminated tcpdump")
 }
 
 func (s *Sniffer) Ping() {
@@ -149,7 +157,7 @@ func (a *Arpinger) Start(alive chan string) {
 }
 
 func (a *Arpinger) Stop() {
-	// TODO
+	// noop
 }
 
 func (a *Arpinger) Ping() {
@@ -224,6 +232,7 @@ func (h *Hcitool) terminate() {
 	cmd := exec.Command("sudo", "killall", "-INT", "hcitool")
 	// Must sudo to kill a sudo'ed process
 	cmd.Run()
+	h.cmd.Wait()
 	log.Println("Terminated hcitool")
 }
 
