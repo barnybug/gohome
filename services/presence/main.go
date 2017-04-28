@@ -3,6 +3,7 @@ package presence
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"io/ioutil"
 	"log"
@@ -154,6 +155,7 @@ func NewLescanner(mac string) Checker {
 type Hcitool struct {
 	l         sync.Locker
 	listeners map[string]chan string
+	stderr    bytes.Buffer
 }
 
 // singleton
@@ -184,8 +186,7 @@ func (h *Hcitool) launch() {
 		return
 	}
 
-	// discard stderr
-	go io.Copy(ioutil.Discard, stderr)
+	go io.Copy(&h.stderr, stderr)
 	go h.scan(stdout)
 }
 
@@ -206,8 +207,16 @@ func (h *Hcitool) scan(stdout io.ReadCloser) {
 			ch <- "bluetooth"
 		}
 	}
+
+	stderr := h.stderr.Bytes()
+	if len(stderr) > 0 {
+		log.Printf("hcitool error: %s", string(stderr))
+	}
+
 	if err := scanner.Err(); err != nil {
 		log.Printf("hcitool failed: %s", err)
+	} else {
+		log.Printf("hcitool exited: bluetooth monitoring disabled")
 	}
 }
 
