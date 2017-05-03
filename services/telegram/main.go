@@ -4,6 +4,7 @@ package telegram
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
@@ -20,10 +21,13 @@ func (self *Service) ID() string {
 	return "telegram"
 }
 
-func (self *Service) sendMessage(ev *pubsub.Event) {
+func (self *Service) sendMessage(ev *pubsub.Event, remote int) {
 	if message, ok := ev.Fields["message"].(string); ok {
 		log.Printf("Sending telegram message: %s", message)
 		msg := tgbotapi.NewMessage(services.Config.Telegram.Chat_id, message)
+		if remote != 0 {
+			msg.ReplyToMessageID = remote
+		}
 		self.bot.Send(msg)
 	}
 }
@@ -52,18 +56,23 @@ func (self *Service) Run() error {
 				continue
 			}
 
-			text := fmt.Sprintf("This is chat %d", update.Message.Chat.ID)
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-			// msg.ReplyToMessageID = update.Message.MessageID
-
-			bot.Send(msg)
+			if services.Config.Telegram.Chat_id == update.Message.Chat.ID {
+				remote := fmt.Sprint(update.Message.MessageID)
+				services.SendQuery(update.Message.Text, "telegram", remote, "alert")
+			} else {
+				text := fmt.Sprintf("This is chat %d, configure this in gohome telgram->chat_id.", update.Message.Chat.ID)
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+				bot.Send(msg)
+			}
 		}
 	}()
 
 	events := services.Subscriber.FilteredChannel("alert")
 	for ev := range events {
 		if ev.Target() == "telegram" {
-			self.sendMessage(ev)
+			remote := ev.StringField("remote")
+			i, _ := strconv.Atoi(remote)
+			self.sendMessage(ev, i)
 		}
 	}
 	return nil
