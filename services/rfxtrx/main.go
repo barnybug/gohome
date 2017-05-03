@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -115,7 +116,7 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 
 	case *gorfxtrx.Chime:
 		device := deviceName(p.Type())
-		source := fmt.Sprintf("%s.%s", device, strings.Replace(p.Id(), ":", "", 1))
+		source := fmt.Sprintf("%s.%s%d", device, strings.Replace(p.Id(), ":", "", 1), p.Chime)
 		fields := map[string]interface{}{
 			"source":  source,
 			"chime":   p.Chime,
@@ -197,9 +198,13 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 	case pids["x10"] != "":
 		return gorfxtrx.NewLightingX10(0x01, pids["x10"], command)
 	case pids["byronsx"] != "":
-		chime := byte(ev.IntField("chime"))
-		id := pids["byronsx"]
-		packet, err := gorfxtrx.NewChime(0x00, id, chime)
+		id := pids["byronsx"][0:4]
+		chime, _ := strconv.ParseUint(pids["byronsx"][4:5], 16, 8)
+		if ev.IntField("chime") != 0 {
+			// allow the chime to be set per event
+			chime = uint64(ev.IntField("chime"))
+		}
+		packet, err := gorfxtrx.NewChime(0x00, id, byte(chime))
 		return packet, err
 	}
 	return nil, nil
