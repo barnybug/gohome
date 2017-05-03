@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/barnybug/gogsmmodem"
-	"github.com/tarm/goserial"
+	"github.com/tarm/serial"
 )
 
 func main() {

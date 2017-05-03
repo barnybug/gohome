@@ -15,7 +15,7 @@ import (
 	"github.com/barnybug/gohome/services"
 
 	"github.com/barnybug/gogsmmodem"
-	"github.com/tarm/goserial"
+	"github.com/tarm/serial"
 )
 
 var modem *gogsmmodem.Modem

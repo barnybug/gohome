@@ -18,6 +18,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/barnybug/gogsmmodem",
+			"repository": "https://github.com/barnybug/gogsmmodem",
+			"vcs": "git",
+			"revision": "0f403eb4c892719bc3683e03952c0e71c45da5e1",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/barnybug/gorfxtrx",
 			"repository": "https://github.com/barnybug/gorfxtrx",
 			"vcs": "git",
@@ -91,14 +99,6 @@
 			"revision": "976c720a22c8eb4eb6a0b4348ad85ad12491a506",
 			"branch": "master",
 			"path": "vendor/github.com/pmezard/go-difflib/difflib",
-			"notests": true
-		},
-		{
-			"importpath": "github.com/tarm/goserial",
-			"repository": "https://github.com/tarm/goserial",
-			"vcs": "git",
-			"revision": "b3440c3c63556c3fd67e915be3b92195bc70294a",
-			"branch": "master",
 			"notests": true
 		},
 		{

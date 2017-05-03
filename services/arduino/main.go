@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 
 	"github.com/barnybug/gohome/services"
-	"github.com/tarm/goserial"
+	"github.com/tarm/serial"
 )
 
 func defaultDevName() string {

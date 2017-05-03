@@ -13,7 +13,7 @@ import (
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 
-	"github.com/tarm/goserial"
+	"github.com/tarm/serial"
 )
 
 var rePower = regexp.MustCompile(`<ch1><watts>(\d{5})</watts>`)

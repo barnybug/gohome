@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/tarm/goserial"
+	"github.com/tarm/serial"
 )
 
 type Modem struct {
