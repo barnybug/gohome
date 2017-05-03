@@ -102,6 +102,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/tarm/serial",
+			"repository": "https://github.com/tarm/serial",
+			"vcs": "git",
+			"revision": "37be519d49878d0098e34fb614136b81e6c87861",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/tatsushid/go-fastping",
 			"repository": "https://github.com/tatsushid/go-fastping",
 			"vcs": "git",
