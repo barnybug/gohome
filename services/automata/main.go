@@ -200,6 +200,7 @@ func keywordArgs(args []string) map[string]string {
 
 var switchable = map[string]bool{
 	"amp":      true,
+	"bell":     true,
 	"dimlight": true,
 	"heater":   true,
 	"light":    true,
