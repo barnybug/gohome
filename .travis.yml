@@ -1,6 +1,6 @@
 language: go
 go:
-- 1.7
+- 1.8
 - master
 sudo: false
 before_script:
@@ -20,4 +20,4 @@ deploy:
   on:
     repo: barnybug/gohome
     tags: true
-    go: 1.7
+    go: 1.8
