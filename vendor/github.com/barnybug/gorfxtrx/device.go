@@ -47,7 +47,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/tarm/goserial"
+	"github.com/tarm/serial"
 )
 
 // Device representing the serial connection to the USB device.

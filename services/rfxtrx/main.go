@@ -170,7 +170,7 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 		return nil, nil
 	}
 
-	if pids["homeeasy"] == "" && pids["x10"] == "" {
+	if pids["homeeasy"] == "" && pids["x10"] == "" && pids["byronsx"] == "" {
 		// command not for us
 		return nil, nil
 	}
@@ -179,13 +179,13 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 		log.Println("Command not recognised:", command)
 		return nil, nil
 	}
-	level := ev.IntField("level")
-	if level > 255 {
-		level = 255
-	}
 
 	switch {
 	case pids["homeeasy"] != "":
+		level := ev.IntField("level")
+		if level > 255 {
+			level = 255
+		}
 		if level != 0 {
 			command = "set level"
 		}
@@ -196,6 +196,11 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 		return pkt, err
 	case pids["x10"] != "":
 		return gorfxtrx.NewLightingX10(0x01, pids["x10"], command)
+	case pids["byronsx"] != "":
+		chime := byte(ev.IntField("chime"))
+		id := pids["byronsx"]
+		packet, err := gorfxtrx.NewChime(0x00, id, chime)
+		return packet, err
 	}
 	return nil, nil
 }

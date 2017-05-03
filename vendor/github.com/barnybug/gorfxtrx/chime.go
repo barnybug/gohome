@@ -2,7 +2,9 @@ package gorfxtrx
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"strconv"
 )
 
 // Struct for the Chime packets.
@@ -17,6 +19,21 @@ type Chime struct {
 
 var chimeTypes = map[byte]string{
 	0x00: "Byron SX",
+}
+
+func NewChime(typeId byte, id string, chime byte) (*Chime, error) {
+	if len(id) != 4 {
+		return nil, errors.New("id should be 4 characters (eg. 007b)")
+	}
+	iid, err := strconv.ParseInt(id, 16, 16)
+	if err != nil {
+		return nil, err
+	}
+	return &Chime{
+		typeId: typeId,
+		id:     uint16(iid),
+		Chime:  chime,
+	}, nil
 }
 
 func (self *Chime) Receive(data []byte) {
@@ -37,4 +54,11 @@ func (self *Chime) Id() string {
 // Type of the device.
 func (self *Chime) Type() string {
 	return chimeTypes[self.typeId]
+}
+
+func (self *Chime) Send() []byte {
+	b := []byte{0x07, 0x16, self.typeId, self.SequenceNumber,
+		0, 0, self.Chime, 0}
+	binary.BigEndian.PutUint16(b[4:6], self.id)
+	return b
 }
