@@ -90,8 +90,10 @@ func (s *Sniffer) run(alive chan string) {
 	// read stdout by line, send an event for each line
 	scanner := bufio.NewScanner(s.stdout)
 	for scanner.Scan() {
-		alive <- "sniffed"
-		// fmt.Println("sniff:", scanner.Text())
+		l := len(scanner.Text())
+		if l > 0 {
+			alive <- "sniffed"
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("tcpdump failed: %s", err)
@@ -329,6 +331,20 @@ func (w *Watchdog) Stop() {
 	}
 }
 
+func (self *Service) shutdown(watchdogs []*Watchdog) {
+	log.Println("Shutting down...")
+	// Send INT to whole process group (pid=0)
+	// Note: the only clean way of stopping hcitool is a SIGINT, any other signals
+	// result in an unusable hci device requiring a down/up to reset.
+	// Must sudo to kill the sudo'ed processes
+	cmd := exec.Command("sudo", "kill", "-INT", "0")
+	cmd.Run()
+	for _, watchdog := range watchdogs {
+		watchdog.Stop()
+	}
+	log.Println("Shut down complete")
+}
+
 func (self *Service) Run() error {
 	people := map[string]bool{}
 	watchdogs := []*Watchdog{}
@@ -361,13 +377,13 @@ func (self *Service) Run() error {
 	sigC := make(chan os.Signal, 1)
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
 
-	ch := services.Subscriber.FilteredChannel("command")
+	commands := services.Subscriber.FilteredChannel("command")
 L:
 	for {
 		select {
 		case <-sigC:
 			break L
-		case ev := <-ch:
+		case ev := <-commands:
 			// manual command login/out command
 			if _, ok := people[ev.Device()]; ok {
 				emit(ev.Device(), ev.Command() == "on")
@@ -375,17 +391,6 @@ L:
 		}
 	}
 
-	log.Println("Shutting down...")
-	// Send INT to whole process group (pid=0)
-	// Note: the only clean way of stopping hcitool is a SIGINT, any other signals
-	// result in an unusable hci device requiring a down/up to reset.
-	// Must sudo to kill the sudo'ed processes
-	cmd := exec.Command("sudo", "kill", "-INT", "0")
-	cmd.Run()
-	for _, watchdog := range watchdogs {
-		watchdog.Stop()
-	}
-	log.Println("Shut down complete")
-
+	self.shutdown(watchdogs)
 	return nil
 }
