@@ -65,6 +65,7 @@ type Sniffer struct {
 func NewSniffer(mac string) Checker {
 	return &Sniffer{mac: mac}
 }
+
 func (s *Sniffer) run(alive chan string) {
 	s.cmd = exec.Command("sudo", "stdbuf", "-oL", "tcpdump", "-p", "-n", "-l", "ether", "host", s.mac)
 	var err error
@@ -278,6 +279,36 @@ func (s *Lescanner) Ping() {
 	// noop
 }
 
+type Beacon struct {
+	mac string
+}
+
+func NewBeacon(mac string) Checker {
+	return &Beacon{mac: mac}
+}
+
+func (s *Beacon) run(alive chan string) {
+	log.Printf("Listening for %s beacons (passive)", s.mac)
+
+	beacons := services.Subscriber.FilteredChannel("beacon")
+	for ev := range beacons {
+		mac := ev.StringField("mac")
+		if mac == s.mac {
+			alive <- "beacon"
+		}
+	}
+}
+
+func (s *Beacon) Start(alive chan string) {
+	go s.run(alive)
+}
+
+func (s *Beacon) Stop() {
+}
+
+func (s *Beacon) Ping() {
+}
+
 func (w *Watchdog) watcher() {
 	// start all
 	alive := make(chan string)
@@ -365,6 +396,8 @@ func (self *Service) Run() error {
 				checker = NewArpinger(ps[1])
 			case "lescan":
 				checker = NewLescanner(ps[1])
+			case "beacon":
+				checker = NewBeacon(ps[1])
 			}
 			checkers = append(checkers, checker)
 		}
