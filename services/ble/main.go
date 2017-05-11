@@ -36,35 +36,48 @@ func emit(mac string) {
 }
 
 type Hcitool struct {
-	listeners map[string]bool
-	stderr    bytes.Buffer
-	cmd       *exec.Cmd
+	listeners   map[string]bool
+	stderr      bytes.Buffer
+	cmd         *exec.Cmd
+	terminating bool
+	done        chan struct{}
+}
+
+func (h *Hcitool) run() {
+	for retries := 0; retries < 3 && !h.terminating; retries += 1 {
+		log.Println("Starting hcitool...")
+		h.cmd = exec.Command("sudo", "stdbuf", "-oL", "hcitool", "lescan", "--passive", "--duplicates")
+		stdout, err := h.cmd.StdoutPipe()
+		if err != nil {
+			log.Fatalf("Failed to start hcitool: %s", err)
+		}
+		stderr, err := h.cmd.StderrPipe()
+		if err != nil {
+			log.Fatalf("Failed to start hcitool: %s", err)
+		}
+		if err := h.cmd.Start(); err != nil {
+			log.Fatalf("Failed to start hcitool: %s", err)
+		}
+
+		go io.Copy(&h.stderr, stderr)
+		h.scan(stdout)
+		h.cmd.Wait()
+	}
+	h.done <- struct{}{}
 }
 
 func (h *Hcitool) launch() {
-	h.cmd = exec.Command("sudo", "stdbuf", "-oL", "hcitool", "lescan", "--passive", "--duplicates")
-	stdout, err := h.cmd.StdoutPipe()
-	if err != nil {
-		log.Fatalf("Failed to start hcitool: %s", err)
-		return
-	}
-	stderr, err := h.cmd.StderrPipe()
-	if err != nil {
-		log.Fatalf("Failed to start hcitool: %s", err)
-		return
-	}
-	if err := h.cmd.Start(); err != nil {
-		log.Fatalf("Failed to start hcitool: %s", err)
-		return
-	}
-
-	go io.Copy(&h.stderr, stderr)
-	go h.scan(stdout)
+	go h.run()
 }
 
 func (h *Hcitool) terminate() {
-	h.cmd.Wait()
-	log.Println("Terminated hcitool")
+	// Send INT to whole process group (pid=0)
+	// Note: the only clean way of stopping hcitool is a SIGINT, any other signals
+	// result in an unusable hci device requiring a down/up to reset.
+	// Must sudo to kill the sudo'ed processes
+	h.terminating = true
+	cmd := exec.Command("sudo", "kill", "-INT", "0")
+	cmd.Run()
 }
 
 func (h *Hcitool) scan(stdout io.ReadCloser) {
@@ -89,24 +102,14 @@ func (h *Hcitool) scan(stdout io.ReadCloser) {
 	if err := scanner.Err(); err != nil {
 		log.Printf("hcitool failed: %s", err)
 	} else {
-		log.Printf("hcitool exited: bluetooth monitoring disabled")
+		log.Printf("hcitool exited")
 	}
-}
-
-func (self *Service) shutdown() {
-	log.Println("Shutting down...")
-	// Send INT to whole process group (pid=0)
-	// Note: the only clean way of stopping hcitool is a SIGINT, any other signals
-	// result in an unusable hci device requiring a down/up to reset.
-	// Must sudo to kill the sudo'ed processes
-	cmd := exec.Command("sudo", "kill", "-INT", "0")
-	cmd.Run()
-	log.Println("Shut down complete")
 }
 
 func (self *Service) Run() error {
 	hcitool := &Hcitool{
 		listeners: map[string]bool{},
+		done:      make(chan struct{}),
 	}
 	for mac, _ := range services.Config.Protocols["ble"] {
 		log.Printf("Scanning bluetooth %s (passive)", mac)
@@ -123,10 +126,12 @@ L:
 		select {
 		case <-sigC:
 			break L
+		case <-hcitool.done:
+			break L
 		}
 	}
 
-	self.shutdown()
+	log.Println("Shutting down...")
 	hcitool.terminate()
 	return nil
 }
