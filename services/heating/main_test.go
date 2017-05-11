@@ -17,16 +17,16 @@ import (
 )
 
 var (
-	evOff        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-04 10:19:00.000000"})
-	evCold       = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000000"})
-	evColder     = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 9.0, "timestamp": "2014-01-04 16:00:00.000000"})
-	evBorderline = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 14.2, "timestamp": "2014-01-04 16:10:00.000000"})
-	evHot        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 16:31:00.000000"})
+	evOff        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-04 10:19:00.000"})
+	evCold       = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000"})
+	evColder     = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 9.0, "timestamp": "2014-01-04 16:00:00.000"})
+	evBorderline = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 14.2, "timestamp": "2014-01-04 16:10:00.000"})
+	evHot        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 16:31:00.000"})
 
-	evEmpty = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Empty", "timestamp": "2014-01-04 16:00:00.000000"})
-	evFull  = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Full", "timestamp": "2014-01-04 16:00:00.000000"})
+	evEmpty = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Empty", "timestamp": "2014-01-04 16:00:00.000"})
+	evFull  = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Full", "timestamp": "2014-01-04 16:00:00.000"})
 
-	evAfterParty = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000000"})
+	evAfterParty = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000"})
 )
 var (
 	timeLater  = evHot.Timestamp
@@ -126,7 +126,7 @@ func TestStaleTemperature(t *testing.T) {
 
 func TestTemperatureFromStateOn(t *testing.T) {
 	SetupStor()
-	mockTemp := `{"topic": "temp", "source": "wmr100.2", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000000"}`
+	mockTemp := `{"topic": "temp", "source": "wmr100.2", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000"}`
 	services.Stor.Set("gohome/state/events/temp/temp.hallway", mockTemp)
 	SetupService()
 
@@ -137,7 +137,7 @@ func TestTemperatureFromStateOn(t *testing.T) {
 
 func TestTemperatureFromStateOff(t *testing.T) {
 	SetupStor()
-	mockTemp := `{"topic": "temp", "source": "wmr100.2", "temp": 18.0, "timestamp": "2014-01-04 16:00:00.000000"}`
+	mockTemp := `{"topic": "temp", "source": "wmr100.2", "temp": 18.0, "timestamp": "2014-01-04 16:00:00.000"}`
 	services.Stor.Set("gohome/state/events/temp/temp.hallway", mockTemp)
 	SetupService()
 

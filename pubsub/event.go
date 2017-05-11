@@ -32,7 +32,7 @@ func NewCommand(device string, command string) *Event {
 	return NewEvent("command", fields)
 }
 
-const TimeFormat = "2006-01-02 15:04:05.000000"
+const TimeFormat = "2006-01-02 15:04:05.000"
 
 func (event *Event) Map() map[string]interface{} {
 	data := make(map[string]interface{})

@@ -12,7 +12,7 @@ import (
 )
 
 func ExampleTranslateCommand() {
-	ev := pubsub.Parse(`{"device": "light.glowworm", "timestamp": "2014-03-13 19:40:58.368298", "command": "on", "topic": "command"}`)
+	ev := pubsub.Parse(`{"device": "light.glowworm", "timestamp": "2014-03-13 19:40:58.368", "command": "on", "topic": "command"}`)
 	services.Config = config.ExampleConfig
 	pkt, err := translateCommands(ev)
 	fmt.Println(err)
@@ -39,7 +39,7 @@ func ExampleTranslatePacketX10() {
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)
 	// Output:
-	// {"command":"on","group":"e","source":"x10.e05","timestamp":"2014-01-02 03:04:05.987654","topic":"x10"}
+	// {"command":"on","group":"e","source":"x10.e05","timestamp":"2014-01-02 03:04:05.987","topic":"x10"}
 }
 
 func ExampleTranslatePacketHE() {
@@ -50,7 +50,7 @@ func ExampleTranslatePacketHE() {
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)
 	// Output:
-	// {"command":"set level","source":"homeeasy.12345675","timestamp":"2014-01-02 03:04:05.987654","topic":"homeeasy"}
+	// {"command":"set level","source":"homeeasy.12345675","timestamp":"2014-01-02 03:04:05.987","topic":"homeeasy"}
 }
 
 func ExampleTranslatePacketChime() {
@@ -61,5 +61,5 @@ func ExampleTranslatePacketChime() {
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
 	fmt.Println(ev)
 	// Output:
-	//{"battery":0,"chime":1,"command":"on","source":"byronsx.007a1","timestamp":"2014-01-02 03:04:05.987654","topic":"chime"}
+	//{"battery":0,"chime":1,"command":"on","source":"byronsx.007a1","timestamp":"2014-01-02 03:04:05.987","topic":"chime"}
 }
