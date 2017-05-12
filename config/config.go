@@ -28,10 +28,12 @@ type CameraNodeConf struct {
 	Url      string
 	User     string
 	Password string
+	Notify   string
 }
 
 type CameraConf struct {
 	Path    string
+	Url     string
 	Cameras map[string]CameraNodeConf
 }
 

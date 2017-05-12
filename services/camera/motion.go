@@ -9,7 +9,6 @@ import (
 )
 
 type Motion struct {
-	Path string
 	Conf config.CameraNodeConf
 }
 
@@ -17,12 +16,12 @@ func (self *Motion) GotoPreset(preset int) error {
 	return nil
 }
 
-func (self *Motion) Snapshot() (string, error) {
-	return "", nil
+func (self *Motion) Snapshot(filename string) error {
+	return nil
 }
 
-func (self *Motion) Video(duration time.Duration) (string, error) {
-	return "", nil
+func (self *Motion) Video(filename string, duration time.Duration) error {
+	return nil
 }
 
 func (self *Motion) Ir(b bool) error {

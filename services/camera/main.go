@@ -10,7 +10,6 @@ package camera
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -26,10 +25,28 @@ var (
 
 type Camera interface {
 	GotoPreset(preset int) error
-	Snapshot() (string, error)
-	Video(duration time.Duration) (string, error)
+	Snapshot(path string) error
+	Video(path string, duration time.Duration) error
 	Ir(bool) error
 	Detect(bool) error
+}
+
+func notifySnapshot(url, filename, target string) {
+	fields := pubsub.Fields{
+		"url":      url,
+		"filename": filename,
+		"target":   target,
+	}
+	ev := pubsub.NewEvent("alert", fields)
+	services.Publisher.Emit(ev)
+}
+
+func cameraPath(name, ext string) (filename string, url string) {
+	ts := time.Now().Format("20060102T150405")
+	dir := util.ExpandUser(services.Config.Camera.Path)
+	filename = fmt.Sprintf("%s/%s-%s.%s", dir, name, ts, ext)
+	url = fmt.Sprintf("%s/%s-%s.%s", services.Config.Camera.Url, name, ts, ext)
+	return
 }
 
 func eventCommand(ev *pubsub.Event) {
@@ -48,21 +65,27 @@ func eventCommand(ev *pubsub.Event) {
 
 	case "snapshot":
 		log.Printf("%s taking snapshot", ev.Device())
+		filename, url := cameraPath(ev.Device(), "jpg")
 		go func() {
 			if preset != 0 {
 				log.Printf("Going to preset: %d", preset)
 				cam.GotoPreset(preset)
 				time.Sleep(GotoDelay)
 			}
-			filename, err := cam.Snapshot()
+			err := cam.Snapshot(filename)
 			if err != nil {
 				log.Println("Error taking snapshot:", err)
 			} else {
 				log.Println("Snapshot:", filename)
+				notify := services.Config.Camera.Cameras[ev.Device()].Notify
+				if notify != "" {
+					notifySnapshot(url, filename, notify)
+				}
 			}
 		}()
 
 	case "video":
+		filename, _ := cameraPath(ev.Device(), "mp4")
 		timeout, ok := ev.Fields["timeout"].(float64)
 		if !ok {
 			timeout = 15
@@ -81,7 +104,7 @@ func eventCommand(ev *pubsub.Event) {
 					log.Println("Error setting ir:", err)
 				}
 			}
-			filename, err := cam.Video(duration)
+			err := cam.Video(filename, duration)
 			if err != nil {
 				log.Println("Error taking video:", err)
 			} else {
@@ -102,24 +125,17 @@ func eventCommand(ev *pubsub.Event) {
 }
 
 func setupCameras() {
-	snapshotDir = util.ExpandUser(services.Config.Camera.Path)
 	cameras = map[string]Camera{}
 	for name, conf := range services.Config.Camera.Cameras {
-		snapshot := fmt.Sprintf("%s/%s-%%s.%%s", snapshotDir, strings.TrimPrefix(name, "camera."))
 		switch conf.Protocol {
 		case "foscam":
-			cameras[name] = &Foscam{snapshot, conf}
+			cameras[name] = &Foscam{conf}
 		case "motion":
-			cameras[name] = &Motion{snapshot, conf}
-		case "webvam":
-			cameras[name] = &Webcam{snapshot, conf}
+			cameras[name] = &Motion{conf}
+		case "webcam":
+			cameras[name] = &Webcam{conf}
 		}
 	}
-}
-
-func timestampFilename(path, ext string) string {
-	ts := time.Now().Format("20060102T150405")
-	return fmt.Sprintf(path, ts, ext)
 }
 
 // Service camera
@@ -140,6 +156,7 @@ func (self *Service) Run() error {
 	setupCameras()
 
 	for ev := range services.Subscriber.FilteredChannel("command") {
+		fmt.Println("dev", ev.Device())
 		if _, ok := cameras[ev.Device()]; ok {
 			eventCommand(ev)
 		}

@@ -10,7 +10,6 @@ import (
 )
 
 type Webcam struct {
-	Path string
 	Conf config.CameraNodeConf
 }
 
@@ -18,14 +17,13 @@ func (self *Webcam) GotoPreset(preset int) error {
 	return nil
 }
 
-func (self *Webcam) Snapshot() (filename string, err error) {
+func (self *Webcam) Snapshot(filename string) (err error) {
 	var resp *http.Response
 	resp, err = http.Get(self.Conf.Url)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
-	filename = timestampFilename(self.Path, "jpg")
 	fout, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return
@@ -39,8 +37,8 @@ func (self *Webcam) Snapshot() (filename string, err error) {
 	return
 }
 
-func (self *Webcam) Video(duration time.Duration) (string, error) {
-	return "", nil
+func (self *Webcam) Video(path string, duration time.Duration) error {
+	return nil
 }
 
 func (self *Webcam) Ir(b bool) error {

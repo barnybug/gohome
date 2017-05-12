@@ -2,16 +2,16 @@ package camera
 
 import (
 	"fmt"
-	"github.com/barnybug/gohome/config"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/barnybug/gohome/config"
 )
 
 type Foscam struct {
-	Path string
 	Conf config.CameraNodeConf
 }
 
@@ -39,18 +39,12 @@ func (self *Foscam) GotoPreset(preset int) (err error) {
 	return
 }
 
-func (self *Foscam) nextFilename(ext string) string {
-	ts := time.Now().Format("20060102T150405")
-	return fmt.Sprintf(self.Path, ts, ext)
-}
-
-func (self *Foscam) Snapshot() (filename string, err error) {
+func (self *Foscam) Snapshot(filename string) (err error) {
 	resp, err := self.control("snapshot.cgi", EmptyParams)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
-	filename = self.nextFilename("jpg")
 	fout, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return
@@ -80,13 +74,12 @@ func (self *TLReader) Read(p []byte) (n int, err error) {
 	return self.R.Read(p)
 }
 
-func (self *Foscam) Video(duration time.Duration) (filename string, err error) {
+func (self *Foscam) Video(filename string, duration time.Duration) (err error) {
 	resp, err := self.control("videostream.asf", EmptyParams)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
-	filename = self.nextFilename("asf")
 	fout, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return
