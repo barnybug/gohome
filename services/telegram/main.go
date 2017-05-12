@@ -29,6 +29,13 @@ func (self *Service) sendMessage(ev *pubsub.Event, remote int) {
 			msg.ReplyToMessageID = remote
 		}
 		self.bot.Send(msg)
+	} else if filename, ok := ev.Fields["filename"].(string); ok {
+		log.Printf("Sending telegram picture: %s", filename)
+		msg := tgbotapi.NewPhotoUpload(services.Config.Telegram.Chat_id, filename)
+		if remote != 0 {
+			msg.ReplyToMessageID = remote
+		}
+		self.bot.Send(msg)
 	}
 }
 
