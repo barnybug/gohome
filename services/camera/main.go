@@ -111,8 +111,15 @@ func setupCameras() {
 			cameras[name] = &Foscam{snapshot, conf}
 		case "motion":
 			cameras[name] = &Motion{snapshot, conf}
+		case "webvam":
+			cameras[name] = &Webcam{snapshot, conf}
 		}
 	}
+}
+
+func timestampFilename(path, ext string) string {
+	ts := time.Now().Format("20060102T150405")
+	return fmt.Sprintf(path, ts, ext)
 }
 
 // Service camera
