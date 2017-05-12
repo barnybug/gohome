@@ -187,6 +187,7 @@ type WeatherConf struct {
 }
 
 type WatchdogConf struct {
+	Alert     string
 	Devices   map[string]string
 	Processes []string
 	Pings     []string

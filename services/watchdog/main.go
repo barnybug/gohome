@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/smtp"
 	"sort"
 	"strings"
 	"time"
@@ -44,23 +43,15 @@ func (self WatchdogDevices) Swap(i, j int) {
 var devices map[string]*WatchdogDevice
 var repeatInterval, _ = time.ParseDuration("12h")
 
-func sendEmail(name, state string, since time.Time) {
+func sendAlert(name string, state bool, since time.Time) {
 	log.Printf("Sending %s watchdog alert for: %s\n", state, name)
-	subject := name
-	var body string
-	if state == "PROBLEM" {
-		body = fmt.Sprintf("%s last %s", state, since.Local().Format(time.Stamp))
+	var message string
+	if state {
+		message = fmt.Sprintf("%s RECOVERED: %s at %s", name, state, time.Now().Local().Format(time.Stamp))
 	} else {
-		body = fmt.Sprintf("%s at %s", state, time.Now().Local().Format(time.Stamp))
+		message = fmt.Sprintf("%s PROBLEM: %s last %s", name, state, since.Local().Format(time.Stamp))
 	}
-
-	email := services.Config.General.Email
-	to := []string{email.Admin}
-	msg := fmt.Sprintf("From: Gohome <%s>\nTo: <%s>\nSubject: %s\n\n%s\n", email.From, email.Admin, subject, body)
-	err := smtp.SendMail(email.Server, nil, email.From, to, []byte(msg))
-	if err != nil {
-		log.Println("Error sending email:", err)
-	}
+	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
 }
 
 func checkEvent(ev *pubsub.Event) {
@@ -78,7 +69,7 @@ func touch(device string, timestamp time.Time) {
 	// recovered?
 	if w.Alerted {
 		w.Alerted = false
-		sendEmail(w.Name, "RECOVERED", w.LastEvent)
+		sendAlert(w.Name, true, w.LastEvent)
 	}
 	w.LastEvent = timestamp
 }
@@ -110,7 +101,7 @@ func checkTimeouts() {
 
 	// send a single email for multiple devices
 	if len(timeouts) > 0 {
-		sendEmail(strings.Join(timeouts, ", "), "PROBLEM", lastEvent)
+		sendAlert(strings.Join(timeouts, ", "), false, lastEvent)
 	}
 }
 
