@@ -47,9 +47,9 @@ func sendAlert(name string, state bool, since time.Time) {
 	log.Printf("Sending %s watchdog alert for: %s\n", state, name)
 	var message string
 	if state {
-		message = fmt.Sprintf("%s RECOVERED: %s at %s", name, state, time.Now().Local().Format(time.Stamp))
+		message = fmt.Sprintf("%s RECOVERED at %s", name, time.Now().Local().Format(time.Stamp))
 	} else {
-		message = fmt.Sprintf("%s PROBLEM: %s last %s", name, state, since.Local().Format(time.Stamp))
+		message = fmt.Sprintf("%s PROBLEM since %s", name, since.Local().Format(time.Stamp))
 	}
 	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
 }
