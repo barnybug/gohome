@@ -418,7 +418,7 @@ L:
 			break L
 		case ev := <-commands:
 			// manual command login/out command
-			if _, ok := people[ev.Device()]; ok {
+			if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Type == "person" {
 				emit(ev.Device(), ev.Command() == "on")
 			}
 		}
