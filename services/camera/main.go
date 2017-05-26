@@ -31,11 +31,12 @@ type Camera interface {
 	Detect(bool) error
 }
 
-func notifySnapshot(url, filename, target string) {
+func notifySnapshot(url, filename, target, message string) {
 	fields := pubsub.Fields{
 		"url":      url,
 		"filename": filename,
 		"target":   target,
+		"message":  message,
 	}
 	ev := pubsub.NewEvent("alert", fields)
 	services.Publisher.Emit(ev)
@@ -77,9 +78,10 @@ func eventCommand(ev *pubsub.Event) {
 				log.Println("Error taking snapshot:", err)
 			} else {
 				log.Println("Snapshot:", filename)
-				notify := services.Config.Camera.Cameras[ev.Device()].Notify
+				notify := ev.StringField("notify")
+				message := ev.StringField("message")
 				if notify != "" {
-					notifySnapshot(url, filename, notify)
+					notifySnapshot(url, filename, notify, message)
 				}
 			}
 		}()

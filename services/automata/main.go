@@ -570,6 +570,14 @@ func (self EventAction) Dim(device string, level int64) {
 	switchCommand(device, "on", 3, int(level))
 }
 
+func (self EventAction) Snapshot(device string, target string, message string) {
+	message = self.substitute(message)
+	ev := pubsub.NewCommand(device, "snapshot")
+	ev.SetField("message", message)
+	ev.SetField("notify", target)
+	services.Publisher.Emit(ev)
+}
+
 func (self EventAction) StartTimer(name string, d int64) {
 	// log.Printf("Starting timer: %s for %ds", name, d)
 	duration := time.Duration(d) * time.Second

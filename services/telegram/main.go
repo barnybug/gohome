@@ -22,16 +22,17 @@ func (self *Service) ID() string {
 }
 
 func (self *Service) sendMessage(ev *pubsub.Event, remote int) {
-	if message, ok := ev.Fields["message"].(string); ok {
-		log.Printf("Sending telegram message: %s", message)
-		msg := tgbotapi.NewMessage(services.Config.Telegram.Chat_id, message)
+	if filename, ok := ev.Fields["filename"].(string); ok {
+		log.Printf("Sending telegram picture: %s", filename)
+		msg := tgbotapi.NewPhotoUpload(services.Config.Telegram.Chat_id, filename)
+		msg.Caption = ev.StringField("message")
 		if remote != 0 {
 			msg.ReplyToMessageID = remote
 		}
 		self.bot.Send(msg)
-	} else if filename, ok := ev.Fields["filename"].(string); ok {
-		log.Printf("Sending telegram picture: %s", filename)
-		msg := tgbotapi.NewPhotoUpload(services.Config.Telegram.Chat_id, filename)
+	} else if message, ok := ev.Fields["message"].(string); ok {
+		log.Printf("Sending telegram message: %s", message)
+		msg := tgbotapi.NewMessage(services.Config.Telegram.Chat_id, message)
 		if remote != 0 {
 			msg.ReplyToMessageID = remote
 		}
