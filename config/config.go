@@ -11,7 +11,7 @@ import (
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/util"
 
-	"gopkg.in/v1/yaml"
+	"gopkg.in/yaml.v1"
 )
 
 type BillConf struct {
