@@ -22,32 +22,74 @@ const (
 	TRUE                   = 1
 	FALSE                  = 0
 
-	ADDR_FIFO          = 0x00
-	ADDR_OPMODE        = 0x01 // Operating modes
-	ADDR_REGDATAMODUL  = 0x02
-	ADDR_FDEVMSB       = 0x05
-	ADDR_FDEVLSB       = 0x06
-	ADDR_FRMSB         = 0x07
-	ADDR_FRMID         = 0x08
-	ADDR_FRLSB         = 0x09
-	ADDR_VERSION       = 0x10
-	ADDR_AFCCTRL       = 0x0B
+	ADDR_FIFO         = 0x00
+	ADDR_OPMODE       = 0x01 // Operating modes
+	ADDR_REGDATAMODUL = 0x02
+	ADDR_BITRATEMSB   = 0x03
+	ADDR_BITRATELSB   = 0x04
+	ADDR_FDEVMSB      = 0x05
+	ADDR_FDEVLSB      = 0x06
+	ADDR_FRMSB        = 0x07
+	ADDR_FRMID        = 0x08
+	ADDR_FRLSB        = 0x09
+	ADDR_OSC1         = 0x0A
+	ADDR_AFCCTRL      = 0x0B
+	ADDR_RESERVED     = 0x0C
+	ADDR_LISTEN1      = 0x0D
+	ADDR_LISTEN2      = 0x0E
+	ADDR_LISTEN3      = 0x0F
+	ADDR_VERSION      = 0x10
+	ADDR_PALEVEL      = 0x11
+	ADDR_PARAMP       = 0x12
+	ADDR_OCP          = 0x13
+	// Reserved 0x14-0x17
 	ADDR_LNA           = 0x18
 	ADDR_RXBW          = 0x19
+	ADDR_AFCBW         = 0x1A
+	ADDR_OOKPEAK       = 0x1B
+	ADDR_OOKAVG        = 0x1C
+	ADDR_OOKFIX        = 0x1D
 	ADDR_AFCFEI        = 0x1E
+	ADDR_AFCMSB        = 0x1F
+	ADDR_AFCLSB        = 0x20
+	ADDR_FEIMSB        = 0x21
+	ADDR_FEILSB        = 0x22
+	ADDR_RSSICONFIG    = 0x23
+	ADDR_RSSIVALUE     = 0x24
+	ADDR_DIOMAPPING1   = 0x25
+	ADDR_DIOMAPPING2   = 0x26
 	ADDR_IRQFLAGS1     = 0x27
 	ADDR_IRQFLAGS2     = 0x28
 	ADDR_RSSITHRESH    = 0x29
+	ADDR_RXTIMEOUT1    = 0x2A
+	ADDR_RXTIMEOUT2    = 0x2B
+	ADDR_PREAMBLEMSB   = 0x2C
 	ADDR_PREAMBLELSB   = 0x2D
 	ADDR_SYNCCONFIG    = 0x2E
 	ADDR_SYNCVALUE1    = 0x2F
 	ADDR_SYNCVALUE2    = 0X30
 	ADDR_SYNCVALUE3    = 0x31
 	ADDR_SYNCVALUE4    = 0X32
+	ADDR_SYNCVALUE5    = 0X33
+	ADDR_SYNCVALUE6    = 0X34
+	ADDR_SYNCVALUE7    = 0X35
+	ADDR_SYNCVALUE8    = 0X36
 	ADDR_PACKETCONFIG1 = 0X37
 	ADDR_PAYLOADLEN    = 0X38
 	ADDR_NODEADDRESS   = 0X39
+	ADDR_BROADCASTADRS = 0X3A
+	ADDR_AUTOMODES     = 0X3B
 	ADDR_FIFOTHRESH    = 0X3C
+	ADDR_PACKETCONFIG2 = 0X3D
+	// AES Key 0x3e-0x4d
+	ADDR_TEMP1 = 0X4E
+	ADDR_TEMP2 = 0X4F
+	// 0x50- test registers
+	ADDR_TESTLNA  = 0X58
+	ADDR_TESTPA1  = 0X5A
+	ADDR_TESTPA2  = 0X5C
+	ADDR_TESTDAGC = 0X6F
+	ADDR_TESTAFC  = 0X71
 
 	MASK_REGDATAMODUL_OOK = 0x08
 	MASK_REGDATAMODUL_FSK = 0x00
@@ -61,13 +103,17 @@ const (
 	MASK_PACKETMODE       = 0x60
 	MASK_MODULATION       = 0x18
 	MASK_PAYLOADRDY       = 0x04
+	MASK_RSSIDONE         = 0x02
+	MASK_RSSISTART        = 0x01
+	MASK_TEMPMEASSTART    = 0x08
+	MASK_TEMPMEASRUNNING  = 0x04
 
 	/* Precise register description can be found on:
 	 * www.hoperf.com/upload/rf/RFM69W-V1.3.pdf
 	 * on page 63 - 74
 	 */
 	MODE_STANDBY         = 0x04        // Standby
-	MODE_TRANSMITER      = 0x0C        // Transmiter
+	MODE_TRANSMITTER     = 0x0C        // Transmitter
 	MODE_RECEIVER        = 0x10        // Receiver
 	VAL_REGDATAMODUL_FSK = 0x00        // Modulation scheme FSK
 	VAL_REGDATAMODUL_OOK = 0x08        // Modulation scheme OOK
@@ -103,24 +149,6 @@ const (
 	VAL_NODEADDRESS01    = 0x04        // Node address used in address filtering
 	VAL_FIFOTHRESH1      = 0x81        // Condition to start packet transmission: at least one byte in FIFO
 	VAL_FIFOTHRESH30     = 0x1E        // Condition to start packet transmission: wait for 30 bytes in FIFO
-
-	MSG_REMAINING_LEN = 0
-	MSG_MANUF_ID      = 1
-	MSG_PRODUCT_ID    = 2
-	MSG_RESERVED_HI   = 3
-	MSG_RESERVED_LO   = 4
-	MSG_SENSOR_ID_2   = 5
-	MSG_SENSOR_ID_1   = 6
-	MSG_SENSOR_ID_0   = 7
-	MSG_DATA_START    = 8
-	MSG_ENCR_START    = MSG_SENSOR_ID_2
-	MSG_OVERHEAD_LEN  = (MSG_DATA_START + 2)
-
-	MAX_DATA_LENGTH = MESSAGE_BUF_SIZE
-
-	/* OOK Message Parameters */
-	OOK_BUF_SIZE           = 17
-	OOK_MSG_ADDRESS_LENGTH = 10 /* 10 bytes in address */
 
 	GreenLed = 27 // GPIO 13
 	RedLed   = 22 // GPIO 15
@@ -239,6 +267,26 @@ func (self *HRF) GetVersion() byte {
 	return self.regR(ADDR_VERSION)
 }
 
+func (self *HRF) GetRSSI() float32 {
+	self.regW(ADDR_RSSICONFIG, MASK_RSSISTART)
+	self.WaitFor(ADDR_RSSICONFIG, MASK_RSSIDONE, true)
+	return -float32(self.regR(ADDR_RSSIVALUE)) / 2
+}
+
+func (self *HRF) GetTemperature() int {
+	// must be in standby
+	self.regW(ADDR_OPMODE, MODE_STANDBY)
+	// request temperature
+	self.regW(ADDR_TEMP1, MASK_TEMPMEASSTART)
+	// wait for measuring to finish running
+	self.WaitFor(ADDR_TEMP1, MASK_TEMPMEASRUNNING, false)
+	// approx figure - needs calibration
+	temp := 160 - int(self.regR(ADDR_TEMP2))
+	// switch back to receiver
+	self.regW(ADDR_OPMODE, MODE_RECEIVER)
+	return temp
+}
+
 func (self *HRF) ReceiveFSKMessage() *Message {
 	if self.regR(ADDR_IRQFLAGS2)&MASK_PAYLOADRDY == MASK_PAYLOADRDY {
 		// light green whilst receiving
@@ -280,7 +328,7 @@ func (self *HRF) SendFSKMessage(msg *Message) error {
 	red.High()
 
 	// switch to transmission mode
-	err := self.regW(ADDR_OPMODE, MODE_TRANSMITER)
+	err := self.regW(ADDR_OPMODE, MODE_TRANSMITTER)
 	if err != nil {
 		return err
 	}

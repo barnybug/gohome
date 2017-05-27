@@ -19,7 +19,7 @@ type ConnectPacket struct {
 	UsernameFlag    bool
 	PasswordFlag    bool
 	ReservedBit     byte
-	Keepalive       uint16
+	KeepaliveTimer  uint16
 
 	ClientIdentifier string
 	WillTopic        string
@@ -30,7 +30,7 @@ type ConnectPacket struct {
 
 func (c *ConnectPacket) String() string {
 	str := fmt.Sprintf("%s\n", c.FixedHeader)
-	str += fmt.Sprintf("protocolversion: %d protocolname: %s cleansession: %t willflag: %t WillQos: %d WillRetain: %t Usernameflag: %t Passwordflag: %t keepalive: %d\nclientId: %s\nwilltopic: %s\nwillmessage: %s\nUsername: %s\nPassword: %s\n", c.ProtocolVersion, c.ProtocolName, c.CleanSession, c.WillFlag, c.WillQos, c.WillRetain, c.UsernameFlag, c.PasswordFlag, c.Keepalive, c.ClientIdentifier, c.WillTopic, c.WillMessage, c.Username, c.Password)
+	str += fmt.Sprintf("protocolversion: %d protocolname: %s cleansession: %t willflag: %t WillQos: %d WillRetain: %t Usernameflag: %t Passwordflag: %t keepalivetimer: %d\nclientId: %s\nwilltopic: %s\nwillmessage: %s\nUsername: %s\nPassword: %s\n", c.ProtocolVersion, c.ProtocolName, c.CleanSession, c.WillFlag, c.WillQos, c.WillRetain, c.UsernameFlag, c.PasswordFlag, c.KeepaliveTimer, c.ClientIdentifier, c.WillTopic, c.WillMessage, c.Username, c.Password)
 	return str
 }
 
@@ -41,7 +41,7 @@ func (c *ConnectPacket) Write(w io.Writer) error {
 	body.Write(encodeString(c.ProtocolName))
 	body.WriteByte(c.ProtocolVersion)
 	body.WriteByte(boolToByte(c.CleanSession)<<1 | boolToByte(c.WillFlag)<<2 | c.WillQos<<3 | boolToByte(c.WillRetain)<<5 | boolToByte(c.PasswordFlag)<<6 | boolToByte(c.UsernameFlag)<<7)
-	body.Write(encodeUint16(c.Keepalive))
+	body.Write(encodeUint16(c.KeepaliveTimer))
 	body.Write(encodeString(c.ClientIdentifier))
 	if c.WillFlag {
 		body.Write(encodeString(c.WillTopic))
@@ -63,7 +63,7 @@ func (c *ConnectPacket) Write(w io.Writer) error {
 
 //Unpack decodes the details of a ControlPacket after the fixed
 //header has been read
-func (c *ConnectPacket) Unpack(b io.Reader) error {
+func (c *ConnectPacket) Unpack(b io.Reader) {
 	c.ProtocolName = decodeString(b)
 	c.ProtocolVersion = decodeByte(b)
 	options := decodeByte(b)
@@ -74,7 +74,7 @@ func (c *ConnectPacket) Unpack(b io.Reader) error {
 	c.WillRetain = 1&(options>>5) > 0
 	c.PasswordFlag = 1&(options>>6) > 0
 	c.UsernameFlag = 1&(options>>7) > 0
-	c.Keepalive = decodeUint16(b)
+	c.KeepaliveTimer = decodeUint16(b)
 	c.ClientIdentifier = decodeString(b)
 	if c.WillFlag {
 		c.WillTopic = decodeString(b)
@@ -86,8 +86,6 @@ func (c *ConnectPacket) Unpack(b io.Reader) error {
 	if c.PasswordFlag {
 		c.Password = decodeBytes(b)
 	}
-
-	return nil
 }
 
 //Validate performs validation of the fields of a Connect packet

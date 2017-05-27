@@ -13,7 +13,7 @@ import (
 //written
 type ControlPacket interface {
 	Write(io.Writer) error
-	Unpack(io.Reader) error
+	Unpack(io.Reader)
 	String() string
 	Details() Details
 }
@@ -116,8 +116,8 @@ func ReadPacket(r io.Reader) (cp ControlPacket, err error) {
 	if err != nil {
 		return nil, err
 	}
-	err = cp.Unpack(bytes.NewBuffer(packetBytes))
-	return cp, err
+	cp.Unpack(bytes.NewBuffer(packetBytes))
+	return cp, nil
 }
 
 //NewControlPacket is used to create a new ControlPacket of the type specified

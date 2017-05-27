@@ -320,10 +320,10 @@ func Close() error {
 func getGPIOBase() (base int64) {
 	base = pi1GPIOBase
 	ranges, err := os.Open("/proc/device-tree/soc/ranges")
-	defer ranges.Close()
 	if err != nil {
 		return
 	}
+	defer ranges.Close()
 	b := make([]byte, 4)
 	n, err := ranges.ReadAt(b, 4)
 	if n != 4 || err != nil {

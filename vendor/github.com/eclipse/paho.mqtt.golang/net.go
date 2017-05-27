@@ -159,7 +159,7 @@ func outgoing(c *client) {
 			}
 		}
 		// Reset ping timer after sending control packet.
-		c.pingResp <- struct{}{}
+		c.pingTimer.Reset(c.options.KeepAlive)
 	}
 }
 
@@ -186,8 +186,8 @@ func alllogic(c *client) {
 				sa := msg.(*packets.SubackPacket)
 				DEBUG.Println(NET, "received suback, id:", sa.MessageID)
 				token := c.getToken(sa.MessageID).(*SubscribeToken)
-				DEBUG.Println(NET, "granted qoss", sa.ReturnCodes)
-				for i, qos := range sa.ReturnCodes {
+				DEBUG.Println(NET, "granted qoss", sa.GrantedQoss)
+				for i, qos := range sa.GrantedQoss {
 					token.subResult[token.subs[i]] = qos
 				}
 				token.flowComplete()

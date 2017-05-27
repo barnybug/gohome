@@ -1,0 +1,7 @@
+{
+    "dependencies": {
+        "github.com/motain/gocheck": {
+            "branch": "master"
+        }
+    }
+}

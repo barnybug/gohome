@@ -41,7 +41,7 @@ func (p *PublishPacket) Write(w io.Writer) error {
 
 //Unpack decodes the details of a ControlPacket after the fixed
 //header has been read
-func (p *PublishPacket) Unpack(b io.Reader) error {
+func (p *PublishPacket) Unpack(b io.Reader) {
 	var payloadLength = p.FixedHeader.RemainingLength
 	p.TopicName = decodeString(b)
 	if p.Qos > 0 {
@@ -50,13 +50,8 @@ func (p *PublishPacket) Unpack(b io.Reader) error {
 	} else {
 		payloadLength -= len(p.TopicName) + 2
 	}
-	if payloadLength < 0 {
-		return fmt.Errorf("Error upacking publish, payload length < 0")
-	}
 	p.Payload = make([]byte, payloadLength)
-	_, err := b.Read(p.Payload)
-
-	return err
+	b.Read(p.Payload)
 }
 
 //Copy creates a new PublishPacket with the same topic and payload

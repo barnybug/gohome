@@ -1,4 +1,4 @@
-Slack API in Go [![GoDoc](https://godoc.org/github.com/nlopes/slack?status.png)](https://godoc.org/github.com/nlopes/slack) [![Build Status](https://travis-ci.org/nlopes/slack.svg)](https://travis-ci.org/nlopes/slack)
+Slack API in Go [![GoDoc](https://godoc.org/github.com/nlopes/slack?status.svg)](https://godoc.org/github.com/nlopes/slack) [![Build Status](https://travis-ci.org/nlopes/slack.svg)](https://travis-ci.org/nlopes/slack)
 ===============
 
 This library supports most if not all of the `api.slack.com` REST
@@ -18,44 +18,48 @@ Note: If you just updated from master and it broke your implementation, please c
 
 ### Getting all groups
 
-    import (
-		"fmt"
+```golang
+import (
+	"fmt"
 
-		"github.com/nlopes/slack"
-	)
+	"github.com/nlopes/slack"
+)
 
-    func main() {
-		api := slack.New("YOUR_TOKEN_HERE")
-		// If you set debugging, it will log all requests to the console
-		// Useful when encountering issues
-		// api.SetDebug(true)
-		groups, err := api.GetGroups(false)
-		if err != nil {
-			fmt.Printf("%s\n", err)
-			return
-		}
-		for _, group := range groups {
-			fmt.Printf("ID: %s, Name: %s\n", group.ID, group.Name)
-		}
+func main() {
+	api := slack.New("YOUR_TOKEN_HERE")
+	// If you set debugging, it will log all requests to the console
+	// Useful when encountering issues
+	// api.SetDebug(true)
+	groups, err := api.GetGroups(false)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
 	}
+	for _, group := range groups {
+		fmt.Printf("ID: %s, Name: %s\n", group.ID, group.Name)
+	}
+}
+```
 
 ### Getting User Information
 
-    import (
-	    "fmt"
+```golang
+import (
+    "fmt"
 
-	    "github.com/nlopes/slack"
-    )
+    "github.com/nlopes/slack"
+)
 
-    func main() {
-	    api := slack.New("YOUR_TOKEN_HERE")
-	    user, err := api.GetUserInfo("U023BECGF")
-	    if err != nil {
-		    fmt.Printf("%s\n", err)
-		    return
-	    }
-	    fmt.Printf("ID: %s, Fullname: %s, Email: %s\n", user.ID, user.Profile.RealName, user.Profile.Email)
+func main() {
+    api := slack.New("YOUR_TOKEN_HERE")
+    user, err := api.GetUserInfo("U023BECGF")
+    if err != nil {
+	    fmt.Printf("%s\n", err)
+	    return
     }
+    fmt.Printf("ID: %s, Fullname: %s, Email: %s\n", user.ID, user.Profile.RealName, user.Profile.Email)
+}
+```
 
 ## Minimal RTM usage:
 

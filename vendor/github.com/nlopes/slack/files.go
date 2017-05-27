@@ -10,6 +10,7 @@ import (
 const (
 	// Add here the defaults in the siten
 	DEFAULT_FILES_USER    = ""
+	DEFAULT_FILES_CHANNEL = ""
 	DEFAULT_FILES_TS_FROM = 0
 	DEFAULT_FILES_TS_TO   = -1
 	DEFAULT_FILES_TYPES   = "all"
@@ -23,12 +24,13 @@ type File struct {
 	Created   JSONTime `json:"created"`
 	Timestamp JSONTime `json:"timestamp"`
 
-	Name       string `json:"name"`
-	Title      string `json:"title"`
-	Mimetype   string `json:"mimetype"`
-	Filetype   string `json:"filetype"`
-	PrettyType string `json:"pretty_type"`
-	User       string `json:"user"`
+	Name              string `json:"name"`
+	Title             string `json:"title"`
+	Mimetype          string `json:"mimetype"`
+	ImageExifRotation int    `json:"image_exif_rotation"`
+	Filetype          string `json:"filetype"`
+	PrettyType        string `json:"pretty_type"`
+	User              string `json:"user"`
 
 	Mode         string `json:"mode"`
 	Editable     bool   `json:"editable"`
@@ -37,19 +39,36 @@ type File struct {
 
 	Size int `json:"size"`
 
-	URL                string `json:"url"`
-	URLDownload        string `json:"url_download"`
+	URL                string `json:"url"`          // Deprecated - never set
+	URLDownload        string `json:"url_download"` // Deprecated - never set
 	URLPrivate         string `json:"url_private"`
 	URLPrivateDownload string `json:"url_private_download"`
 
+	OriginalH   int    `json:"original_h"`
+	OriginalW   int    `json:"original_w"`
 	Thumb64     string `json:"thumb_64"`
 	Thumb80     string `json:"thumb_80"`
+	Thumb160    string `json:"thumb_160"`
 	Thumb360    string `json:"thumb_360"`
 	Thumb360Gif string `json:"thumb_360_gif"`
 	Thumb360W   int    `json:"thumb_360_w"`
 	Thumb360H   int    `json:"thumb_360_h"`
+	Thumb480    string `json:"thumb_480"`
+	Thumb480W   int    `json:"thumb_480_w"`
+	Thumb480H   int    `json:"thumb_480_h"`
+	Thumb720    string `json:"thumb_720"`
+	Thumb720W   int    `json:"thumb_720_w"`
+	Thumb720H   int    `json:"thumb_720_h"`
+	Thumb960    string `json:"thumb_960"`
+	Thumb960W   int    `json:"thumb_960_w"`
+	Thumb960H   int    `json:"thumb_960_h"`
+	Thumb1024   string `json:"thumb_1024"`
+	Thumb1024W  int    `json:"thumb_1024_w"`
+	Thumb1024H  int    `json:"thumb_1024_h"`
 
-	Permalink        string `json:"permalink"`
+	Permalink       string `json:"permalink"`
+	PermalinkPublic string `json:"permalink_public"`
+
 	EditLink         string `json:"edit_link"`
 	Preview          string `json:"preview"`
 	PreviewHighlight string `json:"preview_highlight"`
@@ -60,7 +79,9 @@ type File struct {
 	PublicURLShared bool     `json:"public_url_shared"`
 	Channels        []string `json:"channels"`
 	Groups          []string `json:"groups"`
+	IMs             []string `json:"ims"`
 	InitialComment  Comment  `json:"initial_comment"`
+	CommentsCount   int      `json:"comments_count"`
 	NumStars        int      `json:"num_stars"`
 	IsStarred       bool     `json:"is_starred"`
 }
@@ -79,6 +100,7 @@ type FileUploadParameters struct {
 // GetFilesParameters contains all the parameters necessary (including the optional ones) for a GetFiles() request
 type GetFilesParameters struct {
 	User          string
+	Channel       string
 	TimestampFrom JSONTime
 	TimestampTo   JSONTime
 	Types         string
@@ -99,6 +121,7 @@ type fileResponseFull struct {
 func NewGetFilesParameters() GetFilesParameters {
 	return GetFilesParameters{
 		User:          DEFAULT_FILES_USER,
+		Channel:       DEFAULT_FILES_CHANNEL,
 		TimestampFrom: DEFAULT_FILES_TS_FROM,
 		TimestampTo:   DEFAULT_FILES_TS_TO,
 		Types:         DEFAULT_FILES_TYPES,
@@ -142,12 +165,14 @@ func (api *Client) GetFiles(params GetFilesParameters) ([]File, *Paging, error) 
 	if params.User != DEFAULT_FILES_USER {
 		values.Add("user", params.User)
 	}
-	// XXX: this is broken. fix it with a proper unix timestamp
+	if params.Channel != DEFAULT_FILES_CHANNEL {
+		values.Add("channel", params.Channel)
+	}
 	if params.TimestampFrom != DEFAULT_FILES_TS_FROM {
-		values.Add("ts_from", params.TimestampFrom.String())
+		values.Add("ts_from", strconv.FormatInt(int64(params.TimestampFrom), 10))
 	}
 	if params.TimestampTo != DEFAULT_FILES_TS_TO {
-		values.Add("ts_to", params.TimestampTo.String())
+		values.Add("ts_to", strconv.FormatInt(int64(params.TimestampTo), 10))
 	}
 	if params.Types != DEFAULT_FILES_TYPES {
 		values.Add("types", params.Types)
@@ -196,7 +221,7 @@ func (api *Client) UploadFile(params FileUploadParameters) (file *File, err erro
 		values.Add("content", params.Content)
 		err = post("files.upload", values, response, api.debug)
 	} else if params.File != "" {
-		err = postWithMultipartResponse("files.upload", params.File, values, response, api.debug)
+		err = postWithMultipartResponse("files.upload", params.File, "file", values, response, api.debug)
 	}
 	if err != nil {
 		return nil, err
@@ -219,4 +244,30 @@ func (api *Client) DeleteFile(fileID string) error {
 	}
 	return nil
 
+}
+
+// RevokeFilePublicURL disables public/external sharing for a file
+func (api *Client) RevokeFilePublicURL(fileID string) (*File, error) {
+	values := url.Values{
+		"token": {api.config.token},
+		"file":  {fileID},
+	}
+	response, err := fileRequest("files.revokePublicURL", values, api.debug)
+	if err != nil {
+		return nil, err
+	}
+	return &response.File, nil
+}
+
+// ShareFilePublicURL enabled public/external sharing for a file
+func (api *Client) ShareFilePublicURL(fileID string) (*File, []Comment, *Paging, error) {
+	values := url.Values{
+		"token": {api.config.token},
+		"file":  {fileID},
+	}
+	response, err := fileRequest("files.sharedPublicURL", values, api.debug)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return &response.File, response.Comments, &response.Paging, nil
 }

@@ -490,6 +490,7 @@ func TestPathMatcher(t *testing.T) {
 	}
 }
 
+
 func TestSchemeMatcher(t *testing.T) {
 	for _, v := range schemeMatcherTests {
 		request, _ := http.NewRequest("GET", v.url, nil)
@@ -545,7 +546,7 @@ func TestMatchedRouteName(t *testing.T) {
 	router := NewRouter()
 	route := router.NewRoute().Path("/products/").Name(routeName)
 
-	url := "http://www.example.com/products/"
+	url := "http://www.domain.com/products/"
 	request, _ := http.NewRequest("GET", url, nil)
 	var rv RouteMatch
 	ok := router.Match(request, &rv)
@@ -563,10 +564,10 @@ func TestMatchedRouteName(t *testing.T) {
 func TestSubRouting(t *testing.T) {
 	// Example from docs.
 	router := NewRouter()
-	subrouter := router.NewRoute().Host("www.example.com").Subrouter()
+	subrouter := router.NewRoute().Host("www.domain.com").Subrouter()
 	route := subrouter.NewRoute().Path("/products/").Name("products")
 
-	url := "http://www.example.com/products/"
+	url := "http://www.domain.com/products/"
 	request, _ := http.NewRequest("GET", url, nil)
 	var rv RouteMatch
 	ok := router.Match(request, &rv)

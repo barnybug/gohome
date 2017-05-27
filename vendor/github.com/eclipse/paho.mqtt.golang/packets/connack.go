@@ -10,13 +10,13 @@ import (
 //Connack MQTT packet
 type ConnackPacket struct {
 	FixedHeader
-	SessionPresent bool
-	ReturnCode     byte
+	TopicNameCompression byte
+	ReturnCode           byte
 }
 
 func (ca *ConnackPacket) String() string {
 	str := fmt.Sprintf("%s\n", ca.FixedHeader)
-	str += fmt.Sprintf("sessionpresent: %t returncode: %d", ca.SessionPresent, ca.ReturnCode)
+	str += fmt.Sprintf("returncode: %d", ca.ReturnCode)
 	return str
 }
 
@@ -24,7 +24,7 @@ func (ca *ConnackPacket) Write(w io.Writer) error {
 	var body bytes.Buffer
 	var err error
 
-	body.WriteByte(boolToByte(ca.SessionPresent))
+	body.WriteByte(ca.TopicNameCompression)
 	body.WriteByte(ca.ReturnCode)
 	ca.FixedHeader.RemainingLength = 2
 	packet := ca.FixedHeader.pack()
@@ -36,11 +36,9 @@ func (ca *ConnackPacket) Write(w io.Writer) error {
 
 //Unpack decodes the details of a ControlPacket after the fixed
 //header has been read
-func (ca *ConnackPacket) Unpack(b io.Reader) error {
-	ca.SessionPresent = 1&decodeByte(b) > 0
+func (ca *ConnackPacket) Unpack(b io.Reader) {
+	ca.TopicNameCompression = decodeByte(b)
 	ca.ReturnCode = decodeByte(b)
-
-	return nil
 }
 
 //Details returns a Details struct containing the Qos and

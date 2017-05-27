@@ -22,7 +22,7 @@ type imResponseFull struct {
 
 // IM contains information related to the Direct Message channel
 type IM struct {
-	Conversation
+	conversation
 	IsIM          bool   `json:"is_im"`
 	User          string `json:"user"`
 	IsUserDeleted bool   `json:"is_user_deleted"`
@@ -101,6 +101,13 @@ func (api *Client) GetIMHistory(channel string, params HistoryParameters) (*Hist
 			values.Add("inclusive", "1")
 		} else {
 			values.Add("inclusive", "0")
+		}
+	}
+	if params.Unreads != DEFAULT_HISTORY_UNREADS {
+		if params.Unreads {
+			values.Add("unreads", "1")
+		} else {
+			values.Add("unreads", "0")
 		}
 	}
 	response, err := imRequest("im.history", values, api.debug)

@@ -1,0 +1,13 @@
+{
+    "memo": "6c0ee75ea79b2b12492fadcef45ac55a0895e65f9a255608b784e642263e32c8",
+    "projects": [
+        {
+            "name": "github.com/tarm/serial",
+            "branch": "master",
+            "revision": "37be519d49878d0098e34fb614136b81e6c87861",
+            "packages": [
+                "."
+            ]
+        }
+    ]
+}

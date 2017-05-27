@@ -110,7 +110,7 @@ func (c *UserConfig) GetAuthorizeURL(service *Service) (string, error) {
 	return service.AuthorizeURL + "?oauth_token=" + token, nil
 }
 
-// Parses an access token and verifier from a redirected authorize reqeust.
+// Parses an access token and verifier from a redirected authorize request.
 func (c *UserConfig) ParseAuthorize(request *http.Request, service *Service) (string, string, error) {
 	request.ParseForm()
 	urlParts := request.URL.Query()

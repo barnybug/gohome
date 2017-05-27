@@ -75,7 +75,7 @@ func (store *FileStore) Close() {
 	store.Lock()
 	defer store.Unlock()
 	store.opened = false
-	DEBUG.Println(STR, "store is closed")
+	WARN.Println(STR, "store is not open")
 }
 
 // Put will put a message into the store, associated with the provided
@@ -83,15 +83,10 @@ func (store *FileStore) Close() {
 func (store *FileStore) Put(key string, m packets.ControlPacket) {
 	store.Lock()
 	defer store.Unlock()
-	if !store.opened {
-		ERROR.Println(STR, "Trying to use file store, but not open")
-		return
-	}
+	chkcond(store.opened)
 	full := fullpath(store.directory, key)
 	write(store.directory, key, m)
-	if !exists(full) {
-		ERROR.Println(STR, "file not created:", full)
-	}
+	chkcond(exists(full))
 }
 
 // Get will retrieve a message from the store, the one associated with
@@ -99,10 +94,7 @@ func (store *FileStore) Put(key string, m packets.ControlPacket) {
 func (store *FileStore) Get(key string) packets.ControlPacket {
 	store.RLock()
 	defer store.RUnlock()
-	if !store.opened {
-		ERROR.Println(STR, "Trying to use file store, but not open")
-		return nil
-	}
+	chkcond(store.opened)
 	filepath := fullpath(store.directory, key)
 	if !exists(filepath) {
 		return nil
@@ -150,10 +142,7 @@ func (store *FileStore) Reset() {
 
 // lockless
 func (store *FileStore) all() []string {
-	if !store.opened {
-		ERROR.Println(STR, "Trying to use file store, but not open")
-		return nil
-	}
+	chkcond(store.opened)
 	keys := []string{}
 	files, rderr := ioutil.ReadDir(store.directory)
 	chkerr(rderr)
@@ -172,10 +161,7 @@ func (store *FileStore) all() []string {
 
 // lockless
 func (store *FileStore) del(key string) {
-	if !store.opened {
-		ERROR.Println(STR, "Trying to use file store, but not open")
-		return
-	}
+	chkcond(store.opened)
 	DEBUG.Println(STR, "store del filepath:", store.directory)
 	DEBUG.Println(STR, "store delete key:", key)
 	filepath := fullpath(store.directory, key)
@@ -187,9 +173,7 @@ func (store *FileStore) del(key string) {
 	rerr := os.Remove(filepath)
 	chkerr(rerr)
 	DEBUG.Println(STR, "del msg:", key)
-	if exists(filepath) {
-		ERROR.Println(STR, "file not deleted:", filepath)
-	}
+	chkcond(!exists(filepath))
 }
 
 func fullpath(store string, key string) string {

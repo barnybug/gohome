@@ -29,7 +29,7 @@ func (rtm *RTM) ManageConnection() {
 		connectionCount++
 		// start trying to connect
 		// the returned err is already passed onto the IncomingEvents channel
-		info, conn, err := rtm.connect(connectionCount)
+		info, conn, err := rtm.connect(connectionCount, rtm.useRTMStart)
 		// if err != nil then the connection is sucessful - otherwise it is
 		// fatal
 		if err != nil {
@@ -64,7 +64,9 @@ func (rtm *RTM) ManageConnection() {
 // connect attempts to connect to the slack websocket API. It handles any
 // errors that occur while connecting and will return once a connection
 // has been successfully opened.
-func (rtm *RTM) connect(connectionCount int) (*Info, *websocket.Conn, error) {
+// If useRTMStart is false then it uses rtm.connect to create the connection,
+// otherwise it uses rtm.start.
+func (rtm *RTM) connect(connectionCount int, useRTMStart bool) (*Info, *websocket.Conn, error) {
 	// used to provide exponential backoff wait time with jitter before trying
 	// to connect to slack again
 	boff := &backoff{
@@ -81,15 +83,16 @@ func (rtm *RTM) connect(connectionCount int) (*Info, *websocket.Conn, error) {
 			ConnectionCount: connectionCount,
 		}}
 		// attempt to start the connection
-		info, conn, err := rtm.startRTMAndDial()
+		info, conn, err := rtm.startRTMAndDial(useRTMStart)
 		if err == nil {
 			return info, conn, nil
 		}
 		// check for fatal errors - currently only invalid_auth
-		if sErr, ok := err.(*WebError); ok && sErr.Error() == "invalid_auth" {
+		if sErr, ok := err.(*WebError); ok && (sErr.Error() == "invalid_auth" || sErr.Error() == "account_inactive") {
 			rtm.IncomingEvents <- RTMEvent{"invalid_auth", &InvalidAuthEvent{}}
 			return nil, nil, sErr
 		}
+
 		// any other errors are treated as recoverable and we try again after
 		// sending the event along the IncomingEvents channel
 		rtm.IncomingEvents <- RTMEvent{"connection_error", &ConnectionErrorEvent{
@@ -104,10 +107,19 @@ func (rtm *RTM) connect(connectionCount int) (*Info, *websocket.Conn, error) {
 	}
 }
 
-// startRTMAndDial attemps to connect to the slack websocket. It returns the
-// full information returned by the "rtm.start" method on the slack API.
-func (rtm *RTM) startRTMAndDial() (*Info, *websocket.Conn, error) {
-	info, url, err := rtm.StartRTM()
+// startRTMAndDial attempts to connect to the slack websocket. If useRTMStart is true,
+// then it returns the  full information returned by the "rtm.start" method on the
+// slack API. Else it uses the "rtm.connect" method to connect
+func (rtm *RTM) startRTMAndDial(useRTMStart bool) (*Info, *websocket.Conn, error) {
+	var info *Info
+	var url string
+	var err error
+
+	if useRTMStart {
+		info, url, err = rtm.StartRTM()
+	} else {
+		info, url, err = rtm.ConnectRTM()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -191,6 +203,18 @@ func (rtm *RTM) handleIncomingEvents(keepRunning <-chan bool) {
 	}
 }
 
+func (rtm *RTM) sendWithDeadline(msg interface{}) error {
+	// set a write deadline on the connection
+	if err := rtm.conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		return err
+	}
+	if err := websocket.JSON.Send(rtm.conn, msg); err != nil {
+		return err
+	}
+	// remove write deadline
+	return rtm.conn.SetWriteDeadline(time.Time{})
+}
+
 // sendOutgoingMessage sends the given OutgoingMessage to the slack websocket.
 //
 // It does not currently detect if a outgoing message fails due to a disconnect
@@ -204,8 +228,8 @@ func (rtm *RTM) sendOutgoingMessage(msg OutgoingMessage) {
 		}}
 		return
 	}
-	err := websocket.JSON.Send(rtm.conn, msg)
-	if err != nil {
+
+	if err := rtm.sendWithDeadline(msg); err != nil {
 		rtm.IncomingEvents <- RTMEvent{"outgoing_error", &OutgoingErrorEvent{
 			Message:  msg,
 			ErrorObj: err,
@@ -227,8 +251,8 @@ func (rtm *RTM) ping() error {
 	rtm.pings[id] = time.Now()
 
 	msg := &Ping{ID: id, Type: "ping"}
-	err := websocket.JSON.Send(rtm.conn, msg)
-	if err != nil {
+
+	if err := rtm.sendWithDeadline(msg); err != nil {
 		rtm.Debugf("RTM Error sending 'PING %d': %s", id, err.Error())
 		return err
 	}
@@ -361,6 +385,9 @@ var eventMapping = map[string]interface{}{
 	"channel_unarchive":       ChannelUnarchiveEvent{},
 	"channel_history_changed": ChannelHistoryChangedEvent{},
 
+	"dnd_updated":      DNDUpdatedEvent{},
+	"dnd_updated_user": DNDUpdatedEvent{},
+
 	"im_created":         IMCreatedEvent{},
 	"im_open":            IMOpenEvent{},
 	"im_close":           IMCloseEvent{},
@@ -387,6 +414,9 @@ var eventMapping = map[string]interface{}{
 	"file_comment_added":   FileCommentAddedEvent{},
 	"file_comment_edited":  FileCommentEditedEvent{},
 	"file_comment_deleted": FileCommentDeletedEvent{},
+
+	"pin_added":   PinAddedEvent{},
+	"pin_removed": PinRemovedEvent{},
 
 	"star_added":   StarAddedEvent{},
 	"star_removed": StarRemovedEvent{},
@@ -416,4 +446,6 @@ var eventMapping = map[string]interface{}{
 	"bot_changed": BotChangedEvent{},
 
 	"accounts_changed": AccountsChangedEvent{},
+
+	"reconnect_url": ReconnectUrlEvent{},
 }

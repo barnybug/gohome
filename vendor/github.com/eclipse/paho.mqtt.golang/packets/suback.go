@@ -11,7 +11,7 @@ import (
 type SubackPacket struct {
 	FixedHeader
 	MessageID   uint16
-	ReturnCodes []byte
+	GrantedQoss []byte
 }
 
 func (sa *SubackPacket) String() string {
@@ -24,7 +24,7 @@ func (sa *SubackPacket) Write(w io.Writer) error {
 	var body bytes.Buffer
 	var err error
 	body.Write(encodeUint16(sa.MessageID))
-	body.Write(sa.ReturnCodes)
+	body.Write(sa.GrantedQoss)
 	sa.FixedHeader.RemainingLength = body.Len()
 	packet := sa.FixedHeader.pack()
 	packet.Write(body.Bytes())
@@ -35,13 +35,11 @@ func (sa *SubackPacket) Write(w io.Writer) error {
 
 //Unpack decodes the details of a ControlPacket after the fixed
 //header has been read
-func (sa *SubackPacket) Unpack(b io.Reader) error {
+func (sa *SubackPacket) Unpack(b io.Reader) {
 	var qosBuffer bytes.Buffer
 	sa.MessageID = decodeUint16(b)
 	qosBuffer.ReadFrom(b)
-	sa.ReturnCodes = qosBuffer.Bytes()
-
-	return nil
+	sa.GrantedQoss = qosBuffer.Bytes()
 }
 
 //Details returns a Details struct containing the Qos and

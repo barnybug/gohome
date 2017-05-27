@@ -4,8 +4,10 @@ import (
 	"errors"
 	"log"
 	"net/url"
+	"os"
 )
 
+var logger *log.Logger // A logger that can be set by consumers
 /*
   Added as a var so that we can change this for testing purposes
 */
@@ -38,6 +40,12 @@ type Client struct {
 	debug bool
 }
 
+// SetLogger let's library users supply a logger, so that api debugging
+// can be logged along with the application's debugging info.
+func SetLogger(l *log.Logger) {
+	logger = l
+}
+
 func New(token string) *Client {
 	s := &Client{}
 	s.config.token = token
@@ -62,16 +70,19 @@ func (api *Client) AuthTest() (response *AuthTestResponse, error error) {
 // If you ever use this in production, don't call SetDebug(true)
 func (api *Client) SetDebug(debug bool) {
 	api.debug = debug
+	if debug && logger == nil {
+		logger = log.New(os.Stdout, "nlopes/slack", log.LstdFlags | log.Lshortfile)
+	}
 }
 
 func (api *Client) Debugf(format string, v ...interface{}) {
 	if api.debug {
-		log.Printf(format, v...)
+		logger.Printf(format, v...)
 	}
 }
 
 func (api *Client) Debugln(v ...interface{}) {
 	if api.debug {
-		log.Println(v...)
+		logger.Println(v...)
 	}
 }

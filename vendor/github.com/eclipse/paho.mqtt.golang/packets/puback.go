@@ -30,10 +30,8 @@ func (pa *PubackPacket) Write(w io.Writer) error {
 
 //Unpack decodes the details of a ControlPacket after the fixed
 //header has been read
-func (pa *PubackPacket) Unpack(b io.Reader) error {
+func (pa *PubackPacket) Unpack(b io.Reader) {
 	pa.MessageID = decodeUint16(b)
-
-	return nil
 }
 
 //Details returns a Details struct containing the Qos and

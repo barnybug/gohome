@@ -8,7 +8,8 @@ import (
 
 // Group contains all the information for a group
 type Group struct {
-	GroupConversation
+	groupConversation
+	IsGroup bool `json:"is_group"`
 }
 
 type groupResponseFull struct {
@@ -130,6 +131,13 @@ func (api *Client) GetGroupHistory(group string, params HistoryParameters) (*His
 			values.Add("inclusive", "0")
 		}
 	}
+	if params.Unreads != DEFAULT_HISTORY_UNREADS {
+		if params.Unreads {
+			values.Add("unreads", "1")
+		} else {
+			values.Add("unreads", "0")
+		}
+	}
 	response, err := groupRequest("groups.history", values, api.debug)
 	if err != nil {
 		return nil, err
@@ -227,8 +235,8 @@ func (api *Client) SetGroupReadMark(group, ts string) error {
 // OpenGroup opens a private group
 func (api *Client) OpenGroup(group string) (bool, bool, error) {
 	values := url.Values{
-		"token": {api.config.token},
-		"user":  {group},
+		"token":   {api.config.token},
+		"channel": {group},
 	}
 	response, err := groupRequest("groups.open", values, api.debug)
 	if err != nil {

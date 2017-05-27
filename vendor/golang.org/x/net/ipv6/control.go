@@ -1,24 +1,17 @@
-// Copyright 2013 The Go Authors.  All rights reserved.
+// Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package ipv6
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"sync"
 )
 
-var (
-	errMissingAddress  = errors.New("missing address")
-	errInvalidConnType = errors.New("invalid conn type")
-	errNoSuchInterface = errors.New("no such interface")
-)
-
 // Note that RFC 3542 obsoletes RFC 2292 but OS X Snow Leopard and the
-// former still support RFC 2292 only.  Please be aware that almost
+// former still support RFC 2292 only. Please be aware that almost
 // all protocol implementations prohibit using a combination of RFC
 // 2292 and RFC 3542 for some practical reasons.
 
@@ -70,7 +63,7 @@ func (cm *ControlMessage) String() string {
 	if cm == nil {
 		return "<nil>"
 	}
-	return fmt.Sprintf("tclass: %#x, hoplim: %v, src: %v, dst: %v, ifindex: %v, nexthop: %v, mtu: %v", cm.TrafficClass, cm.HopLimit, cm.Src, cm.Dst, cm.IfIndex, cm.NextHop, cm.MTU)
+	return fmt.Sprintf("tclass=%#x hoplim=%d src=%v dst=%v ifindex=%d nexthop=%v mtu=%d", cm.TrafficClass, cm.HopLimit, cm.Src, cm.Dst, cm.IfIndex, cm.NextHop, cm.MTU)
 }
 
 // Ancillary data socket options

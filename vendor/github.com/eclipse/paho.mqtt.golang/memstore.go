@@ -53,10 +53,7 @@ func (store *MemoryStore) Open() {
 func (store *MemoryStore) Put(key string, message packets.ControlPacket) {
 	store.Lock()
 	defer store.Unlock()
-	if !store.opened {
-		ERROR.Println(STR, "Trying to use memory store, but not open")
-		return
-	}
+	chkcond(store.opened)
 	store.messages[key] = message
 }
 
@@ -65,10 +62,7 @@ func (store *MemoryStore) Put(key string, message packets.ControlPacket) {
 func (store *MemoryStore) Get(key string) packets.ControlPacket {
 	store.RLock()
 	defer store.RUnlock()
-	if !store.opened {
-		ERROR.Println(STR, "Trying to use memory store, but not open")
-		return nil
-	}
+	chkcond(store.opened)
 	mid := mIDFromKey(key)
 	m := store.messages[key]
 	if m == nil {
@@ -84,10 +78,7 @@ func (store *MemoryStore) Get(key string) packets.ControlPacket {
 func (store *MemoryStore) All() []string {
 	store.RLock()
 	defer store.RUnlock()
-	if !store.opened {
-		ERROR.Println(STR, "Trying to use memory store, but not open")
-		return nil
-	}
+	chkcond(store.opened)
 	keys := []string{}
 	for k := range store.messages {
 		keys = append(keys, k)
@@ -100,10 +91,6 @@ func (store *MemoryStore) All() []string {
 func (store *MemoryStore) Del(key string) {
 	store.Lock()
 	defer store.Unlock()
-	if !store.opened {
-		ERROR.Println(STR, "Trying to use memory store, but not open")
-		return
-	}
 	mid := mIDFromKey(key)
 	m := store.messages[key]
 	if m == nil {
@@ -118,10 +105,7 @@ func (store *MemoryStore) Del(key string) {
 func (store *MemoryStore) Close() {
 	store.Lock()
 	defer store.Unlock()
-	if !store.opened {
-		ERROR.Println(STR, "Trying to close memory store, but not open")
-		return
-	}
+	chkcond(store.opened)
 	store.opened = false
 	DEBUG.Println(STR, "memorystore closed")
 }
@@ -130,9 +114,7 @@ func (store *MemoryStore) Close() {
 func (store *MemoryStore) Reset() {
 	store.Lock()
 	defer store.Unlock()
-	if !store.opened {
-		ERROR.Println(STR, "Trying to reset memory store, but not open")
-	}
+	chkcond(store.opened)
 	store.messages = make(map[string]packets.ControlPacket)
 	WARN.Println(STR, "memorystore wiped")
 }

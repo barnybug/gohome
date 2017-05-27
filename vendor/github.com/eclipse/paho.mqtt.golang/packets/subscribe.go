@@ -40,7 +40,7 @@ func (s *SubscribePacket) Write(w io.Writer) error {
 
 //Unpack decodes the details of a ControlPacket after the fixed
 //header has been read
-func (s *SubscribePacket) Unpack(b io.Reader) error {
+func (s *SubscribePacket) Unpack(b io.Reader) {
 	s.MessageID = decodeUint16(b)
 	payloadLength := s.FixedHeader.RemainingLength - 2
 	for payloadLength > 0 {
@@ -50,8 +50,6 @@ func (s *SubscribePacket) Unpack(b io.Reader) error {
 		s.Qoss = append(s.Qoss, qos)
 		payloadLength -= 2 + len(topic) + 1 //2 bytes of string length, plus string, plus 1 byte for Qos
 	}
-
-	return nil
 }
 
 //Details returns a Details struct containing the Qos and

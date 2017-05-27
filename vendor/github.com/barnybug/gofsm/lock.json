@@ -1,0 +1,21 @@
+{
+    "memo": "a2c54551cd42aa82a1afeeb00cf1ba76d98105b54354cc6cd1168ab70bec2434",
+    "projects": [
+        {
+            "name": "github.com/motain/gocheck",
+            "branch": "master",
+            "revision": "9beb271d26e640863a5bf4a3c5ea40ccdd466b84",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "gopkg.in/yaml.v1",
+            "branch": "v1",
+            "revision": "9f9df34309c04878acc86042b16630b0f696e1de",
+            "packages": [
+                "."
+            ]
+        }
+    ]
+}

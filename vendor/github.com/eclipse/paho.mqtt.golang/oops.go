@@ -19,3 +19,9 @@ func chkerr(e error) {
 		panic(e)
 	}
 }
+
+func chkcond(b bool) {
+	if !b {
+		panic("oops")
+	}
+}

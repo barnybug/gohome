@@ -59,6 +59,14 @@ func (d *Device) Receive() *Message {
 	return msg
 }
 
+func (d *Device) GetRSSI() float32 {
+	return d.hrf.GetRSSI()
+}
+
+func (d *Device) GetTemperature() int {
+	return d.hrf.GetTemperature()
+}
+
 func (d *Device) Respond(sensorId uint32, record Record) {
 	message := &Message{
 		ManuId:   energenieManuId,

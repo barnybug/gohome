@@ -143,14 +143,14 @@ func TestMultipleQueryValues(t *testing.T) {
 		body      io.Reader
 		request   *http.Request
 	)
-	api_url = "https://stream.twitter.com/1.1/statuses/filter.json?track=example&count=100"
+	api_url = "https://stream.twitter.com/1.1/statuses/filter.json?track=example&count=200&count=100"
 	request, _ = http.NewRequest("POST", api_url, body)
 	service.Sign(request, user)
 
-	expected = "track=example&count=100"
+	expected = "count=100&count=200&track=example"
 	raw_query = request.URL.RawQuery
 	if raw_query != expected {
-		t.Errorf("Query parameter incorrect, got %v, expected %v", raw_query, expected)
+		t.Errorf("Query parameter incorrect, got %#v, expected %#v", raw_query, expected)
 	}
 }
 
@@ -189,16 +189,22 @@ func TestTimestampOverride(t *testing.T) {
 }
 
 var ESCAPE_TESTS = map[string]string{
-	"Ā": "%C4%80",
-	"㤹": "%E3%A4%B9",
-	"\n": "%0A",
-	"\r": "%0D",
+	"aaaa":   "aaaa",
+	"Ā":      "%C4%80",
+	"Ā㤹":     "%C4%80%E3%A4%B9",
+	"bbĀ㤹":   "bb%C4%80%E3%A4%B9",
+	"Ā㤹bb":   "%C4%80%E3%A4%B9bb",
+	"bbĀ㤹bb": "bb%C4%80%E3%A4%B9bb",
+	"㤹":      "%E3%A4%B9",
+	"\n":     "%0A",
+	"\r":     "%0D",
 }
 
 func TestEscaping(t *testing.T) {
 	for str, expected := range ESCAPE_TESTS {
-		if Rfc3986Escape(str) != expected {
-			t.Errorf("Escaped %v was %v, expected %v", str, Rfc3986Escape(str), expected)
+		actual := Rfc3986Escape(str)
+		if actual != expected {
+			t.Errorf("Escaped %v was %v, expected %v", str, actual, expected)
 		}
 	}
 }
