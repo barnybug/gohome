@@ -158,7 +158,6 @@ func (self *Service) Run() error {
 	setupCameras()
 
 	for ev := range services.Subscriber.FilteredChannel("command") {
-		fmt.Println("dev", ev.Device())
 		if _, ok := cameras[ev.Device()]; ok {
 			eventCommand(ev)
 		}
