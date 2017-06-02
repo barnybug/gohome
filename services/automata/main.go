@@ -199,16 +199,11 @@ func keywordArgs(args []string) map[string]string {
 }
 
 var switchable = map[string]bool{
-	"amp":      true,
-	"bell":     true,
-	"dimlight": true,
-	"heater":   true,
-	"light":    true,
-	"lock":     true,
-	"person":   true,
-	"pump":     true,
-	"ringer":   true,
-	"switch":   true,
+	"bell":   true,
+	"dimmer": true,
+	"lock":   true,
+	"person": true,
+	"switch": true,
 }
 
 func matchDevices(name string) []string {
@@ -265,7 +260,7 @@ func switchCommand(name string, command string, repeat int, level int) {
 	dev := services.Config.Devices[name]
 	ev := pubsub.NewCommand(dev.Id, command)
 	ev.SetRepeat(repeat)
-	if dev.Type == "dimlight" && command != "off" {
+	if dev.Type == "dimmer" && command != "off" {
 		ev.SetField("level", level)
 	}
 	services.Publisher.Emit(ev)
