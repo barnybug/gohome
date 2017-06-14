@@ -92,13 +92,15 @@ func processEvent(ev *pubsub.Event, w *Wunderground) {
 			w.Update(Metrics{"humidity": humd})
 		}
 	case services.Config.Weather.Sensors.Rain:
-		hour_rain := ev.Fields["hour_total"].(float64)
-		day_rain := ev.Fields["day_total"].(float64)
-		w.Update(Metrics{
-			// Inches
-			"rainin":      hour_rain / 25.4,
-			"dailyrainin": day_rain / 25.4,
-		})
+		if hour_rain, ok := ev.Fields["hour_total"].(float64); ok {
+			if day_rain, ok := ev.Fields["day_total"].(float64); ok {
+				w.Update(Metrics{
+					// Inches
+					"rainin":      hour_rain / 25.4,
+					"dailyrainin": day_rain / 25.4,
+				})
+			}
+		}
 	case services.Config.Weather.Sensors.Wind:
 		speed := ev.Fields["speed"].(float64)
 		dir := ev.Fields["dir"].(float64)
