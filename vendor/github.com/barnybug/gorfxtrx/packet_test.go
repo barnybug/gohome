@@ -170,7 +170,7 @@ func ExampleOwl180() {
 	fmt.Printf("%v\n", pkt)
 	fmt.Println(err)
 	//Output:
-	// Power id: 8782 power: 257W total: 151.73Wh signal: 6 battery: 9
+	// Power id: 8782 power: 257W total: 151.73Wh signal: 6 battery: 90
 	// <nil>
 }
 

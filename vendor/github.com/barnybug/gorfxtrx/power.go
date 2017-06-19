@@ -13,7 +13,7 @@ type Power struct {
 	Power    uint32
 	Total    float64
 	Signal   uint8
-	Battery  uint8
+	Battery  byte
 }
 
 var powerFactor = 223.666
@@ -33,7 +33,7 @@ func (self *Power) Receive(data []byte) {
 	p := append([]byte{0, 0}, data[11:17]...)
 	self.Total = float64(binary.BigEndian.Uint64(p)) / powerFactor
 	self.Signal = data[17] >> 4
-	self.Battery = data[17] & 0xF
+	self.Battery = (data[17] & 0xF) * 10
 }
 
 func (self *Power) String() string {
