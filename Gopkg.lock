@@ -141,7 +141,7 @@
   branch = "master"
   name = "github.com/nlopes/slack"
   packages = ["."]
-  revision = "72d15a0fc0b773a59c00f78b9e7d97eeb8c4281f"
+  revision = "f243c7602fdf906248fc1f165284daa4e4d2d09e"
 
 [[projects]]
   name = "github.com/stianeikeland/go-rpio"
