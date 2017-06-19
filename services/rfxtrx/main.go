@@ -120,8 +120,10 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		fields := map[string]interface{}{
 			"source":  source,
 			"chime":   p.Chime,
-			"battery": p.Battery,
 			"command": "on",
+		}
+		if p.Battery != 0 {
+			fields["battery"] = p.Battery
 		}
 		ev = pubsub.NewEvent("chime", fields)
 
