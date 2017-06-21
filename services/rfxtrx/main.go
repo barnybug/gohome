@@ -48,6 +48,18 @@ func (self *Service) readEvents(dev *gorfxtrx.Device) {
 	}
 }
 
+var tempHumidTypes = map[byte]string{
+	0x01: "th1",
+	0x02: "th2",
+	0x03: "th3",
+	0x04: "th4",
+	0x05: "wtgr800",
+	0x06: "th6",
+	0x07: "tfa",
+	0x08: "upm",
+	0x09: "viking",
+}
+
 func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 	var ev *pubsub.Event
 	switch p := packet.(type) {
@@ -82,7 +94,7 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		ev = pubsub.NewEvent("temp", fields)
 
 	case *gorfxtrx.TempHumid:
-		major := strings.ToLower(strings.Split(p.Type(), ",")[0])
+		major := tempHumidTypes[p.TypeId]
 		source := fmt.Sprintf("%s.%s", major, p.Id()[0:2])
 		fields := map[string]interface{}{
 			"source":   source,

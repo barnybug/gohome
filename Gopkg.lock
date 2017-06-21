@@ -29,7 +29,7 @@
   branch = "master"
   name = "github.com/barnybug/gorfxtrx"
   packages = ["."]
-  revision = "f5340220b03e9fbb7adc5064d86de9cb72c6ceed"
+  revision = "7fd52fdc43a0498a7735c44b46ac67fbafb02041"
 
 [[projects]]
   branch = "master"

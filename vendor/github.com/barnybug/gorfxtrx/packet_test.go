@@ -135,7 +135,7 @@ func ExampleTempHumid() {
 	fmt.Printf("%+v\n", temp.Id())
 	fmt.Printf("%+v\n", temp.Type())
 	//Output:
-	// {typeId:1 SequenceNumber:42 id:38403 Temp:-32.1 Humidity:96 HumidityStatus:3 Battery:90 Rssi:7}
+	// {TypeId:1 SequenceNumber:42 id:38403 Temp:-32.1 Humidity:96 HumidityStatus:3 Battery:90 Rssi:7}
 	// 96:03
 	// THGN122/123, THGN132, THGR122/228/238/268
 }
