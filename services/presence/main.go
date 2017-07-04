@@ -22,6 +22,9 @@ import (
 
 const interval = 30 * time.Second
 
+// Alert to people leaving
+var alert = false
+
 // Service presence
 type Service struct {
 }
@@ -344,7 +347,7 @@ func (w *Watchdog) watcher() {
 				active = true
 			} else {
 				// passive and active checkers exhausted
-				if home {
+				if home && alert {
 					log.Printf("%s away", w.device)
 					home = false
 					emit(w.device, home)
@@ -379,7 +382,7 @@ func (self *Service) shutdown(watchdogs []*Watchdog) {
 func (self *Service) Run() error {
 	people := map[string]bool{}
 	watchdogs := []*Watchdog{}
-	for device, checks := range services.Config.Presence {
+	for device, checks := range services.Config.Presence.People {
 		people[device] = true
 		var checkers []Checker
 		for _, conf := range checks {
@@ -410,7 +413,9 @@ func (self *Service) Run() error {
 	sigC := make(chan os.Signal, 1)
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
 
-	commands := services.Subscriber.FilteredChannel("command")
+	timer := time.NewTimer(time.Hour)
+	timer.Stop()
+	commands := services.Subscriber.Channel()
 L:
 	for {
 		select {
@@ -418,9 +423,20 @@ L:
 			break L
 		case ev := <-commands:
 			// manual command login/out command
-			if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Type == "person" {
-				emit(ev.Device(), ev.Command() == "on")
+			if ev.Topic == "command" {
+				if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Type == "person" {
+					emit(ev.Device(), ev.Command() == "on")
+				}
+			} else if ev.Device() == services.Config.Presence.Trigger {
+				if !alert {
+					log.Println("Alert: true")
+					alert = true
+				}
+				timer.Reset(time.Minute * 10)
 			}
+		case <-timer.C:
+			alert = false
+			log.Println("Alert: false")
 		}
 	}
 

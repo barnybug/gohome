@@ -142,7 +142,10 @@ type PushbulletConf struct {
 	Token string
 }
 
-type PresenceConf map[string][]string
+type PresenceConf struct {
+	Trigger string
+	People  map[string][]string
+}
 
 type ProcessConf struct {
 	Cmd  string
