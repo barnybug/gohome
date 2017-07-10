@@ -20,7 +20,7 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
-const interval = 30 * time.Second
+const interval = 45 * time.Second
 
 // Alert to people leaving
 var alert = false
