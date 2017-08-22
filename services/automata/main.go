@@ -102,10 +102,8 @@ func (self EventWrapper) String() string {
 }
 
 func (self *Service) ConfigUpdated(path string) {
-	if path == "config/automata" {
-		// trigger reload in main loop
-		self.configUpdated <- true
-	}
+	// trigger reload in main loop
+	self.configUpdated <- true
 }
 
 func (self *Service) RestoreFile(automata *gofsm.Automata) {
