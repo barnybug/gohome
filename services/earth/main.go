@@ -17,6 +17,7 @@ import (
 
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
+	"github.com/barnybug/gohome/util"
 )
 
 func nextEvent(loc Location) (at time.Time, name string) {
@@ -78,10 +79,19 @@ func (self *Service) Run() error {
 		Latitude:  services.Config.Earth.Latitude,
 		Longitude: services.Config.Earth.Longitude,
 	}
-	for tev := range eventChannel(loc) {
-		ev := pubsub.NewEvent("earth",
-			pubsub.Fields{"device": "earth", "command": tev.Event, "source": "home"})
-		services.Publisher.Emit(ev)
+	ticker := util.NewScheduler(time.Duration(0), time.Minute)
+	earth := eventChannel(loc)
+	for {
+		select {
+		case tev := <-earth:
+			ev := pubsub.NewEvent("earth",
+				pubsub.Fields{"device": "earth", "command": tev.Event, "source": "home"})
+			services.Publisher.Emit(ev)
+		case tick := <-ticker.C:
+			ev := pubsub.NewEvent("time",
+				pubsub.Fields{"device": "time", "hhmm": tick.Format("1504")})
+			services.Publisher.Emit(ev)
+		}
 	}
 	return nil
 }
