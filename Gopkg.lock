@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/barnybug/gofsm"
   packages = ["."]
-  revision = "fc8f17ca6e702189d29faa6f5fd7a262623fbff9"
+  revision = "fc5a2da99ee6b348d275618f3e4514e2b064fa03"
 
 [[projects]]
   branch = "master"

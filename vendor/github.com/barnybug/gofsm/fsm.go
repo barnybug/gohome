@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,15 +33,8 @@ type State struct {
 	Leaving  Actions
 }
 
-// Condition is an expression of the form:
-// condition1 or condition2 or ...
-// Each condition can use wildcards, eg 'pir.*'
-type Condition struct {
-	When string
-}
-
 type Step struct {
-	When    Condition
+	When    string
 	Actions Actions
 	Next    string
 }
@@ -84,24 +76,15 @@ type Change struct {
 	Trigger   interface{}
 }
 
+type Event interface {
+	Match(s string) bool
+}
+
 func (self Action) String() string {
 	return self.Name
 }
 
-func (self Condition) Match(s string) bool {
-	conds := strings.Split(self.When, " or ")
-	matched := false
-	for _, cond := range conds {
-		// borrow filepath globbing
-		matched, _ = filepath.Match(cond, s)
-		if matched {
-			break
-		}
-	}
-	return matched
-}
-
-func (self *Automata) Process(event interface{}) {
+func (self *Automata) Process(event Event) {
 	for _, aut := range self.Automaton {
 		aut.Process(event)
 	}
@@ -120,10 +103,9 @@ func (self *Automata) String() string {
 	return out
 }
 
-func (self *Automaton) Process(event interface{}) {
-	str := fmt.Sprint(event)
+func (self *Automaton) Process(event Event) {
 	for _, t := range self.State.Steps {
-		if t.When.Match(str) {
+		if event.Match(t.When) {
 			now := time.Now()
 			var change Change
 			// is a state change happening
@@ -239,7 +221,7 @@ func (self *Automaton) load() error {
 			}
 
 			for _, v := range trans {
-				t := Step{Condition{v.When}, v.Actions, to}
+				t := Step{v.When, v.Actions, to}
 				sfrom.Steps = append(sfrom.Steps, t)
 			}
 		}

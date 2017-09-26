@@ -38,6 +38,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -91,12 +92,103 @@ type EventWrapper struct {
 	event *pubsub.Event
 }
 
+type Expression interface {
+	Match(event *pubsub.Event) bool
+}
+
+type Or struct {
+	terms []Expression
+}
+
+func (self *Or) Match(event *pubsub.Event) bool {
+	for _, term := range self.terms {
+		if term.Match(event) {
+			return true
+		}
+	}
+	return false
+}
+
+type And struct {
+	terms []Expression
+}
+
+func (self *And) Match(event *pubsub.Event) bool {
+	for _, term := range self.terms {
+		if !term.Match(event) {
+			return false
+		}
+	}
+	return true
+}
+
+type Equals struct {
+	field string
+	value string
+}
+
+func (self *Equals) Match(event *pubsub.Event) bool {
+	matched, _ := filepath.Match(self.value, event.StringField(self.field))
+	return matched
+}
+
+func ParseEqual(s string) Expression {
+	if strings.Contains(s, "=") {
+		ps := strings.SplitN(s, "=", 2)
+		return &Equals{ps[0], ps[1]}
+	} else {
+		// default equals on device
+		return &Equals{"device", s}
+	}
+}
+
+func ParseAnd(s string) Expression {
+	ps := strings.Split(s, " ")
+	terms := []Expression{}
+	for _, cond := range ps {
+		terms = append(terms, ParseEqual(cond))
+	}
+	if len(terms) == 1 {
+		return terms[0]
+	}
+	return &And{terms}
+}
+
+func Parse(s string) Expression {
+	ps := strings.Split(s, " or ")
+	terms := []Expression{}
+	for _, cond := range ps {
+		terms = append(terms, ParseAnd(cond))
+	}
+	if len(terms) == 1 {
+		return terms[0]
+	}
+	return &Or{terms}
+}
+
+var parsingCache = map[string]Expression{}
+
+func ParseCached(s string) Expression {
+	if expr, ok := parsingCache[s]; ok {
+		return expr
+	}
+	expr := Parse(s)
+	parsingCache[s] = expr
+	return expr
+}
+
+func (self EventWrapper) Match(when string) bool {
+	expr := ParseCached(when)
+	return expr.Match(self.event)
+}
+
 func (self EventWrapper) String() string {
 	s := self.event.Device()
-	if self.event.Command() != "" {
-		s += fmt.Sprintf(" command=%s", self.event.Command())
-	} else if self.event.State() != "" {
-		s += fmt.Sprintf(" state=%s", self.event.State())
+	for k, v := range self.event.Fields {
+		if k == "device" {
+			continue
+		}
+		s += fmt.Sprintf(" %s=%v", k, v)
 	}
 	return s
 }
@@ -401,9 +493,6 @@ func (self *Service) Run() error {
 			}
 			if ev.Retained {
 				// ignore retained events from reconnecting
-				continue
-			}
-			if ev.Command() == "" && ev.State() == "" {
 				continue
 			}
 

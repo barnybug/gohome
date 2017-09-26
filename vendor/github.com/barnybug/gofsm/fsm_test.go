@@ -13,6 +13,12 @@ func Test(t *testing.T) {
 
 type S struct{}
 
+type StringEvent string
+
+func (s StringEvent) Match(when string) bool {
+	return string(s) == when
+}
+
 var _ = Suite(&S{})
 
 func (s *S) TestEvents(c *C) {
@@ -23,7 +29,7 @@ func (s *S) TestEvents(c *C) {
 	c.Assert(dog.State.Name, Equals, "Hungry")
 
 	// event
-	dog.Process("food.meat")
+	dog.Process(StringEvent("food"))
 	c.Assert(dog.State.Name, Equals, "Eating")
 	c.Assert((<-aut.Actions).Name, Equals, "woof()")
 	c.Assert((<-aut.Actions).Name, Equals, "eat('apple')")
@@ -33,7 +39,7 @@ func (s *S) TestEvents(c *C) {
 	c.Assert(ch.Duration < time.Millisecond, Equals, true)
 
 	// event
-	dog.Process("food.meat")
+	dog.Process(StringEvent("food"))
 	c.Assert(dog.State.Name, Equals, "Full")
 	c.Assert((<-aut.Actions).Name, Equals, "groan()")
 	c.Assert((<-aut.Actions).Name, Equals, "digest()")
@@ -45,7 +51,7 @@ func (s *S) TestEvents(c *C) {
 	time.Sleep(time.Millisecond)
 
 	// event
-	dog.Process("run")
+	dog.Process(StringEvent("run"))
 	c.Assert(dog.State.Name, Equals, "Hungry")
 	ch = <-aut.Changes
 	c.Assert(ch.Old, Equals, "Full")
@@ -57,7 +63,7 @@ func (s *S) TestString(c *C) {
 	aut, _ := LoadFile("examples/simple.yaml")
 	c.Assert(aut.String(), Matches, "simple: Hungry for .*")
 
-	aut.Process("food.meat")
+	aut.Process(StringEvent("food"))
 	c.Assert(aut.String(), Matches, "simple: Eating for .*")
 }
 
@@ -69,7 +75,7 @@ func (s *S) TestIgnoredEvent(c *C) {
 	c.Assert(dog.State.Name, Equals, "Hungry")
 
 	// non-event
-	dog.Process("blob")
+	dog.Process(StringEvent("blob"))
 	c.Assert(dog.State.Name, Equals, "Hungry")
 }
 
@@ -81,12 +87,12 @@ func (s *S) TestWildcardEvent(c *C) {
 	c.Assert(dog.State.Name, Equals, "Hungry")
 
 	// event caught by wildcard
-	dog.Process("itch.scratch")
+	dog.Process(StringEvent("scratch"))
 	c.Assert(dog.State.Name, Equals, "Hungry")
 	c.Assert((<-aut.Actions).String(), Equals, "scratch()")
 
 	// event caught by wildcard
-	dog.Process("sniff.nose")
+	dog.Process(StringEvent("sniff"))
 	c.Assert(dog.State.Name, Equals, "Hungry")
 	c.Assert((<-aut.Actions).Name, Equals, "sniff()")
 }
@@ -99,7 +105,7 @@ func (s *S) TestEvent(c *C) {
 	c.Assert(dog.State.Name, Equals, "Hungry")
 
 	// non-event
-	dog.Process("blob")
+	dog.Process(StringEvent("blob"))
 	c.Assert(dog.State.Name, Equals, "Hungry")
 }
 
@@ -108,7 +114,7 @@ func (s *S) TestReenter(c *C) {
 	aut, _ := LoadFile("examples/simple.yaml")
 
 	// event
-	aut.Process("food.meat")
+	aut.Process(StringEvent("food"))
 	c.Assert((<-aut.Actions).Name, Equals, "woof()")
 	c.Assert((<-aut.Actions).Name, Equals, "eat('apple')")
 	ch := <-aut.Changes
@@ -116,20 +122,20 @@ func (s *S) TestReenter(c *C) {
 	c.Assert(ch.New, Equals, "Eating")
 
 	// reenter
-	aut.Process("sniff.tree")
+	aut.Process(StringEvent("sniff"))
 	c.Assert((<-aut.Actions).Name, Equals, "sniff()")
 
 	// reenter again
-	aut.Process("sniff.tree")
+	aut.Process(StringEvent("sniff"))
 	c.Assert((<-aut.Actions).Name, Equals, "sniff()")
 
 	// migrate
-	aut.Process("food.meat")
+	aut.Process(StringEvent("food"))
 	c.Assert((<-aut.Actions).Name, Equals, "groan()")
 	c.Assert((<-aut.Actions).Name, Equals, "digest()")
 
 	// reenter
-	aut.Process("sniff.tree")
+	aut.Process(StringEvent("sniff"))
 	c.Assert((<-aut.Actions).Name, Equals, "sniff()")
 }
 

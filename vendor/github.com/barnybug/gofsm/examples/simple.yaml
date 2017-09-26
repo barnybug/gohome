@@ -12,18 +12,18 @@ simple:
 
   transitions:
     Hungry->Eating:
-    - when: food.*
+    - when: food
       actions:
       - woof()
       - eat('apple')
     Eating->Full:
-    - when: food.*
+    - when: food
     Full->Hungry:
-    - when: walk or run
+    - when: run
     '*':
-    - when: '*.scratch'
+    - when: scratch
       actions:
       - scratch()
-    - when: 'sniff.*'
+    - when: sniff
       actions:
       - sniff()
