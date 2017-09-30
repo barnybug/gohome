@@ -47,6 +47,7 @@ import (
 	"github.com/barnybug/gohome/services/weather"
 	"github.com/barnybug/gohome/services/wunderground"
 	"github.com/barnybug/gohome/services/xpl"
+	"github.com/barnybug/gohome/services/yeelight"
 )
 
 func registerServices() {
@@ -90,6 +91,7 @@ func registerServices() {
 	services.Register(&weather.Service{})
 	services.Register(&wunderground.Service{})
 	services.Register(&xpl.Service{})
+	services.Register(&yeelight.Service{})
 }
 
 func usage() {

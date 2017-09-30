@@ -161,3 +161,7 @@
 [[constraint]]
   branch = "v1"
   name = "gopkg.in/yaml.v1"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/edgard/yeelight"

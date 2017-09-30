@@ -50,6 +50,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/edgard/yeelight"
+  packages = ["."]
+  revision = "c32a2f3eb57cf9482fbcca1a2223391237886100"
+
+[[projects]]
   name = "github.com/garyburd/redigo"
   packages = ["internal","redis"]
   revision = "433969511232c397de61b1442f9fd49ec06ae9ba"
@@ -194,6 +200,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2d4c6ae75006f90c6ca297f0e2d7fe41289c9884da7f89b79d76c8b112b29167"
+  inputs-digest = "67ee9e34ad62d2db5b63d0292226174b3a7a5ec68ff81d3d251b80b7d0013452"
   solver-name = "gps-cdcl"
   solver-version = 1
