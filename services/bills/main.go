@@ -11,10 +11,6 @@ import (
 	"github.com/barnybug/gohome/util"
 )
 
-var (
-	gr graphite.Querier
-)
-
 func tweet(message string, subtopic string, interval int64) {
 	log.Println("Sending tweet", message)
 	services.SendAlert(message, "twitter", subtopic, interval)
@@ -22,16 +18,17 @@ func tweet(message string, subtopic string, interval int64) {
 
 func daily(t time.Time) {
 	// send daily stats
-	msg := electricityBill()
+	g := graphite.NewQuerier(services.Config.Graphite.Url)
+	msg := electricityBill(g)
 	if msg != "" {
 		tweet(msg, "bill", 0)
 	}
 }
 
-func getHourlyTotals(metric string) []graphite.Datapoint {
+func getHourlyTotals(g graphite.Querier, metric string) []graphite.Datapoint {
 	// get hourly average usage
 	target := fmt.Sprintf(`derivative(smartSummarize(%s,"1h","last"))`, metric)
-	data, err := gr.Query("midnight-25h", "midnight", target)
+	data, err := g.Query("midnight-25h", "midnight", target)
 	if err != nil {
 		log.Println("Failed to get graphite data")
 		return nil
@@ -40,9 +37,9 @@ func getHourlyTotals(metric string) []graphite.Datapoint {
 	return dps[1:]
 }
 
-func electricityBill() string {
+func electricityBill(g graphite.Querier) string {
 	vat := services.Config.Bill.Vat/100 + 1
-	dps := getHourlyTotals("sensor.power.power.total.avg")
+	dps := getHourlyTotals(g, "sensor.power.power.total.avg")
 	var max, total, day, night float64
 	var peak time.Time
 	for _, dp := range dps {
@@ -77,9 +74,6 @@ func (self *Service) ID() string {
 
 // Run the service
 func (self *Service) Run() error {
-	// initialise
-	gr = graphite.NewQuerier(services.Config.Graphite.Url)
-
 	// schedule at 00:02
 	offset, _ := time.ParseDuration("2m")
 	repeat, _ := time.ParseDuration("24h")
