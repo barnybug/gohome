@@ -14,7 +14,7 @@ type Event struct {
 	Retained  bool
 }
 
-func NewEvent(topic string, fields map[string]interface{}) *Event {
+func NewEvent(topic string, fields Fields) *Event {
 	timestamp := time.Now().UTC()
 	if ts, ok := fields["timestamp"].(string); ok {
 		delete(fields, "timestamp")
@@ -24,7 +24,7 @@ func NewEvent(topic string, fields map[string]interface{}) *Event {
 }
 
 func NewCommand(device string, command string) *Event {
-	fields := map[string]interface{}{
+	fields := Fields{
 		"topic":   "command",
 		"device":  device,
 		"command": command,
