@@ -337,22 +337,24 @@ func (self *Service) querySwitch(q services.Question) string {
 	// rest of key=value arguments
 	kwargs := keywordArgs(args[1:])
 	command := "on"
-	if c, ok := kwargs[""]; ok {
-		command = c
+	fields := pubsub.Fields{}
+	for field, value := range kwargs {
+		if field == "" {
+			command = value
+		} else if num, err := strconv.Atoi(value); err == nil {
+			fields[field] = num
+		} else {
+			fields[field] = value
+		}
 	}
-	repeat := parseInt(kwargs["repeat"], 3)
-	level := parseInt(kwargs["level"], 8)
-	switchCommand(matches[0], command, repeat, level)
+	switchCommand(matches[0], command, fields)
 	return fmt.Sprintf("Switched %s %s", dev.Name, command)
 }
 
-func switchCommand(name string, command string, repeat int, level int) {
-	dev := services.Config.Devices[name]
-	ev := pubsub.NewCommand(dev.Id, command)
-	ev.SetRepeat(repeat)
-	if dev.Type == "dimmer" && command != "off" {
-		ev.SetField("level", level)
-	}
+func switchCommand(name string, command string, params pubsub.Fields) {
+	ev := pubsub.NewEvent("command", params)
+	ev.SetField("command", command)
+	ev.SetField("device", name)
 	services.Publisher.Emit(ev)
 }
 
@@ -645,11 +647,11 @@ var stateCommand = map[bool]string{
 
 func (self EventAction) Switch(device string, state bool) {
 	command := stateCommand[state]
-	switchCommand(device, command, 3, 8)
+	switchCommand(device, command, pubsub.Fields{"repeat": 3, "level": 8})
 }
 
 func (self EventAction) Dim(device string, level int64) {
-	switchCommand(device, "on", 3, int(level))
+	switchCommand(device, "on", pubsub.Fields{"repeat": 3, "level": level})
 }
 
 func (self EventAction) Snapshot(device string, target string, message string) {
