@@ -33,7 +33,7 @@ func (self *Service) Run() error {
 }
 
 func journalTailer() {
-	cmd := exec.Command("journalctl", "--user-unit=gohome@*", "-f", "-n0", "-q", "--output=json")
+	cmd := exec.Command("journalctl", "--user-unit=gohome*.service", "--user-unit=gohome*.slice", "-f", "-n0", "-q", "--output=json")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Fatal(err)
