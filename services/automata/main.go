@@ -647,7 +647,7 @@ var stateCommand = map[bool]string{
 
 func (self EventAction) Switch(device string, state bool) {
 	command := stateCommand[state]
-	switchCommand(device, command, pubsub.Fields{"repeat": 3, "level": 8})
+	switchCommand(device, command, pubsub.Fields{"repeat": 3})
 }
 
 func (self EventAction) Dim(device string, level int64) {
