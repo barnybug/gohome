@@ -40,7 +40,7 @@ var Stor Store
 var Configured = util.NewEvent()
 
 func SetupLogging() {
-	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	log.SetFlags(log.Ltime | log.Lmicroseconds)
 	log.SetOutput(os.Stdout)
 }
 
