@@ -52,7 +52,9 @@ func journalTailer() {
 
 		if message, ok := data["MESSAGE"].(string); ok {
 			var source string
-			if user_unit, ok := data["_SYSTEMD_USER_UNIT"].(string); ok {
+			// CGROUP more reliably returns the unit, on raspbian _SYSTEMD_USER_UNIT
+			// is just the slice name.
+			if user_unit, ok := data["_SYSTEMD_CGROUP"].(string); ok {
 				source = stripUnitName(user_unit)
 			} else {
 				source = "systemd"
@@ -198,8 +200,9 @@ func getStatus() []UnitStatus {
 }
 
 func stripUnitName(s string) string {
+	parts := strings.SplitAfter(s, "/")
 	return strings.Replace(
-		strings.Replace(s, "gohome@", "", 1),
+		strings.Replace(parts[len(parts)-1], "gohome@", "", 1),
 		".service", "", 1)
 }
 
