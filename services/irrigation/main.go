@@ -17,11 +17,9 @@ import (
 	"github.com/barnybug/gohome/util"
 )
 
-var gr graphite.Querier
-
-func calculateDuration() (duration time.Duration, avgTemp float64) {
+func calculateDuration(g graphite.Querier) (duration time.Duration, avgTemp float64) {
 	stat := fmt.Sprintf("sensor.%s.temp.avg", services.Config.Irrigation.Sensor)
-	avgTemp = getLastN("-12h", stat)
+	avgTemp = getLastN(g, "-12h", stat)
 
 	// linear scale between min_temp - max_temp
 	i := services.Config.Irrigation
@@ -34,9 +32,9 @@ func calculateDuration() (duration time.Duration, avgTemp float64) {
 	return
 }
 
-func getLastN(from string, metric string) float64 {
+func getLastN(g graphite.Querier, from string, metric string) float64 {
 	target := fmt.Sprintf(`summarize(%s,"1y","avg")`, metric)
-	data, err := gr.Query(from, "now", target)
+	data, err := g.Query(from, "now", target)
 	if err != nil {
 		log.Println("Failed to get graphite data:", err)
 		return 0.0
@@ -49,8 +47,8 @@ func tweet(message string, subtopic string, interval int64) {
 	services.SendAlert(message, "twitter", subtopic, interval)
 }
 
-func irrigationStats() (msg string, duration time.Duration) {
-	duration, avgTemp := calculateDuration()
+func irrigationStats(g graphite.Querier) (msg string, duration time.Duration) {
+	duration, avgTemp := calculateDuration(g)
 	if duration == 0 {
 		msg = fmt.Sprintf("Irrigation: Not watering garden (12h av was %.1fC)", avgTemp)
 	} else {
@@ -64,7 +62,8 @@ func tick(t time.Time) {
 		log.Println("Currently disabled, not running")
 		return
 	}
-	msg, duration := irrigationStats()
+	g := graphite.NewQuerier(services.Config.Graphite.Url)
+	msg, duration := irrigationStats(g)
 	log.Println(msg)
 	tweet(msg, "irrigation", 0)
 
@@ -95,7 +94,6 @@ func (self *Service) ID() string {
 
 // Run the service
 func (self *Service) Run() error {
-	gr = graphite.NewQuerier(services.Config.Graphite.Url)
 	// schedule at given time and interval
 	ticker := util.NewScheduler(services.Config.Irrigation.At.Duration,
 		services.Config.Irrigation.Interval.Duration)
