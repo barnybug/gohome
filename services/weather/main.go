@@ -97,11 +97,11 @@ func getTempDesc(t float64, temps []td) string {
 }
 
 // Generate weather message for yesterday
-func weatherStats() string {
+func weatherStats(g graphite.Querier) string {
 	sensor := services.Config.Weather.Sensors.Temp + ".temp"
-	highest := getLast24(sensor, "max")
+	highest := getLast24(g, sensor, "max")
 	highestDesc := getTempDesc(highest, highTemperatures)
-	lowest := getLast24(sensor, "min")
+	lowest := getLast24(g, sensor, "min")
 	lowestDesc := getTempDesc(lowest, lowTemperatures)
 	if lowest == 0 && highest == 0 {
 		return "Weather: I didn't get any outside temperature data yesterday!"
@@ -111,12 +111,10 @@ func weatherStats() string {
 		lowestDesc, lowest)
 }
 
-var gr graphite.Querier
-
 // Get last 24 hour temperature min/max
-func getLast24(sensor string, cf string) float64 {
+func getLast24(g graphite.Querier, sensor string, cf string) float64 {
 	target := fmt.Sprintf(`summarize(sensor.%s.%s,"100y","%s")`, sensor, cf, cf)
-	data, err := gr.Query("-24h", "now", target)
+	data, err := g.Query("-24h", "now", target)
 	if err != nil {
 		log.Println("Failed to get graphite data")
 		return 0.0
@@ -126,7 +124,8 @@ func getLast24(sensor string, cf string) float64 {
 
 func tick() {
 	// send weather stats
-	msg := weatherStats()
+	g := graphite.NewQuerier(services.Config.Graphite.Url)
+	msg := weatherStats(g)
 	tweet(msg, "daily", 0)
 }
 
@@ -140,7 +139,6 @@ func (service *Service) ID() string {
 
 // Run the service
 func (service *Service) Run() error {
-	gr = graphite.NewQuerier(services.Config.Graphite.Url)
 	// schedule at 08:00
 	offset, _ := time.ParseDuration("8h")
 	repeat, _ := time.ParseDuration("24h")

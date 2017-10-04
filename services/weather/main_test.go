@@ -20,8 +20,8 @@ func ExampleWeatherStatsNoData() {
         ]
     }
 ]`
-	gr = &graphite.MockGraphite{Response: response}
-	s := weatherStats()
+	g := &graphite.MockGraphite{Response: response}
+	s := weatherStats(g)
 	fmt.Println(s)
 	// Output:
 	// Weather: I didn't get any outside temperature data yesterday!
@@ -39,8 +39,8 @@ func ExampleWeatherStats() {
         ]
     }
 ]`
-	gr = &graphite.MockGraphite{Response: response}
-	s := weatherStats()
+	g := &graphite.MockGraphite{Response: response}
+	s := weatherStats(g)
 	fmt.Println(s)
 	// Output:
 	// Weather: Outside it got up to a moderate 13.8°C and went down to a hot 13.8°C in the last 24 hours.
