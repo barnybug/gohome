@@ -42,10 +42,12 @@ type CurrentcostConf struct {
 }
 
 type DeviceConf struct {
-	Id    string `json:"id"`
-	Name  string `json:"name"`
-	Type  string `json:"type"`
-	Group string `json:"group"`
+	Id    string   `json:"id"`
+	Name  string   `json:"name"`
+	Type  string   `json:"type"`
+	Group string   `json:"group"`
+	Caps  []string `json:"caps"`
+	Cap   map[string]bool
 }
 
 type DataloggerConf struct {
@@ -264,8 +266,14 @@ func OpenRaw(data []byte) (*Config, error) {
 
 	for id, device := range self.Devices {
 		device.Id = id
-		if device.Type == "" {
-			device.Type = strings.Split(id, ".")[0]
+		if len(device.Caps) == 0 {
+			major := strings.Split(id, ".")[0]
+			device.Caps = []string{major}
+		}
+		device.Type = device.Caps[0]
+		device.Cap = map[string]bool{}
+		for _, c := range device.Caps {
+			device.Cap[c] = true
 		}
 		self.Devices[id] = device
 	}

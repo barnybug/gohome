@@ -288,19 +288,15 @@ func keywordArgs(args []string) map[string]string {
 	return ret
 }
 
-var switchable = map[string]bool{
-	"bell":   true,
-	"dimmer": true,
-	"lock":   true,
-	"person": true,
-	"switch": true,
+func isSwitchable(dev config.DeviceConf) bool {
+	return dev.Cap["switch"]
 }
 
-func matchDevices(name string) []string {
+func matchDevices(n string) []string {
 	matches := []string{}
-	for iname, idev := range services.Config.Devices {
-		if strings.Contains(iname, name) && switchable[idev.Type] {
-			matches = append(matches, iname)
+	for name, dev := range services.Config.Devices {
+		if strings.Contains(name, n) && isSwitchable(dev) {
+			matches = append(matches, name)
 		}
 	}
 	return matches
@@ -555,10 +551,15 @@ func (self *Service) appendLog(msg string) {
 
 func (self EventAction) substitute(msg string) string {
 	device := self.event.Device()
-	name := services.Config.Devices[device].Name
+	d := services.Config.Devices[device]
 	now := time.Now()
+	typ := strings.Split(d.Id, ".")[0]
 	vals := map[string]string{
-		"name":      name,
+		"id":        d.Id,
+		"name":      d.Name,
+		"type":      typ,
+		"cap":       d.Caps[0],
+		"group":     d.Group,
 		"duration":  util.FriendlyDuration(self.change.Duration),
 		"timestamp": now.Format(time.Kitchen),
 		"datetime":  now.Format(time.StampMilli),

@@ -177,6 +177,7 @@ func deviceEntry(dev config.DeviceConf, events map[string]interface{}) interface
 	value := make(map[string]interface{})
 	value["id"] = dev.Id
 	value["name"] = dev.Name
+	value["caps"] = dev.Caps
 	value["type"] = dev.Type
 	value["group"] = dev.Group
 	if events == nil {

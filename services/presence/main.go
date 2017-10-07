@@ -424,7 +424,7 @@ L:
 		case ev := <-commands:
 			// manual command login/out command
 			if ev.Topic == "command" {
-				if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Type == "person" {
+				if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Cap["presence"] {
 					emit(ev.Device(), ev.Command() == "on")
 				}
 			} else if ev.Device() == services.Config.Presence.Trigger {

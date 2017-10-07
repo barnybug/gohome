@@ -141,7 +141,7 @@ func (self *Service) setupDevices(now time.Time) {
 		d := services.Config.Devices[device]
 		devices[device] = &WatchdogDevice{
 			Name:      d.Name,
-			Type:      d.Type,
+			Type:      "device",
 			Timeout:   duration,
 			LastEvent: now,
 		}
