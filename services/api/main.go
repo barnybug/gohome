@@ -231,6 +231,15 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 			ev.SetField("level", level)
 		}
 	}
+	if q.Get("colour") != "" {
+		colour := q.Get("colour")
+		ev.SetField("colour", colour)
+	}
+	if q.Get("temp") != "" {
+		if temp, err := strconv.Atoi(q.Get("temp")); err == nil {
+			ev.SetField("temp", temp)
+		}
+	}
 	services.Publisher.Emit(ev)
 	jsonResponse(w, true)
 }
