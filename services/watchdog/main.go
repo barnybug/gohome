@@ -72,6 +72,12 @@ func touch(device string, timestamp time.Time) {
 		w.Alerted = false
 		sendAlert(w.Name, true, w.LastEvent)
 	}
+	// if timestamp looks too old, use now instead
+	now := time.Now()
+	age := now.Sub(timestamp)
+	if age.Hours() > 1 {
+		timestamp = now
+	}
 	w.LastEvent = timestamp
 }
 
