@@ -198,8 +198,10 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 	switch {
 	case pids["homeeasy"] != "":
 		level := ev.IntField("level")
-		if level > 255 {
-			level = 255
+		// scale 0->100 => 0->15
+		level = level * 15 / 100
+		if level > 15 {
+			level = 15
 		}
 		if level != 0 {
 			command = "set level"
