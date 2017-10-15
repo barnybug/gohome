@@ -39,23 +39,12 @@ func (self *Foscam) GotoPreset(preset int) (err error) {
 	return
 }
 
-func (self *Foscam) Snapshot(filename string) (err error) {
+func (self *Foscam) Snapshot() (io.ReadCloser, error) {
 	resp, err := self.control("snapshot.cgi", EmptyParams)
 	if err != nil {
-		return
+		return nil, err
 	}
-	defer resp.Body.Close()
-	fout, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return
-	}
-	defer fout.Close()
-	n, err := io.Copy(fout, resp.Body)
-	fmt.Println(n)
-	if err != nil {
-		return
-	}
-	return
+	return resp.Body, nil
 }
 
 type TLReader struct {

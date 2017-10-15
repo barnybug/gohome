@@ -9,7 +9,10 @@ package camera
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -24,9 +27,12 @@ var (
 )
 
 type Camera interface {
-	GotoPreset(preset int) error
-	Snapshot(path string) error
+	Snapshot() (io.ReadCloser, error)
 	Video(path string, duration time.Duration) error
+}
+
+type Moveable interface {
+	GotoPreset(preset int) error
 	Ir(bool) error
 	Detect(bool) error
 }
@@ -50,6 +56,22 @@ func cameraPath(name, ext string) (filename string, url string) {
 	return
 }
 
+func saveSnapshot(cam Camera, filename string) error {
+	r, err := cam.Snapshot()
+	defer r.Close()
+	fout, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer fout.Close()
+	_, err = io.Copy(fout, r)
+	if err != nil {
+		// delete file if incomplete
+		defer os.Remove(filename)
+	}
+	return err
+}
+
 func eventCommand(ev *pubsub.Event) {
 	cam, ok := cameras[ev.Device()]
 	if !ok {
@@ -61,19 +83,23 @@ func eventCommand(ev *pubsub.Event) {
 
 	switch ev.Fields["command"] {
 	case "position":
-		log.Printf("%s going to preset %d", ev.Device(), preset)
-		cam.GotoPreset(preset)
+		if cam, ok := cam.(Moveable); ok {
+			log.Printf("%s going to preset %d", ev.Device(), preset)
+			cam.GotoPreset(preset)
+		}
 
 	case "snapshot":
 		log.Printf("%s taking snapshot", ev.Device())
 		filename, url := cameraPath(ev.Device(), "jpg")
 		go func() {
 			if preset != 0 {
-				log.Printf("Going to preset: %d", preset)
-				cam.GotoPreset(preset)
-				time.Sleep(GotoDelay)
+				if cam, ok := cam.(Moveable); ok {
+					log.Printf("Going to preset: %d", preset)
+					cam.GotoPreset(preset)
+					time.Sleep(GotoDelay)
+				}
 			}
-			err := cam.Snapshot(filename)
+			err := saveSnapshot(cam, filename)
 			if err != nil {
 				log.Println("Error taking snapshot:", err)
 			} else {
@@ -96,14 +122,18 @@ func eventCommand(ev *pubsub.Event) {
 		log.Printf("%s recording video for %s", ev.Device(), duration)
 		go func() {
 			if preset != 0 {
-				log.Printf("Going to preset: %d", preset)
-				cam.GotoPreset(preset)
-				time.Sleep(GotoDelay)
+				if cam, ok := cam.(Moveable); ok {
+					log.Printf("Going to preset: %d", preset)
+					cam.GotoPreset(preset)
+					time.Sleep(GotoDelay)
+				}
 			}
 			if ir, ok := ev.Fields["ir"].(bool); ok {
-				err := cam.Ir(ir)
-				if err != nil {
-					log.Println("Error setting ir:", err)
+				if cam, ok := cam.(Moveable); ok {
+					err := cam.Ir(ir)
+					if err != nil {
+						log.Println("Error setting ir:", err)
+					}
 				}
 			}
 			err := cam.Video(filename, duration)
@@ -116,13 +146,16 @@ func eventCommand(ev *pubsub.Event) {
 
 	case "ir":
 		on, _ := ev.Fields["on"].(bool)
-		log.Printf("%s infra-red turned %s", ev.Device(), on)
-		cam.Ir(on)
-
+		if cam, ok := cam.(Moveable); ok {
+			log.Printf("%s infra-red turned %s", ev.Device(), on)
+			cam.Ir(on)
+		}
 	case "detection":
 		on, _ := ev.Fields["on"].(bool)
-		log.Printf("%s detection %s", ev.Device(), on)
-		cam.Detect(on)
+		if cam, ok := cam.(Moveable); ok {
+			log.Printf("%s detection %s", ev.Device(), on)
+			cam.Detect(on)
+		}
 	}
 }
 
@@ -136,7 +169,46 @@ func setupCameras() {
 			cameras[name] = &Motion{conf}
 		case "webcam":
 			cameras[name] = &Webcam{conf}
+		case "rtsp":
+			cameras[name] = &Rtsp{conf}
 		}
+	}
+}
+
+func httpSnapshot(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	id, ok := q["camera"]
+	if !ok {
+		fmt.Fprint(w, "?camera=... required")
+		return
+	}
+	cam, ok := cameras[id[0]]
+	if !ok {
+		fmt.Fprint(w, "camera not found")
+		return
+	}
+	data, err := cam.Snapshot()
+	if err != nil {
+		fmt.Fprint(w, "error reading camera:", err)
+		return
+	}
+	defer func() {
+		err := data.Close()
+		if err != nil {
+			log.Println("Error closing snapshot:", err)
+		}
+	}()
+	w.Header().Add("Content-Type", "image/jpeg")
+	w.WriteHeader(200)
+	io.Copy(w, data)
+}
+
+func startWebserver() {
+	http.HandleFunc("/snapshot", httpSnapshot)
+	addr := fmt.Sprintf(":%d", services.Config.Camera.Port)
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		log.Fatal("Webserver failed to start: ", err)
 	}
 }
 
@@ -156,6 +228,7 @@ func (self *Service) ConfigUpdated(path string) {
 // Run the service
 func (self *Service) Run() error {
 	setupCameras()
+	startWebserver()
 
 	for ev := range services.Subscriber.FilteredChannel("command") {
 		if _, ok := cameras[ev.Device()]; ok {

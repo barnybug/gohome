@@ -2,6 +2,7 @@ package camera
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -16,8 +17,8 @@ func (self *Motion) GotoPreset(preset int) error {
 	return nil
 }
 
-func (self *Motion) Snapshot(filename string) error {
-	return nil
+func (self *Motion) Snapshot() (io.ReadCloser, error) {
+	return nil, nil
 }
 
 func (self *Motion) Video(filename string, duration time.Duration) error {
