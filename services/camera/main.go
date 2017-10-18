@@ -228,7 +228,7 @@ func (self *Service) ConfigUpdated(path string) {
 // Run the service
 func (self *Service) Run() error {
 	setupCameras()
-	startWebserver()
+	go startWebserver()
 
 	for ev := range services.Subscriber.FilteredChannel("command") {
 		if _, ok := cameras[ev.Device()]; ok {
