@@ -66,8 +66,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 }
 
 func (self *Service) discover() {
-	self.lights = map[string]*yeelight.Light{}
-	lights, err := yeelight.Discover(2 * time.Second)
+	lights, err := yeelight.Discover(5 * time.Second)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,6 +80,7 @@ func (self *Service) discover() {
 
 func (self *Service) Run() error {
 	commandChannel := services.Subscriber.FilteredChannel("command")
+	self.lights = map[string]*yeelight.Light{}
 	self.discover()
 	log.Printf("Discovered %d lights", len(self.lights))
 	// Rescan for new devices every hour
