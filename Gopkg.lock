@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/Knetic/govaluate"
+  packages = ["."]
+  revision = "d216395917cc49052c7c7094cf57f09657ca08a8"
+  version = "v3.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/barnybug/ener314"
   packages = [".","rpio","spi"]
@@ -200,6 +206,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "67ee9e34ad62d2db5b63d0292226174b3a7a5ec68ff81d3d251b80b7d0013452"
+  inputs-digest = "bb0a72b968eb8ab7f636556871b65a82e853ede96ef2dcc5b00352022dc1c066"
   solver-name = "gps-cdcl"
   solver-version = 1

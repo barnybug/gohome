@@ -38,7 +38,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -46,6 +45,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/Knetic/govaluate"
 	"github.com/barnybug/gohome/util"
 
 	"github.com/barnybug/gofsm"
@@ -89,86 +89,35 @@ type EventAction struct {
 }
 
 type EventWrapper struct {
-	event *pubsub.Event
+	event  *pubsub.Event
+	params Parameters
 }
 
-type Expression interface {
-	Match(event *pubsub.Event) bool
+type Parameters map[string]interface{}
+
+func (p Parameters) Get(name string) (interface{}, error) {
+	return p[name], nil
 }
 
-type Or struct {
-	terms []Expression
+func NewEventWrapper(event *pubsub.Event) EventWrapper {
+	params := Parameters(event.Map())
+	ps := strings.SplitN(event.Device(), ".", 2)
+	params["type"] = ps[0]
+	return EventWrapper{event, params}
 }
 
-func (self *Or) Match(event *pubsub.Event) bool {
-	for _, term := range self.terms {
-		if term.Match(event) {
-			return true
-		}
+func Parse(s string) *govaluate.EvaluableExpression {
+	expr, err := govaluate.NewEvaluableExpression(s)
+	if err != nil {
+		log.Printf("Bad expression '%s': %s", s, err)
+		return Parse("false")
 	}
-	return false
+	return expr
 }
 
-type And struct {
-	terms []Expression
-}
+var parsingCache = map[string]*govaluate.EvaluableExpression{}
 
-func (self *And) Match(event *pubsub.Event) bool {
-	for _, term := range self.terms {
-		if !term.Match(event) {
-			return false
-		}
-	}
-	return true
-}
-
-type Equals struct {
-	field string
-	value string
-}
-
-func (self *Equals) Match(event *pubsub.Event) bool {
-	matched, _ := filepath.Match(self.value, event.StringField(self.field))
-	return matched
-}
-
-func ParseEqual(s string) Expression {
-	if strings.Contains(s, "=") {
-		ps := strings.SplitN(s, "=", 2)
-		return &Equals{ps[0], ps[1]}
-	} else {
-		// default equals on device
-		return &Equals{"device", s}
-	}
-}
-
-func ParseAnd(s string) Expression {
-	ps := strings.Split(s, " ")
-	terms := []Expression{}
-	for _, cond := range ps {
-		terms = append(terms, ParseEqual(cond))
-	}
-	if len(terms) == 1 {
-		return terms[0]
-	}
-	return &And{terms}
-}
-
-func Parse(s string) Expression {
-	ps := strings.Split(s, " or ")
-	terms := []Expression{}
-	for _, cond := range ps {
-		terms = append(terms, ParseAnd(cond))
-	}
-	if len(terms) == 1 {
-		return terms[0]
-	}
-	return &Or{terms}
-}
-
-var parsingCache = map[string]Expression{}
-
-func ParseCached(s string) Expression {
+func ParseCached(s string) *govaluate.EvaluableExpression {
 	if expr, ok := parsingCache[s]; ok {
 		return expr
 	}
@@ -179,7 +128,15 @@ func ParseCached(s string) Expression {
 
 func (self EventWrapper) Match(when string) bool {
 	expr := ParseCached(when)
-	return expr.Match(self.event)
+	result, err := expr.Eval(self.params)
+	if err != nil {
+		log.Printf("Error evaluating expression '%s': %s", when, err)
+	}
+	result, ok := result.(bool)
+	if !ok {
+		log.Printf("Expression didn't evaluate to boolean '%s'", when)
+	}
+	return result.(bool)
 }
 
 func (self EventWrapper) String() string {
@@ -495,7 +452,7 @@ func (self *Service) Run() error {
 			}
 
 			// send relevant events to the automata
-			event := EventWrapper{ev}
+			event := NewEventWrapper(ev)
 			self.automata.Process(event)
 
 		case change := <-self.automata.Changes:
