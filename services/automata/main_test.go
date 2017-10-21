@@ -40,6 +40,10 @@ func TestEventNotABoolean(t *testing.T) {
 	assert.False(t, evOn.Match("'abc'"))
 }
 
+func TestBadExpression(t *testing.T) {
+	assert.False(t, evOn.Match("blah()"))
+}
+
 func BenchmarkEventTrue(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		evOn.Match("device=='door.front' && command=='off' || device=='light.porch' && command=='on'")
