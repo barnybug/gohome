@@ -33,6 +33,7 @@ package automata
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -70,10 +71,11 @@ func openLogFile() *os.File {
 // Service automata
 type Service struct {
 	timers        map[string]*time.Timer
-	automata      *gofsm.Automata
 	configUpdated chan bool
 	log           *os.File
 }
+
+var automata *gofsm.Automata
 
 // ID of the service
 func (self *Service) ID() string {
@@ -106,8 +108,25 @@ func NewEventWrapper(event *pubsub.Event) EventWrapper {
 	return EventWrapper{event, params}
 }
 
+func State(args ...interface{}) (interface{}, error) {
+	if len(args) != 1 {
+		return nil, errors.New("Expected 1 arguments to State()")
+	}
+	name := args[0].(string)
+	aut, ok := automata.Automaton[name]
+	if !ok {
+		return nil, fmt.Errorf("State(): automata '%s' not found", name)
+	}
+
+	return aut.State.Name, nil
+}
+
+var functions = map[string]govaluate.ExpressionFunction{
+	"State": State,
+}
+
 func Parse(s string) *govaluate.EvaluableExpression {
-	expr, err := govaluate.NewEvaluableExpression(s)
+	expr, err := govaluate.NewEvaluableExpressionWithFunctions(s, functions)
 	if err != nil {
 		log.Printf("Bad expression '%s': %s", s, err)
 		return Parse("false")
@@ -131,6 +150,7 @@ func (self EventWrapper) Match(when string) bool {
 	result, err := expr.Eval(self.params)
 	if err != nil {
 		log.Printf("Error evaluating expression '%s': %s", when, err)
+		return false
 	}
 	result, ok := result.(bool)
 	if !ok {
@@ -191,7 +211,7 @@ func (self *Service) queryStatus(q services.Question) string {
 	var out string
 	now := time.Now()
 	var keys []string
-	for k := range self.automata.Automaton {
+	for k := range automata.Automaton {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
@@ -209,7 +229,7 @@ func (self *Service) queryStatus(q services.Question) string {
 		if dev, ok := services.Config.Devices[k]; ok {
 			device = dev.Name
 		}
-		aut := self.automata.Automaton[k]
+		aut := automata.Automaton[k]
 		du := util.ShortDuration(now.Sub(aut.Since))
 		out += fmt.Sprintf("- %s: %s for %s\n", device, aut.State.Name, du)
 	}
@@ -421,7 +441,7 @@ func (self *Service) Run() error {
 	self.configUpdated = make(chan bool, 2)
 	// load templated automata
 	var err error
-	self.automata, err = loadAutomata()
+	automata, err = loadAutomata()
 	if err != nil {
 		return err
 	}
@@ -430,12 +450,12 @@ func (self *Service) Run() error {
 	chanPersist := make(chan string, 32)
 	go func() {
 		for automaton := range chanPersist {
-			self.PersistStore(self.automata, automaton)
+			self.PersistStore(automata, automaton)
 		}
 	}()
 
-	self.RestoreStore(self.automata)
-	log.Printf("Initial states: %s", self.automata)
+	self.RestoreStore(automata)
+	log.Printf("Initial states: %s", automata)
 
 	ch := services.Subscriber.Channel()
 	defer services.Subscriber.Close(ch)
@@ -453,9 +473,9 @@ func (self *Service) Run() error {
 
 			// send relevant events to the automata
 			event := NewEventWrapper(ev)
-			self.automata.Process(event)
+			automata.Process(event)
 
-		case change := <-self.automata.Changes:
+		case change := <-automata.Changes:
 			trigger := change.Trigger.(EventWrapper)
 			s := fmt.Sprintf("%-17s %s->%s", "["+change.Automaton+"]", change.Old, change.New)
 			log.Printf("%-40s (event: %s)", s, trigger)
@@ -470,7 +490,7 @@ func (self *Service) Run() error {
 			ev.SetRetained(true)
 			services.Publisher.Emit(ev)
 
-		case action := <-self.automata.Actions:
+		case action := <-automata.Actions:
 			wrapper := action.Trigger.(EventWrapper)
 			ea := EventAction{self, wrapper.event, action.Change}
 			err := DynamicCall(ea, action.Name)
@@ -486,7 +506,7 @@ func (self *Service) Run() error {
 				continue
 			}
 			self.RestoreStore(updated)
-			self.automata = updated
+			automata = updated
 			log.Println("Automata reloaded successfully")
 		}
 	}

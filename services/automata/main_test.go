@@ -3,6 +3,7 @@ package automata
 import (
 	"testing"
 
+	"github.com/barnybug/gofsm"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/stretchr/testify/assert"
@@ -42,6 +43,23 @@ func TestEventNotABoolean(t *testing.T) {
 
 func TestBadExpression(t *testing.T) {
 	assert.False(t, evOn.Match("blah()"))
+}
+
+var SimpleAutomata = `
+simple:
+  start: Start
+  states:
+    Start: {}
+  transitions:
+    Start: []
+`
+
+func TestStateFunction(t *testing.T) {
+	assert.False(t, evOn.Match("State()"))
+	automata, _ = gofsm.Load([]byte(SimpleAutomata))
+	assert.True(t, evOn.Match("State('simple')=='Start'"))
+	assert.False(t, evOn.Match("State('simple')=='Cobblers'"))
+	assert.False(t, evOn.Match("State('blah')=='Cobblers'"))
 }
 
 func BenchmarkEventTrue(b *testing.B) {
