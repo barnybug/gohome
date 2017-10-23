@@ -162,7 +162,7 @@ func main() {
 			return
 		}
 
-		query("switch", ps, emptyParams)
+		query("switch", ps, url.Values{"responses": []string{"1"}})
 	case "query":
 		if len(ps) == 0 {
 			usage()
