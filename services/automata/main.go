@@ -125,28 +125,26 @@ var functions = map[string]govaluate.ExpressionFunction{
 	"State": State,
 }
 
-func Parse(s string) *govaluate.EvaluableExpression {
-	expr, err := govaluate.NewEvaluableExpressionWithFunctions(s, functions)
-	if err != nil {
-		log.Printf("Bad expression '%s': %s", s, err)
-		return Parse("false")
-	}
-	return expr
-}
-
 var parsingCache = map[string]*govaluate.EvaluableExpression{}
 
-func ParseCached(s string) *govaluate.EvaluableExpression {
+func ParseCached(s string) (*govaluate.EvaluableExpression, error) {
 	if expr, ok := parsingCache[s]; ok {
-		return expr
+		return expr, nil
 	}
-	expr := Parse(s)
+	expr, err := govaluate.NewEvaluableExpressionWithFunctions(s, functions)
+	if err != nil {
+		return nil, fmt.Errorf("Bad expression '%s': %s", s, err)
+	}
 	parsingCache[s] = expr
-	return expr
+	return expr, nil
 }
 
 func (self EventWrapper) Match(when string) bool {
-	expr := ParseCached(when)
+	expr, err := ParseCached(when)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
 	result, err := expr.Eval(self.params)
 	if err != nil {
 		log.Printf("Error evaluating expression '%s': %s", when, err)
@@ -399,15 +397,15 @@ func (self *Service) RestoreStore(automata *gofsm.Automata) {
 	automata.Restore(p)
 }
 
-func loadAutomata() (*gofsm.Automata, error) {
+func loadAutomata() error {
 	data, err := services.Stor.Get("gohome/config/automata")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	tmpl := template.New("Automata")
 	tmpl, err = tmpl.Parse(data)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	context := map[string]interface{}{
 		"devices": services.Config.Devices,
@@ -416,14 +414,28 @@ func loadAutomata() (*gofsm.Automata, error) {
 	wr := new(bytes.Buffer)
 	err = tmpl.Execute(wr, context)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	generated := wr.Bytes()
-	automata, err := gofsm.Load(generated)
+	updated, err := gofsm.Load(generated)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return automata, nil
+	// precompile expressions
+	parsingCache = map[string]*govaluate.EvaluableExpression{}
+	for _, aut := range updated.Automaton {
+		for _, transition := range aut.Transitions {
+			for _, t := range transition {
+				_, err := ParseCached(t.When)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	automata = updated
+	return nil
 }
 
 func timeit(name string, fn func()) {
@@ -440,8 +452,7 @@ func (self *Service) Run() error {
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)
 	// load templated automata
-	var err error
-	automata, err = loadAutomata()
+	err := loadAutomata()
 	if err != nil {
 		return err
 	}
@@ -500,13 +511,12 @@ func (self *Service) Run() error {
 		case <-self.configUpdated:
 			// live reload the automata!
 			log.Println("Automata config updated, reloading")
-			updated, err := loadAutomata()
+			err := loadAutomata()
 			if err != nil {
 				log.Println("Failed to reload automata:", err)
 				continue
 			}
-			self.RestoreStore(updated)
-			automata = updated
+			self.RestoreStore(automata)
 			log.Println("Automata reloaded successfully")
 		}
 	}
