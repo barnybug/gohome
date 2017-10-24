@@ -240,6 +240,11 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 			ev.SetField("temp", temp)
 		}
 	}
+	if q.Get("duration") != "" {
+		if duration, err := strconv.Atoi(q.Get("duration")); err == nil {
+			ev.SetField("duration", duration)
+		}
+	}
 	services.Publisher.Emit(ev)
 	jsonResponse(w, true)
 }
