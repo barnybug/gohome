@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/services/api"
@@ -157,12 +158,22 @@ func main() {
 	case "run":
 		service(ps)
 	case "switch":
-		if len(ps) == 0 {
+		if len(ps) < 2 {
 			usage()
 			return
 		}
 
-		query("switch", ps, url.Values{"responses": []string{"1"}})
+		params := url.Values{
+			"id":      []string{ps[0]},
+			"command": []string{ps[1]},
+		}
+		for _, arg := range ps[2:] {
+			ps := strings.SplitN(arg, "=", 2)
+			if len(ps) > 1 {
+				params[ps[0]] = ps[1:2]
+			}
+		}
+		request("devices/control", params)
 	case "query":
 		if len(ps) == 0 {
 			usage()

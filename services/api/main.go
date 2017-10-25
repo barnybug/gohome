@@ -213,11 +213,14 @@ func apiDevicesSingle(w http.ResponseWriter, r *http.Request, params map[string]
 func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	device := q.Get("id")
-	var command string
-	if q.Get("control") == "1" {
-		command = "on"
-	} else {
-		command = "off"
+	command := q.Get("command")
+	control := q.Get("control")
+	if control != "" { // compatibility
+		if control == "1" {
+			command = "on"
+		} else {
+			command = "off"
+		}
 	}
 	// send command
 	ev := pubsub.NewCommand(device, command)
