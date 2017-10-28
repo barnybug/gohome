@@ -41,6 +41,7 @@ import (
 	"github.com/barnybug/gohome/services/slack"
 	"github.com/barnybug/gohome/services/sms"
 	"github.com/barnybug/gohome/services/systemd"
+	"github.com/barnybug/gohome/services/tasmota"
 	"github.com/barnybug/gohome/services/telegram"
 	"github.com/barnybug/gohome/services/twitter"
 	"github.com/barnybug/gohome/services/ups"
@@ -86,6 +87,7 @@ func registerServices() {
 	services.Register(&sms.Service{})
 	services.Register(&systemd.Service{})
 	services.Register(&telegram.Service{})
+	services.Register(&tasmota.Service{})
 	services.Register(&twitter.Service{})
 	services.Register(&ups.Service{})
 	services.Register(&watchdog.Service{})

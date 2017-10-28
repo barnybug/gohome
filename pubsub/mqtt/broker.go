@@ -16,6 +16,8 @@ type Broker struct {
 	client     MQTT.Client
 }
 
+var Client MQTT.Client
+
 func createClientOpts(broker string) *MQTT.ClientOptions {
 	// generate a client id
 	hostname, _ := os.Hostname()
@@ -39,6 +41,7 @@ func NewBroker(broker string) *Broker {
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatalln("Couldn't Start mqtt:", token.Error())
 	}
+	Client = client
 	ret.client = client
 	return ret
 }
