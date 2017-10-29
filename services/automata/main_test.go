@@ -2,18 +2,20 @@ package automata
 
 import (
 	"testing"
+	"time"
 
 	"github.com/barnybug/gofsm"
+	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	evOn      = NewEventWrapper(pubsub.NewEvent("ack", pubsub.Fields{"device": "light.porch", "command": "on", "timestamp": "2017-09-26 19:24:22.069"}))
-	evState   = NewEventWrapper(pubsub.NewEvent("state", pubsub.Fields{"device": "light.porch", "state": "On", "timestamp": "2017-09-26 19:24:22.069"}))
-	evTime    = NewEventWrapper(pubsub.NewEvent("time", pubsub.Fields{"device": "time", "hhmm": "2230", "timestamp": "2017-09-26 22:30:00.000"}))
-	evMissing = NewEventWrapper(pubsub.NewEvent("ack", pubsub.Fields{"timestamp": "2017-09-26 19:24:22.069"}))
+	evOn      = NewEventContext(pubsub.NewEvent("ack", pubsub.Fields{"device": "light.porch", "command": "on", "timestamp": "2017-09-26 19:24:22.069"}))
+	evState   = NewEventContext(pubsub.NewEvent("state", pubsub.Fields{"device": "light.porch", "state": "On", "timestamp": "2017-09-26 19:24:22.069"}))
+	evTime    = NewEventContext(pubsub.NewEvent("time", pubsub.Fields{"device": "time", "hhmm": "2230", "timestamp": "2017-09-26 22:30:00.000"}))
+	evMissing = NewEventContext(pubsub.NewEvent("ack", pubsub.Fields{"timestamp": "2017-09-26 19:24:22.069"}))
 )
 
 func ExampleInterfaces() {
@@ -89,6 +91,23 @@ func TestEventTime(t *testing.T) {
 	assert.True(t, evTime.Match("device=='time' && hhmm=='2230'"))
 }
 
-func TestEventWrapperString(t *testing.T) {
+func TestEventContextString(t *testing.T) {
 	assert.Equal(t, "light.porch command=on", evOn.String())
+}
+
+func TestFormat(t *testing.T) {
+	services.Config = config.ExampleConfig
+	ev := pubsub.NewEvent("state", pubsub.Fields{"device": "light.kitchen", "state": "On", "timestamp": "2017-09-26 19:24:22.069", "number": 2.5})
+	now := time.Now()
+	change := gofsm.Change{"", "", "", now, time.Minute, nil}
+	context := ChangeContext{ev, change}
+
+	assert.Equal(t, "test", context.Format("test"))
+	assert.Equal(t, "$missing", context.Format("$missing"))
+	assert.Equal(t, "light.kitchen", context.Format("$id"))
+	assert.Equal(t, "light", context.Format("$type"))
+	assert.Equal(t, "Kitchen", context.Format("$name"))
+	assert.Equal(t, "1 minute", context.Format("$duration"))
+	assert.Equal(t, "On", context.Format("$state"))
+	assert.Equal(t, "2.5", context.Format("$number"))
 }

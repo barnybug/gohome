@@ -90,22 +90,28 @@ type EventAction struct {
 	change  gofsm.Change
 }
 
-type EventWrapper struct {
-	event  *pubsub.Event
-	params Parameters
+type EventContext struct {
+	event *pubsub.Event
 }
 
-type Parameters map[string]interface{}
-
-func (p Parameters) Get(name string) (interface{}, error) {
-	return p[name], nil
+func (c EventContext) Get(name string) (interface{}, error) {
+	switch name {
+	case "type":
+		return strings.SplitN(c.event.Device(), ".", 2)[0], nil
+	case "topic":
+		return c.event.Topic, nil
+	case "timestamp":
+		return c.event.Timestamp, nil
+	default:
+		return c.event.Fields[name], nil
+	}
 }
 
-func NewEventWrapper(event *pubsub.Event) EventWrapper {
-	params := Parameters(event.Map())
-	ps := strings.SplitN(event.Device(), ".", 2)
-	params["type"] = ps[0]
-	return EventWrapper{event, params}
+func NewEventContext(event *pubsub.Event) EventContext {
+	// params := Parameters(event.Map())
+	// ps := strings.SplitN(event.Device(), ".", 2)
+	// params["type"] = ps[0]
+	return EventContext{event}
 }
 
 func State(args ...interface{}) (interface{}, error) {
@@ -139,13 +145,13 @@ func ParseCached(s string) (*govaluate.EvaluableExpression, error) {
 	return expr, nil
 }
 
-func (self EventWrapper) Match(when string) bool {
+func (self EventContext) Match(when string) bool {
 	expr, err := ParseCached(when)
 	if err != nil {
 		log.Println(err)
 		return false
 	}
-	result, err := expr.Eval(self.params)
+	result, err := expr.Eval(self)
 	if err != nil {
 		log.Printf("Error evaluating expression '%s': %s", when, err)
 		return false
@@ -157,7 +163,7 @@ func (self EventWrapper) Match(when string) bool {
 	return result.(bool)
 }
 
-func (self EventWrapper) String() string {
+func (self EventContext) String() string {
 	s := self.event.Device()
 	for k, v := range self.event.Fields {
 		if k == "device" {
@@ -483,11 +489,11 @@ func (self *Service) Run() error {
 			}
 
 			// send relevant events to the automata
-			event := NewEventWrapper(ev)
+			event := NewEventContext(ev)
 			automata.Process(event)
 
 		case change := <-automata.Changes:
-			trigger := change.Trigger.(EventWrapper)
+			trigger := change.Trigger.(EventContext)
 			s := fmt.Sprintf("%-17s %s->%s", "["+change.Automaton+"]", change.Old, change.New)
 			log.Printf("%-40s (event: %s)", s, trigger)
 			chanPersist <- change.Automaton
@@ -502,7 +508,7 @@ func (self *Service) Run() error {
 			services.Publisher.Emit(ev)
 
 		case action := <-automata.Actions:
-			wrapper := action.Trigger.(EventWrapper)
+			wrapper := action.Trigger.(EventContext)
 			ea := EventAction{self, wrapper.event, action.Change}
 			err := DynamicCall(ea, action.Name)
 			if err != nil {
@@ -537,23 +543,55 @@ func (self *Service) appendLog(msg string) {
 	services.Publisher.Emit(ev)
 }
 
-func (self EventAction) substitute(msg string) string {
-	device := self.event.Device()
+type ChangeContext struct {
+	event  *pubsub.Event
+	change gofsm.Change
+}
+
+func (c ChangeContext) Get(name string) (interface{}, bool) {
+	device := c.event.Device()
 	d := services.Config.Devices[device]
 	now := time.Now()
-	typ := strings.Split(d.Id, ".")[0]
-	vals := map[string]string{
-		"id":        d.Id,
-		"name":      d.Name,
-		"type":      typ,
-		"cap":       d.Caps[0],
-		"group":     d.Group,
-		"duration":  util.FriendlyDuration(self.change.Duration),
-		"timestamp": now.Format(time.Kitchen),
-		"datetime":  now.Format(time.StampMilli),
+	switch name {
+	case "id":
+		return d.Id, true
+	case "name":
+		return d.Name, true
+	case "type":
+		return strings.Split(d.Id, ".")[0], true
+	case "cap":
+		return d.Caps[0], true
+	case "group":
+		return d.Group, true
+	case "duration":
+		return util.FriendlyDuration(c.change.Duration), true
+	case "timestamp":
+		return now.Format(time.Kitchen), true
+	case "datetime":
+		return now.Format(time.StampMilli), true
+	default:
+		if value, ok := c.event.Fields[name]; ok {
+			return value, true
+		} else {
+			return nil, false
+		}
 	}
+}
 
-	return Substitute(msg, vals)
+var reSub = regexp.MustCompile(`\$(\w+)`)
+
+func (c ChangeContext) Format(msg string) string {
+	return reSub.ReplaceAllStringFunc(msg, func(k string) string {
+		if value, ok := c.Get(k[1:]); ok {
+			return fmt.Sprint(value)
+		} else {
+			return k
+		}
+	})
+}
+
+func (self EventAction) substitute(msg string) string {
+	return ChangeContext{self.event, self.change}.Format(msg)
 }
 
 func (self EventAction) Log(msg string) {

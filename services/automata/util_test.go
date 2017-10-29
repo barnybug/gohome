@@ -54,13 +54,3 @@ func ExampleMissingDynamicCall() {
 	// Output:
 	// Error: Missing(123) not found
 }
-
-func ExampleSubstitute() {
-	vals := map[string]string{
-		"name": "badger",
-	}
-	ret := Substitute("$name test $missing and $name", vals)
-	fmt.Println(ret)
-	// Output:
-	// badger test $missing and badger
-}

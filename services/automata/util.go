@@ -7,7 +7,6 @@ import (
 	"go/parser"
 	"go/token"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -65,15 +64,4 @@ func DynamicCall(obj interface{}, call string) (err error) {
 		err = errors.New(fmt.Sprintf("Error: %s not found", call))
 	}
 	return
-}
-
-var reSub = regexp.MustCompile(`\$(\w+)`)
-
-func Substitute(s string, vals map[string]string) string {
-	return reSub.ReplaceAllStringFunc(s, func(k string) string {
-		if v, ok := vals[k[1:]]; ok {
-			return v
-		}
-		return k
-	})
 }
