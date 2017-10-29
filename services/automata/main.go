@@ -508,6 +508,7 @@ func (self *Service) Run() error {
 			if err != nil {
 				log.Println("Error:", err)
 			}
+
 		case <-self.configUpdated:
 			// live reload the automata!
 			log.Println("Automata config updated, reloading")
@@ -561,10 +562,6 @@ func (self EventAction) Log(msg string) {
 	log.Println("Log: ", msg)
 }
 
-func (self EventAction) Speak(msg string) {
-	self.Alert(msg, "espeak")
-}
-
 func (self EventAction) Video(device string, preset int64, secs float64, ir bool) {
 	log.Printf("Video: %s at %d for %.1fs (ir: %v)", device, preset, secs, ir)
 	ev := pubsub.NewCommand(device, "video")
@@ -592,18 +589,6 @@ func (self EventAction) Script(cmd string) {
 			log.Printf("Exec %s: %s", cmd, err)
 		}
 	}()
-}
-
-func (self EventAction) Jabber(msg string) {
-	self.Alert(msg, "jabber")
-}
-
-func (self EventAction) Sms(msg string) {
-	self.Alert(msg, "sms")
-}
-
-func (self EventAction) Twitter(msg string) {
-	self.Alert(msg, "twitter")
 }
 
 func (self EventAction) Alert(message string, target string) {
