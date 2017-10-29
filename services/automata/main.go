@@ -571,14 +571,6 @@ func (self EventAction) Video(device string, preset int64, secs float64, ir bool
 	services.Publisher.Emit(ev)
 }
 
-func (self EventAction) RingAlarm() {
-	command("alarm.bell", "on")
-}
-
-func (self EventAction) QuietAlarm() {
-	command("alarm.bell", "off")
-}
-
 func (self EventAction) Script(cmd string) {
 	log.Println("Script:", cmd)
 	// run exec non-blocking
