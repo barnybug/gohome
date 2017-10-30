@@ -6,14 +6,14 @@ import (
 	"testing"
 	"time"
 
+	yaml "gopkg.in/yaml.v2"
+
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/pubsub/dummy"
 	"github.com/barnybug/gohome/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"gopkg.in/yaml.v1"
 )
 
 var (
@@ -439,6 +439,25 @@ Fri:
 	assert.Equal(t, 20.0, s.Target(time.Date(2014, 1, 3, 8, 30, 0, 0, time.UTC), 0)) // Friday
 	assert.Equal(t, 15.0, s.Target(time.Date(2014, 1, 3, 8, 35, 0, 0, time.UTC), 0))
 	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 9, 0, 0, 0, time.UTC), 0))
+}
+
+func TestScheduleSpanningMidnight(t *testing.T) {
+	conf := `
+Fri:
+- 00:00-24:00: 10
+- 23:00-01:00: 18
+Sat:
+- 00:00-24:00: 10
+`
+	var schedule config.ScheduleConf
+	yaml.Unmarshal([]byte(conf), &schedule)
+	s, err := NewSchedule(schedule)
+	require.Nil(t, err)
+	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 3, 22, 59, 0, 0, time.UTC), 0))
+	assert.Equal(t, 18.0, s.Target(time.Date(2014, 1, 3, 23, 0, 0, 0, time.UTC), 0))
+	assert.Equal(t, 18.0, s.Target(time.Date(2014, 1, 4, 0, 0, 0, 0, time.UTC), 0))
+	assert.Equal(t, 18.0, s.Target(time.Date(2014, 1, 4, 0, 59, 0, 0, time.UTC), 0))
+	assert.Equal(t, 10.0, s.Target(time.Date(2014, 1, 4, 1, 0, 0, 0, time.UTC), 0))
 }
 
 var testScheduleParseErrorTable = []string{

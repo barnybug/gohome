@@ -79,14 +79,20 @@ func WeekdayRange(start, end time.Weekday) []time.Weekday {
 		if i == end {
 			break
 		}
-		if i == time.Saturday {
-			i = time.Sunday
-		} else {
-			i += 1
-		}
+		i = NextWeekday(i)
 	}
 	return days
 }
+
+func NextWeekday(w time.Weekday) time.Weekday {
+	if w == time.Saturday {
+		return time.Sunday
+	} else {
+		return w + 1
+	}
+}
+
+const Midnight = 24 * 60
 
 func ParseWeekdays(s string) ([]time.Weekday, error) {
 	var weekdays []time.Weekday
@@ -124,13 +130,15 @@ func ParseWeekdays(s string) ([]time.Weekday, error) {
 
 func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 	days := map[time.Weekday][]ScheduleTemp{}
+	for _, day := range WeekdayRange(time.Sunday, time.Saturday) {
+		days[day] = []ScheduleTemp{}
+	}
 	for weekdays, mts := range conf {
 		wds, err := ParseWeekdays(weekdays)
 		if err != nil {
 			return nil, err
 		}
 		for _, weekday := range wds {
-			sch := []ScheduleTemp{}
 			for _, arr := range mts {
 				for at, temp := range arr {
 					start, end, err := ParseHourMinuteRange(at)
@@ -140,15 +148,16 @@ func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
 					if temp < MinimumTemperature || temp > MaximumTemperature {
 						return nil, fmt.Errorf("Temperature %.1f outside range %.1f <= t <= %.1f", temp, MinimumTemperature, MaximumTemperature)
 					}
-					sch = append(sch, ScheduleTemp{start, end, temp})
+					if start > end {
+						// spanning midnight, split
+						tomorrow := NextWeekday(weekday)
+						s2 := ScheduleTemp{0, end, temp}
+						days[tomorrow] = append(days[tomorrow], s2)
+						end = Midnight
+					}
+					s := ScheduleTemp{start, end, temp}
+					days[weekday] = append(days[weekday], s)
 				}
-			}
-
-			if existing, ok := days[weekday]; ok {
-				// append to existing schedule for the day
-				days[weekday] = append(existing, sch...)
-			} else {
-				days[weekday] = sch
 			}
 		}
 	}
