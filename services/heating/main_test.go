@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v1"
 
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
