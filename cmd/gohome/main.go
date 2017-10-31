@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -175,7 +176,12 @@ func main() {
 				params[ps[0]] = ps[1:2]
 			}
 		}
-		request("devices/control", params)
+		resp, err := request("devices/control", params)
+		if err != nil {
+			fmtFatalf("error: %s\n")
+		}
+		defer resp.Body.Close()
+		io.Copy(os.Stdout, resp.Body)
 	case "query":
 		if len(ps) == 0 {
 			usage()
@@ -183,7 +189,7 @@ func main() {
 		}
 		query(ps[0], ps[1:], emptyParams)
 	case "logs":
-		request("logs", emptyParams)
+		stream("logs", emptyParams)
 	}
 }
 

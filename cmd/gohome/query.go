@@ -16,17 +16,8 @@ func fmtFatalf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
-func request(path string, params url.Values) {
-	if os.Getenv("GOHOME_API") == "" {
-		fmtFatalf("Set GOHOME_API to the gohome api url.")
-	}
-	// add http auth
-	api := os.Getenv("GOHOME_API")
-	uri := fmt.Sprintf("%s/%s", api, path)
-	if len(params) > 0 {
-		uri += "?" + params.Encode()
-	}
-	resp, err := http.Get(uri)
+func stream(path string, params url.Values) {
+	resp, err := request(path, params)
 	if err != nil {
 		if strings.HasSuffix(err.Error(), " EOF") { // yuck
 			fmtFatalf("Server disconnected\n")
@@ -58,6 +49,20 @@ func request(path string, params url.Values) {
 	}
 }
 
+func request(path string, params url.Values) (*http.Response, error) {
+	if os.Getenv("GOHOME_API") == "" {
+		fmtFatalf("Set GOHOME_API to the gohome api url.")
+	}
+	// add http auth
+	api := os.Getenv("GOHOME_API")
+	uri := fmt.Sprintf("%s/%s", api, path)
+	if len(params) > 0 {
+		uri += "?" + params.Encode()
+	}
+	resp, err := http.Get(uri)
+	return resp, err
+}
+
 func query(first string, rest []string, params url.Values) {
 	q := strings.Join(rest, " ")
 	u := url.Values{"q": {q}}
@@ -66,5 +71,5 @@ func query(first string, rest []string, params url.Values) {
 	}
 
 	path := fmt.Sprintf("query/%s", first)
-	request(path, u)
+	stream(path, u)
 }
