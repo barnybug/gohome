@@ -47,10 +47,10 @@ func sendAlert(name string, state bool, since time.Time) {
 	log.Printf("Sending %s watchdog alert for: %s\n", state, name)
 	var message string
 	if state {
-		message = fmt.Sprintf("%s RECOVERED", name)
+		message = fmt.Sprintf("💓 %s RECOVERED", name)
 	} else {
 		now := time.Now()
-		message = fmt.Sprintf("%s PROBLEM for %s", name, util.FriendlyDuration(now.Sub(since)))
+		message = fmt.Sprintf("💓 %s PROBLEM for %s", name, util.FriendlyDuration(now.Sub(since)))
 	}
 	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
 }
@@ -146,7 +146,7 @@ func (self *Service) setupDevices(now time.Time) {
 		// give devices grace period for first event
 		d := services.Config.Devices[device]
 		devices[device] = &WatchdogDevice{
-			Name:      d.Name,
+			Name:      fmt.Sprintf("%s (%s)", d.Name, d.Type),
 			Type:      "device",
 			Timeout:   duration,
 			LastEvent: now,
