@@ -22,7 +22,7 @@ func (self *MockStore) Get(key string) (string, error) {
 	if value, ok := self.data[key]; ok {
 		return value, nil
 	}
-	return "", fmt.Errorf("Key missing: ", key)
+	return "", fmt.Errorf("Key missing: %s", key)
 }
 
 func (self *MockStore) Set(key string, value string) error {

@@ -147,13 +147,13 @@ func eventCommand(ev *pubsub.Event) {
 	case "ir":
 		on, _ := ev.Fields["on"].(bool)
 		if cam, ok := cam.(Moveable); ok {
-			log.Printf("%s infra-red turned %s", ev.Device(), on)
+			log.Printf("%s infra-red turned %t", ev.Device(), on)
 			cam.Ir(on)
 		}
 	case "detection":
 		on, _ := ev.Fields["on"].(bool)
 		if cam, ok := cam.(Moveable); ok {
-			log.Printf("%s detection %s", ev.Device(), on)
+			log.Printf("%s detection %t", ev.Device(), on)
 			cam.Detect(on)
 		}
 	}

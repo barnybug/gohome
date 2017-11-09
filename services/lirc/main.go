@@ -30,7 +30,7 @@ func (self *Service) Run() error {
 		if remote, ok := pids["lirc"]; ok {
 			ir.Send(remote + " " + code)
 			if err != nil {
-				log.Println("Error sending command: %s", err)
+				log.Printf("Error sending command: %s", err)
 			}
 		}
 	}

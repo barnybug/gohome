@@ -53,7 +53,7 @@ func readTemps(zones map[string]string) {
 	for name, path := range zones {
 		temp, err := readTemp(path)
 		if err != nil {
-			fmt.Println("error reading %s: %s", path, err)
+			fmt.Printf("error reading %s: %s\n", path, err)
 			continue
 		}
 

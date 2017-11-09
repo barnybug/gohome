@@ -44,7 +44,7 @@ var devices map[string]*WatchdogDevice
 var repeatInterval, _ = time.ParseDuration("12h")
 
 func sendAlert(name string, state bool, since time.Time) {
-	log.Printf("Sending %s watchdog alert for: %s\n", state, name)
+	log.Printf("Sending %t watchdog alert for: %s\n", state, name)
 	var message string
 	if state {
 		message = fmt.Sprintf("💓 %s RECOVERED", name)

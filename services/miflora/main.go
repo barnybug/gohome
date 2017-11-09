@@ -45,7 +45,7 @@ func iterateSensors(f func(name string, dev *miflora.Miflora) error) {
 			}
 			if i == MaxRetries-1 {
 				// last retry
-				log.Printf("Failed to read %s after %d retries: %s", name, err, MaxRetries)
+				log.Printf("Failed to read %s after %d retries: %d", name, err, MaxRetries)
 			}
 		}
 	}

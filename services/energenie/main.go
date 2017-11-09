@@ -270,13 +270,13 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		if state, ok := valveStates[ev.StringField("state")]; ok {
 			self.queueRequest(sensorId, SensorRequest{Action: ValveState, ValveState: state})
 		} else {
-			log.Println("Valve state: %s not understood", ev.StringField("state"))
+			log.Printf("Valve state: %s not understood", ev.StringField("state"))
 		}
 	case "powermode":
 		if mode, ok := powerModes[ev.StringField("mode")]; ok {
 			self.queueRequest(sensorId, SensorRequest{Action: PowerMode, Mode: mode})
 		} else {
-			log.Println("Power mode: %s not understood", ev.StringField("mode"))
+			log.Printf("Power mode: %s not understood", ev.StringField("mode"))
 		}
 	default:
 		log.Println("Command not recognised:", ev.Command())

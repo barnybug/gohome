@@ -359,7 +359,7 @@ func tail(filename string, lines int64) ([]byte, error) {
 func (self *Service) queryLogs(q services.Question) string {
 	data, err := tail(eventsLogPath, 25)
 	if err != nil {
-		return fmt.Sprintf("Couldn't retrieve logs:", err)
+		return fmt.Sprintf("Couldn't retrieve logs: %s", err)
 	}
 	return string(data)
 }

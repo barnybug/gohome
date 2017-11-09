@@ -40,7 +40,7 @@ func lookupChannelByName(api *slack.RTM, name string) *slack.Channel {
 	for _, channel := range channels {
 		if channel.Name == name {
 			if !channel.IsMember {
-				log.Fatal("You must invite me in to #%s", name)
+				log.Fatalf("You must invite me in to #%s", name)
 			}
 			return &channel
 		}
