@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/barnybug/gohome/lib/graphite"
-	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
 )
@@ -50,40 +49,6 @@ var lastRainTotal, lastOutsideTemp, lastOutsideHumd, avgWind float64
 func tweet(message string, subtopic string, interval int64) {
 	log.Println("Sending tweet", message)
 	services.SendAlert(message, "twitter", subtopic, interval)
-}
-
-func checkEvent(ev *pubsub.Event) {
-	switch ev.Device() {
-	case services.Config.Weather.Sensors.Rain:
-		rain := ev.Fields["all_total"].(float64)
-		if lastRainTotal != 0.0 && rain > lastRainTotal {
-			dayTotal := ev.Fields["day_total"]
-			message := fmt.Sprintf("It's raining! (%.2fmm today)", dayTotal)
-			tweet(message, "rain", 7200)
-		}
-		lastRainTotal = rain
-	case services.Config.Weather.Sensors.Temp:
-		temp := ev.Fields["temp"].(float64)
-		if lastOutsideTemp != 0.0 && lastOutsideTemp >= 0 && temp < 0 {
-			tweet("Brrr, it's gone below zero!", "temp", 7200)
-		}
-		lastOutsideTemp = temp
-
-		humd, ok := ev.Fields["humidity"].(float64)
-		if ok && lastOutsideHumd != 0.0 && lastOutsideHumd < 96 && humd >= 96 {
-			tweet("Looks like rain...", "humidity", 7200)
-		}
-		lastOutsideHumd = humd
-	case services.Config.Weather.Sensors.Wind:
-		speed := ev.Fields["speed"].(float64)
-		// about 2 minutes worth moving average
-		avgWind = avgWind*39/40 + speed*1/40
-		if avgWind > services.Config.Weather.Windy {
-			mph := avgWind * 2.237
-			msg := fmt.Sprintf("It's windy outside - %.1fmph!", mph)
-			tweet(msg, "wind", 7200)
-		}
-	}
 }
 
 // Lookup descriptive text for given temperate range
@@ -143,11 +108,8 @@ func (service *Service) Run() error {
 	offset, _ := time.ParseDuration("8h")
 	repeat, _ := time.ParseDuration("24h")
 	ticker := util.NewScheduler(offset, repeat)
-	events := services.Subscriber.FilteredChannel("rain", "temp", "wind")
 	for {
 		select {
-		case ev := <-events:
-			checkEvent(ev)
 		case <-ticker.C:
 			tick()
 		}
