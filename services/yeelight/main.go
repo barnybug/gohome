@@ -70,7 +70,8 @@ func (self *Service) discover() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, light := range lights {
+	for i := range lights {
+		light := lights[i]
 		self.lights[light.ID] = &light
 		if _, ok := services.Config.Protocols["yeelight"][light.ID]; !ok {
 			log.Printf("New yeelight discovered: %s %s", light.ID, light.Location)
