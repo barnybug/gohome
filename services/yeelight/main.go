@@ -23,6 +23,15 @@ func (self *Service) ID() string {
 
 var reHexCode = regexp.MustCompile(`^#[0-9a-f]{6}$`)
 
+func ack(device, command string) {
+	fields := pubsub.Fields{
+		"device":  device,
+		"command": command,
+	}
+	ev := pubsub.NewEvent("ack", fields)
+	services.Publisher.Emit(ev)
+}
+
 func (self *Service) handleCommand(ev *pubsub.Event) {
 	dev := ev.Device()
 	pids := services.Config.LookupDeviceProtocol(dev)
@@ -63,6 +72,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		case "off":
 			light.PowerOff(duration)
 		}
+		ack(dev, command)
 	} else {
 		log.Println("Device not recognised:", dev)
 	}

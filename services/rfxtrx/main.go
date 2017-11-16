@@ -156,7 +156,7 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 	case *gorfxtrx.TransmitAck:
 		pending := <-self.inflight
 		if p.OK() {
-			fields := map[string]interface{}{
+			fields := pubsub.Fields{
 				"device":  pending.Device(),
 				"command": pending.Command(),
 			}
