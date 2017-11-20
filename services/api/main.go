@@ -180,6 +180,7 @@ func deviceEntry(dev config.DeviceConf, events map[string]interface{}) interface
 	value["caps"] = dev.Caps
 	value["type"] = dev.Type
 	value["group"] = dev.Group
+	value["location"] = dev.Location
 	if events == nil {
 		events = make(map[string]interface{})
 	}

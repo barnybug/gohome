@@ -42,12 +42,13 @@ type CurrentcostConf struct {
 }
 
 type DeviceConf struct {
-	Id    string   `json:"id"`
-	Name  string   `json:"name"`
-	Type  string   `json:"type"`
-	Group string   `json:"group"`
-	Caps  []string `json:"caps"`
-	Cap   map[string]bool
+	Id       string   `json:"id"`
+	Name     string   `json:"name"`
+	Type     string   `json:"type"`
+	Group    string   `json:"group"`
+	Location string   `json:"location"`
+	Caps     []string `json:"caps"`
+	Cap      map[string]bool
 }
 
 type DataloggerConf struct {
