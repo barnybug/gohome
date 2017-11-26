@@ -160,6 +160,9 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 				"device":  pending.Device(),
 				"command": pending.Command(),
 			}
+			if level := pending.IntField("level"); level > 0 {
+				fields["level"] = level
+			}
 			ev = pubsub.NewEvent("ack", fields)
 		} else {
 			log.Printf("Transmit failed: %s for %s\n", packet, pending)

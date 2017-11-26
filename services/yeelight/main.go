@@ -23,15 +23,6 @@ func (self *Service) ID() string {
 
 var reHexCode = regexp.MustCompile(`^#[0-9a-f]{6}$`)
 
-func ack(device, command string) {
-	fields := pubsub.Fields{
-		"device":  device,
-		"command": command,
-	}
-	ev := pubsub.NewEvent("ack", fields)
-	services.Publisher.Emit(ev)
-}
-
 func (self *Service) handleCommand(ev *pubsub.Event) {
 	dev := ev.Device()
 	pids := services.Config.LookupDeviceProtocol(dev)
@@ -44,6 +35,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		return
 	}
 	if light, ok := self.lights[pids["yeelight"]]; ok {
+		log.Printf("Light before: %#v\n", light)
 		log.Printf("Setting device %s to %s\n", dev, command)
 		duration := 500
 		if _, ok := ev.Fields["duration"]; ok {
@@ -72,14 +64,22 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		case "off":
 			light.PowerOff(duration)
 		}
-		ack(dev, command)
+		light.Update()
+		fields := pubsub.Fields{
+			"device":  dev,
+			"command": command,
+			"level":   light.Bright,
+			"temp":    light.ColorTemp,
+		}
+		ev := pubsub.NewEvent("ack", fields)
+		services.Publisher.Emit(ev)
 	} else {
 		log.Println("Device not recognised:", dev)
 	}
 }
 
 func (self *Service) discover() {
-	lights, err := yeelight.Discover(5 * time.Second)
+	lights, err := yeelight.Discover(10 * time.Second)
 	if err != nil {
 		log.Fatal(err)
 	}
