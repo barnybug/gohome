@@ -73,6 +73,7 @@ type EndpointsConf struct {
 
 type EspeakConf struct {
 	Args string
+	Port int
 }
 
 type GeneralEmailConf struct {
