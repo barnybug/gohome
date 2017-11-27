@@ -74,7 +74,7 @@ func speakEndpoint(w http.ResponseWriter, r *http.Request) {
 		err = cmd.Start()
 	}
 	if err != nil {
-		log.Println("Error opening espeak: %s", err)
+		log.Printf("Error opening espeak: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "Error")
 		return
