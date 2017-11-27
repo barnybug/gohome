@@ -6,20 +6,22 @@ package cast
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"net"
+	"net/url"
 	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/barnybug/go-cast"
+	"github.com/barnybug/go-cast/controllers"
 	"github.com/barnybug/go-cast/discovery"
 	"github.com/barnybug/go-cast/events"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 )
 
-// Service xpl
+// Service cast
 type Service struct{}
 
 // ID of the service
@@ -27,7 +29,19 @@ func (service *Service) ID() string {
 	return "cast"
 }
 
-var connected = map[string]bool{}
+// Get preferred outbound ip of this machine
+func GetOutboundIP() net.IP {
+	// no connection actually made
+	conn, err := net.Dial("udp", "240.0.0.1:9")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP
+}
+
+var connected = map[string]*cast.Client{}
 
 func listener(ctx context.Context, client *cast.Client) {
 LOOP:
@@ -36,7 +50,8 @@ LOOP:
 		switch data := event.(type) {
 		case events.Connected:
 			log.Printf("%s: connected", client.Name())
-			connected[client.Name()] = true
+			connected[client.Name()] = client
+
 		case events.Disconnected:
 			log.Printf("%s: disconnected, reconnecting...", client.Name())
 			client.Close()
@@ -94,15 +109,69 @@ func (service *Service) listener(discover *discovery.Service) {
 	log.Println("Listener finished")
 }
 
+func sendAlert(client *cast.Client, message string) error {
+	// open a fresh client - more reliable
+	client = cast.NewClient(client.IP(), client.Port())
+	ctx := context.Background()
+	err := client.Connect(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	media, err := client.Media(ctx)
+	if err != nil {
+		return err
+	}
+	params := url.Values{"text": []string{message}}
+	host := fmt.Sprintf("%s:%d",
+		GetOutboundIP(),
+		services.Config.Espeak.Port)
+	u := url.URL{
+		Scheme:   "http",
+		Host:     host,
+		Path:     "speak",
+		RawQuery: params.Encode(),
+	}
+	item := controllers.MediaItem{
+		ContentId:   u.String(),
+		ContentType: "audio/x-wav",
+		StreamType:  "BUFFERED",
+	}
+	log.Printf("Playing url: %s", u.String())
+	_, err = media.LoadMedia(ctx, item, 0, true, nil)
+	return err
+}
+
+func (service *Service) alerts() {
+	for ev := range services.Subscriber.FilteredChannel("alert") {
+		pids := services.Config.LookupDeviceProtocol(ev.Target())
+		message, ok := ev.Fields["message"].(string)
+		if pids["cast"] == "" || !ok {
+			continue
+		}
+
+		if client, ok := connected[pids["cast"]]; ok {
+			log.Printf("Casting to %s message: %s", pids["cast"], message)
+			err := sendAlert(client, message)
+			if err != nil {
+				log.Printf("Error casting media: %s", err)
+			}
+		} else {
+			log.Printf("Couldn't find cast client: %s", pids["cast"])
+		}
+	}
+}
+
 // Run the service
 func (service *Service) Run() error {
 	// mdns is rather noisy. Disable logging for now.
-	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
+	// log.SetFlags(0)
+	// log.SetOutput(ioutil.Discard)
 	ctx := context.Background()
 	discover := discovery.NewService(ctx)
 
 	go service.listener(discover)
+	go service.alerts()
 
 	discover.Run(ctx, time.Second*300)
 	return nil
