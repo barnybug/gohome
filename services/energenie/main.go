@@ -85,6 +85,7 @@ type Service struct {
 	dev     *ener314.Device
 	targets map[string]float64
 	queue   map[uint32]SensorRequestQueue
+	sender  func(sensorId uint32, request SensorRequest)
 }
 
 func (self *Service) ID() string {
@@ -120,6 +121,27 @@ func emitVoltage(msg *ener314.Message, record ener314.Voltage) {
 	services.Publisher.Emit(ev)
 }
 
+func (self *Service) sendRequest(sensorId uint32, request SensorRequest) {
+	log.Printf("%06x Sending %s\n", sensorId, request)
+	switch request.Action {
+	case TargetTemperature:
+		self.dev.TargetTemperature(sensorId, request.Temperature)
+	case Identify:
+		self.dev.Identify(sensorId)
+	case Diagnostics:
+		self.dev.Diagnostics(sensorId)
+	case Exercise:
+		self.dev.ExerciseValve(sensorId)
+	case Voltage:
+		self.dev.Voltage(sensorId)
+	case ValveState:
+		self.dev.SetValveState(sensorId, request.ValveState)
+	case PowerMode:
+		self.dev.SetPowerMode(sensorId, request.Mode)
+	}
+
+}
+
 func (self *Service) sendQueuedRequests(sensorId uint32) {
 	if qu, ok := self.queue[sensorId]; ok {
 		// sort the requests, so TargetTemps are last
@@ -127,23 +149,7 @@ func (self *Service) sendQueuedRequests(sensorId uint32) {
 
 		var requeue SensorRequestQueue
 		for _, request := range qu {
-			log.Printf("%06x Sending %s\n", sensorId, request)
-			switch request.Action {
-			case TargetTemperature:
-				self.dev.TargetTemperature(sensorId, request.Temperature)
-			case Identify:
-				self.dev.Identify(sensorId)
-			case Diagnostics:
-				self.dev.Diagnostics(sensorId)
-			case Exercise:
-				self.dev.ExerciseValve(sensorId)
-			case Voltage:
-				self.dev.Voltage(sensorId)
-			case ValveState:
-				self.dev.SetValveState(sensorId, request.ValveState)
-			case PowerMode:
-				self.dev.SetPowerMode(sensorId, request.Mode)
-			}
+			self.sender(sensorId, request)
 
 			if request.Repeat > 0 {
 				// requeue any requests to repeat
@@ -348,6 +354,7 @@ func (self *Service) queryX(action Action, q services.Question) string {
 func (self *Service) Initialize() {
 	self.targets = map[string]float64{}
 	self.queue = map[uint32]SensorRequestQueue{}
+	self.sender = self.sendRequest
 }
 
 func (self *Service) Run() error {
