@@ -48,7 +48,6 @@ func TestSending(t *testing.T) {
 
 	ev := pubsub.NewEvent("thermostat", pubsub.Fields{
 		"device": "thermostat.living",
-		"trv":    17.3,
 		"target": 17.0,
 	})
 	service.handleThermostat(ev)
@@ -72,8 +71,17 @@ func TestSending(t *testing.T) {
 	assert.Len(t, sent, 2)
 	assert.Equal(t, Identify, sent[1].Action) // 2nd
 
-	service.handleMessage(&msg)
+	msg2 := ener314.Message{
+		SensorId: 0x00097f,
+		Records:  []ener314.Record{ener314.Temperature{Value: 17}},
+	}
+	service.handleMessage(&msg2)
 	assert.Len(t, sent, 3)
 	assert.Equal(t, TargetTemperature, sent[2].Action) // 3rd
-	assert.Equal(t, 17.3, sent[2].Temperature)
+	assert.Equal(t, 17.0, sent[2].Temperature)
+
+	service.handleMessage(&msg2)
+	assert.Len(t, sent, 4)
+	assert.Equal(t, TargetTemperature, sent[3].Action) // 3rd
+	assert.Equal(t, 17.0, sent[3].Temperature)
 }

@@ -83,9 +83,10 @@ func (s SensorRequest) String() string {
 
 // Service energenie
 type Service struct {
-	dev    *ener314.Device
-	queue  map[uint32]SensorRequestQueue
-	sender func(sensorId uint32, request SensorRequest)
+	dev      *ener314.Device
+	queue    map[uint32]SensorRequestQueue
+	readings map[uint32]float64
+	sender   func(sensorId uint32, request SensorRequest)
 }
 
 func (self *Service) ID() string {
@@ -146,11 +147,19 @@ func (self *Service) sendQueuedRequests(sensorId uint32) {
 	if qu, ok := self.queue[sensorId]; ok {
 		// send head of queue
 		request := qu[0]
-		self.sender(sensorId, request)
-
-		if request.Action != TargetTemperature {
-			// remove from queue (unless temperature target)
-			qu = qu[1:]
+		if request.Action == TargetTemperature {
+			actual := SensorRequest{Action: TargetTemperature, Temperature: request.Temperature}
+			if reading, ok := self.readings[sensorId]; ok && reading < request.Temperature {
+				// Adjust target sent to actual devices upwards if it's colder
+				// than the target currently. The trv valves barely open
+				// +/- 0.1C of the target, which results in running the boiler
+				// without heating.
+				actual.Temperature += services.Config.Heating.Slop
+			}
+			self.sender(sensorId, actual)
+		} else {
+			self.sender(sensorId, request)
+			qu = qu[1:] // remove from queue
 		}
 		if len(qu) > 0 {
 			self.queue[sensorId] = qu
@@ -173,6 +182,7 @@ func (self *Service) handleMessage(msg *ener314.Message) {
 		self.dev.Join(msg.SensorId)
 	case ener314.Temperature:
 		log.Printf("%06x Temperature: %.1f°C\n", msg.SensorId, t.Value)
+		self.readings[msg.SensorId] = t.Value
 		emitTemp(msg, t)
 		// the eTRV is listening - this is the opportunity to send any queued requests
 		self.sendQueuedRequests(msg.SensorId)
@@ -210,9 +220,7 @@ func lookupDevice(sensorId uint32) string {
 }
 
 func (self *Service) handleThermostat(ev *pubsub.Event) {
-	// use adjusted trv target - this is adjusted down because trv valves barely open +/- 0.1C of the target,
-	// which results in running the boiler without heating
-	target, ok := ev.Fields["trv"].(float64)
+	target, ok := ev.Fields["target"].(float64)
 	if !ok {
 		log.Println("Error: thermostat event trv field invalid:", ev)
 		return
@@ -336,6 +344,7 @@ func (self *Service) queryX(action Action, q services.Question) string {
 
 func (self *Service) Initialize() {
 	self.queue = map[uint32]SensorRequestQueue{}
+	self.readings = map[uint32]float64{}
 	self.sender = self.sendRequest
 }
 
