@@ -80,8 +80,10 @@ func TestSending(t *testing.T) {
 	assert.Equal(t, TargetTemperature, sent[2].Action) // 3rd
 	assert.Equal(t, 17.0, sent[2].Temperature)
 
+	service.handleThermostat(ev)
+
 	service.handleMessage(&msg2)
 	assert.Len(t, sent, 4)
-	assert.Equal(t, TargetTemperature, sent[3].Action) // 3rd
+	assert.Equal(t, TargetTemperature, sent[3].Action)
 	assert.Equal(t, 17.0, sent[3].Temperature)
 }

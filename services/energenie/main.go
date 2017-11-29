@@ -234,6 +234,12 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 }
 
 func (self *Service) queueRequest(sensorId uint32, request SensorRequest) {
+	// check if already queued - avoid filling logs with duplicate
+	for _, r := range self.queue[sensorId] {
+		if r.Action == request.Action && r.Temperature == request.Temperature {
+			return
+		}
+	}
 	log.Printf("%06x Queueing %s\n", sensorId, request)
 	self.queue[sensorId] = self.queue[sensorId].Append(request)
 }
