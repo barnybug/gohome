@@ -69,17 +69,11 @@ func TestSending(t *testing.T) {
 	service.handleCommand(ev2)
 
 	service.handleMessage(&msg)
+	assert.Len(t, sent, 2)
+	assert.Equal(t, Identify, sent[1].Action) // 2nd
+
+	service.handleMessage(&msg)
 	assert.Len(t, sent, 3)
-	assert.Equal(t, Identify, sent[1].Action)          // 2nd
 	assert.Equal(t, TargetTemperature, sent[2].Action) // 3rd
 	assert.Equal(t, 17.3, sent[2].Temperature)
-
-	service.handleMessage(&msg)
-	assert.Len(t, sent, 4)
-	assert.Equal(t, TargetTemperature, sent[3].Action) // 4th
-	assert.Equal(t, 17.3, sent[3].Temperature)
-
-	service.handleMessage(&msg)
-
-	assert.Len(t, sent, 4)
 }

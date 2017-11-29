@@ -34,7 +34,6 @@ type SensorRequest struct {
 	Temperature float64
 	ValveState  ener314.ValveState
 	Mode        ener314.PowerMode
-	Repeat      int
 }
 
 type SensorRequestQueue []SensorRequest
@@ -47,7 +46,9 @@ func (q SensorRequestQueue) Append(s SensorRequest) SensorRequestQueue {
 			ret = append(ret, i)
 		}
 	}
-	return append(ret, s)
+	ret = append(ret, s)
+	sort.Sort(ret) // ensure queue stays ordered
+	return ret
 }
 
 func (q SensorRequestQueue) Len() int { return len(q) }
@@ -82,10 +83,9 @@ func (s SensorRequest) String() string {
 
 // Service energenie
 type Service struct {
-	dev     *ener314.Device
-	targets map[string]float64
-	queue   map[uint32]SensorRequestQueue
-	sender  func(sensorId uint32, request SensorRequest)
+	dev    *ener314.Device
+	queue  map[uint32]SensorRequestQueue
+	sender func(sensorId uint32, request SensorRequest)
 }
 
 func (self *Service) ID() string {
@@ -144,22 +144,16 @@ func (self *Service) sendRequest(sensorId uint32, request SensorRequest) {
 
 func (self *Service) sendQueuedRequests(sensorId uint32) {
 	if qu, ok := self.queue[sensorId]; ok {
-		// sort the requests, so TargetTemps are last
-		sort.Sort(qu)
+		// send head of queue
+		request := qu[0]
+		self.sender(sensorId, request)
 
-		var requeue SensorRequestQueue
-		for _, request := range qu {
-			self.sender(sensorId, request)
-
-			if request.Repeat > 0 {
-				// requeue any requests to repeat
-				request.Repeat -= 1
-				requeue = append(requeue, request)
-			}
+		if request.Action != TargetTemperature {
+			// remove from queue (unless temperature target)
+			qu = qu[1:]
 		}
-
-		if len(requeue) > 0 {
-			self.queue[sensorId] = requeue
+		if len(qu) > 0 {
+			self.queue[sensorId] = qu
 		} else {
 			delete(self.queue, sensorId)
 		}
@@ -216,12 +210,6 @@ func lookupDevice(sensorId uint32) string {
 }
 
 func (self *Service) handleThermostat(ev *pubsub.Event) {
-	var current float64
-	var ok bool
-	if current, ok = self.targets[ev.Device()]; !ok {
-		current = -1 // target not set
-	}
-
 	// use adjusted trv target - this is adjusted down because trv valves barely open +/- 0.1C of the target,
 	// which results in running the boiler without heating
 	target, ok := ev.Fields["trv"].(float64)
@@ -229,17 +217,12 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 		log.Println("Error: thermostat event trv field invalid:", ev)
 		return
 	}
-	// resend on the hour
-	if current == target && ev.Timestamp.Minute() != 0 {
-		return // nothing to do
-	}
 
 	// lookup sensorid
 	sensorId := lookupSensorId(ev.Device())
 	if sensorId != 0 {
-		self.queueRequest(sensorId, SensorRequest{Action: TargetTemperature, Temperature: target, Repeat: 2})
+		self.queueRequest(sensorId, SensorRequest{Action: TargetTemperature, Temperature: target})
 	}
-	self.targets[ev.Device()] = target
 }
 
 func (self *Service) queueRequest(sensorId uint32, request SensorRequest) {
@@ -352,7 +335,6 @@ func (self *Service) queryX(action Action, q services.Question) string {
 }
 
 func (self *Service) Initialize() {
-	self.targets = map[string]float64{}
 	self.queue = map[uint32]SensorRequestQueue{}
 	self.sender = self.sendRequest
 }
