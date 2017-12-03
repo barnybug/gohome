@@ -318,7 +318,7 @@ func (self *Service) querySwitch(q services.Question) string {
 }
 
 func parseArgs(args []string) (string, pubsub.Fields) {
-	kwargs := keywordArgs(args[1:])
+	kwargs := keywordArgs(args)
 	command := "on"
 	fields := pubsub.Fields{}
 	for field, value := range kwargs {
