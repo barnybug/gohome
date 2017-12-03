@@ -312,6 +312,12 @@ func (self *Service) querySwitch(q services.Question) string {
 
 	dev := services.Config.Devices[matches[0]]
 	// rest of key=value arguments
+	command, fields := parseArgs(args[1:])
+	sendCommmand(matches[0], command, fields)
+	return fmt.Sprintf("Switched %s %s", dev.Name, command)
+}
+
+func parseArgs(args []string) (string, pubsub.Fields) {
 	kwargs := keywordArgs(args[1:])
 	command := "on"
 	fields := pubsub.Fields{}
@@ -324,11 +330,10 @@ func (self *Service) querySwitch(q services.Question) string {
 			fields[field] = value
 		}
 	}
-	switchCommand(matches[0], command, fields)
-	return fmt.Sprintf("Switched %s %s", dev.Name, command)
+	return command, fields
 }
 
-func switchCommand(name string, command string, params pubsub.Fields) {
+func sendCommmand(name string, command string, params pubsub.Fields) {
 	ev := pubsub.NewEvent("command", params)
 	ev.SetField("command", command)
 	ev.SetField("device", name)
@@ -627,20 +632,18 @@ func (self EventAction) Alert(message string, target string) {
 	services.SendAlert(message, target, "", 0)
 }
 
-func command(device string, cmd string) {
-	ev := pubsub.NewCommand(device, cmd)
-	services.Publisher.Emit(ev)
-}
-
 func (self EventAction) Query(query string) {
 	log.Printf("Query %s", query)
 	services.QueryChannel(query, time.Second*5)
 	// results currently discarded
 }
 
-func (self EventAction) Command(device string, cmd string) {
-	log.Printf("Sending %s %s", device, cmd)
-	command(device, cmd)
+func (self EventAction) Command(text string) {
+	log.Printf("Sending %s", text)
+	args := strings.Split(text, " ")
+	device := args[0]
+	command, fields := parseArgs(args[1:])
+	sendCommmand(device, command, fields)
 }
 
 var stateCommand = map[bool]string{
@@ -650,11 +653,11 @@ var stateCommand = map[bool]string{
 
 func (self EventAction) Switch(device string, state bool) {
 	command := stateCommand[state]
-	switchCommand(device, command, pubsub.Fields{"repeat": 3})
+	sendCommmand(device, command, pubsub.Fields{"repeat": 3})
 }
 
 func (self EventAction) Dim(device string, level int64) {
-	switchCommand(device, "on", pubsub.Fields{"repeat": 3, "level": level})
+	sendCommmand(device, "on", pubsub.Fields{"repeat": 3, "level": level})
 }
 
 func (self EventAction) Snapshot(device string, target string, message string) {
