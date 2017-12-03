@@ -35,7 +35,6 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		return
 	}
 	if light, ok := self.lights[pids["yeelight"]]; ok {
-		log.Printf("Light before: %#v\n", light)
 		log.Printf("Setting device %s to %s\n", dev, command)
 		duration := 500
 		if _, ok := ev.Fields["duration"]; ok {
