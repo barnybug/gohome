@@ -44,6 +44,8 @@ func GetOutboundIP() net.IP {
 var connected = map[string]*cast.Client{}
 
 func listener(ctx context.Context, client *cast.Client) {
+	var stopTimer *time.Timer
+
 LOOP:
 	for {
 		event := <-client.Events
@@ -63,31 +65,38 @@ LOOP:
 				break LOOP
 			}
 		case events.AppStarted:
-			log.Printf("%s: App started: %s (%s)", client.Name(), data.DisplayName, data.AppID)
-			source := fmt.Sprintf("cast.%s", client.Name())
-			fields := map[string]interface{}{
-				"command": "on",
-				"source":  source,
-				"app":     data.DisplayName,
+			if stopTimer != nil {
+				stopTimer.Stop()
 			}
-			ev := pubsub.NewEvent("cast", fields)
-			services.Config.AddDeviceToEvent(ev)
-			services.Publisher.Emit(ev)
+			log.Printf("%s: App started: %s (%s)", client.Name(), data.DisplayName, data.AppID)
+			EmitStopped(client.Name(), "on", data.DisplayName)
 		case events.AppStopped:
 			log.Printf("%s: App stopped: %s (%s)", client.Name(), data.DisplayName, data.AppID)
-			source := fmt.Sprintf("cast.%s", client.Name())
-			fields := map[string]interface{}{
-				"command": "off",
-				"source":  source,
+			// debounce
+			if stopTimer != nil {
+				stopTimer.Stop()
 			}
-			ev := pubsub.NewEvent("cast", fields)
-			services.Config.AddDeviceToEvent(ev)
-			services.Publisher.Emit(ev)
+			stopTimer = time.AfterFunc(3*time.Second, func() {
+				// emit timer event
+				EmitStopped(client.Name(), "off", data.DisplayName)
+			})
 		default:
 			// ignored
 		}
 	}
 
+}
+
+func EmitStopped(name, command, app string) {
+	source := fmt.Sprintf("cast.%s", name)
+	fields := map[string]interface{}{
+		"command": command,
+		"source":  source,
+		"app":     app,
+	}
+	ev := pubsub.NewEvent("cast", fields)
+	services.Config.AddDeviceToEvent(ev)
+	services.Publisher.Emit(ev)
 }
 
 func (service *Service) listener(discover *discovery.Service) {
