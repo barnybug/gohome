@@ -54,11 +54,6 @@ var (
 	service    *Service
 )
 
-func SetupStor() {
-	// setup mock store
-	services.Stor = services.NewMockStore()
-}
-
 func SetupService() {
 	services.Config = config.ExampleConfig
 	yaml.Unmarshal([]byte(configYaml), &testConfig)
@@ -70,7 +65,6 @@ func SetupService() {
 }
 
 func Setup() {
-	SetupStor()
 	SetupService()
 }
 
@@ -122,28 +116,6 @@ func TestStaleTemperature(t *testing.T) {
 	// and stay off
 	service.Heartbeat(timeLater2)
 	assert.False(t, service.State)
-}
-
-func TestTemperatureFromStateOn(t *testing.T) {
-	SetupStor()
-	mockTemp := `{"topic": "temp", "source": "wmr100.2", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000"}`
-	services.Stor.Set("gohome/state/events/temp/temp.hallway", mockTemp)
-	SetupService()
-
-	service.Heartbeat(evCold.Timestamp)
-	// should start On
-	assert.True(t, service.State, "Expected State: true")
-}
-
-func TestTemperatureFromStateOff(t *testing.T) {
-	SetupStor()
-	mockTemp := `{"topic": "temp", "source": "wmr100.2", "temp": 18.0, "timestamp": "2014-01-04 16:00:00.000"}`
-	services.Stor.Set("gohome/state/events/temp/temp.hallway", mockTemp)
-	SetupService()
-
-	service.Heartbeat(evCold.Timestamp)
-	// should start Off
-	assert.False(t, service.State, "Expected State: false")
 }
 
 func TestOccupiedToEmptyToFull(t *testing.T) {

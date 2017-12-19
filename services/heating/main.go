@@ -220,20 +220,6 @@ type Service struct {
 	Publisher     pubsub.Publisher
 }
 
-func sensorTemp(sensor string) (temp float64, at time.Time) {
-	// get temp from store
-	value, err := services.Stor.Get("gohome/state/events/temp/" + sensor)
-	if err != nil {
-		return
-	}
-	event := pubsub.Parse(value)
-	if event != nil {
-		temp, _ = event.Fields["temp"].(float64)
-		at = event.Timestamp
-	}
-	return
-}
-
 func (self *Service) Heartbeat(now time.Time) {
 	self.Check(now, true)
 	// emit event for datalogging
@@ -407,7 +393,6 @@ func (self *Service) ID() string {
 }
 
 func (self *Service) Initialize(em pubsub.Publisher) {
-	services.SetupStore()
 	self.State = false
 	self.Occupied = false // updated by retained state topic
 	self.Publisher = em
@@ -452,16 +437,13 @@ func (self *Service) ConfigUpdated(path string) {
 		}
 		zones[zone] = z
 		sensors[zoneConf.Sensor] = z
-
-		// restore previous temperature
-		temp, at := sensorTemp(zoneConf.Sensor)
-		z.Update(temp, at)
 	}
 	self.HeatingDevice = conf.Device
 	self.Slop = conf.Slop
 	self.Zones = zones
 	self.Sensors = sensors
 	self.Minimum = conf.Minimum
+	log.Printf("%d zones configured", len(self.Zones))
 }
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
