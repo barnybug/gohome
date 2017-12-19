@@ -122,8 +122,16 @@ func emitVoltage(msg *ener314.Message, record ener314.Voltage) {
 	services.Publisher.Emit(ev)
 }
 
+func sensorLog(sensorId uint32, format string, a ...interface{}) {
+	device := lookupDevice(sensorId)
+	if device == "" {
+		device = fmt.Sprintf("%06x", sensorId)
+	}
+	log.Printf(device+" "+format, a...)
+}
+
 func (self *Service) sendRequest(sensorId uint32, request SensorRequest) {
-	log.Printf("%06x Sending %s\n", sensorId, request)
+	sensorLog(sensorId, "Sending %s\n", request)
 	switch request.Action {
 	case TargetTemperature:
 		self.dev.TargetTemperature(sensorId, request.Temperature)
@@ -171,26 +179,26 @@ func (self *Service) sendQueuedRequests(sensorId uint32) {
 
 func (self *Service) handleMessage(msg *ener314.Message) {
 	if len(msg.Records) == 0 {
-		log.Printf("%06x Announced presence\n", msg.SensorId)
+		sensorLog(msg.SensorId, "Announced presence\n")
 		return
 	}
 
 	record := msg.Records[0] // only examine first record
 	switch t := record.(type) {
 	case ener314.Join:
-		log.Printf("%06x Join\n", msg.SensorId)
+		sensorLog(msg.SensorId, "Join\n")
 		self.dev.Join(msg.SensorId)
 	case ener314.Temperature:
-		log.Printf("%06x Temperature: %.1f°C\n", msg.SensorId, t.Value)
+		sensorLog(msg.SensorId, "Temperature: %.1f°C\n", t.Value)
 		self.readings[msg.SensorId] = t.Value
 		emitTemp(msg, t)
 		// the eTRV is listening - this is the opportunity to send any queued requests
 		self.sendQueuedRequests(msg.SensorId)
 	case ener314.Voltage:
-		log.Printf("%06x Voltage: %.3fV\n", msg.SensorId, t.Value)
+		sensorLog(msg.SensorId, "Voltage: %.3fV\n", t.Value)
 		emitVoltage(msg, t)
 	case ener314.Diagnostics:
-		log.Printf("%06x Diagnostics report: %s\n", msg.SensorId, t)
+		sensorLog(msg.SensorId, "Diagnostics report: %s\n", t)
 	}
 }
 
@@ -240,7 +248,7 @@ func (self *Service) queueRequest(sensorId uint32, request SensorRequest) {
 			return
 		}
 	}
-	log.Printf("%06x Queueing %s\n", sensorId, request)
+	sensorLog(sensorId, "Queueing %s\n", request)
 	self.queue[sensorId] = self.queue[sensorId].Append(request)
 }
 
