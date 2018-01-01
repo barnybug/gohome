@@ -409,12 +409,9 @@ func (self *Service) RestoreStore(automata *gofsm.Automata) {
 }
 
 func loadAutomata() error {
-	data, err := services.Stor.Get("gohome/config/automata")
-	if err != nil {
-		return err
-	}
+	c := services.Configured["config/automata"]
 	tmpl := template.New("Automata")
-	tmpl, err = tmpl.Parse(data)
+	tmpl, err := tmpl.Parse(c.Get())
 	if err != nil {
 		return err
 	}

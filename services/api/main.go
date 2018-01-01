@@ -340,12 +340,11 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// retrieve key from store
-	storeKey := "gohome/" + path
-	value, err := services.Stor.Get(storeKey)
-	if err != nil {
-		errorResponse(w, err)
-		return
+	// get existing value
+	c := services.Configured[path]
+	var value string
+	if c != nil {
+		value = c.Get()
 	}
 
 	if r.Method == "GET" {
@@ -360,8 +359,6 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 
 		sout := string(data)
 		if sout != value {
-			// set store
-			services.Stor.Set(storeKey, sout)
 			// emit event
 			fields := pubsub.Fields{
 				"config": sout,

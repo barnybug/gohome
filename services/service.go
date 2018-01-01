@@ -37,7 +37,29 @@ var Publisher pubsub.Publisher
 var Subscriber pubsub.Subscriber
 var Stor Store
 
-var Configured = util.NewEvent()
+type ConfigEntry struct {
+	value string
+	event *util.Event
+}
+
+func (c *ConfigEntry) Wait() {
+	c.event.Wait()
+}
+
+func (c *ConfigEntry) Get() string {
+	c.event.Wait()
+	return c.value
+}
+
+func (c *ConfigEntry) Set(s string) bool {
+	c.value = s
+	return c.event.Set()
+}
+
+var Configured = map[string]*ConfigEntry{
+	"config":          &ConfigEntry{"", util.NewEvent()},
+	"config/automata": &ConfigEntry{"", util.NewEvent()},
+}
 
 func SetupLogging() {
 	log.SetFlags(log.Ltime | log.Lmicroseconds)
@@ -71,9 +93,10 @@ func ConfigWatcher() {
 				continue
 			}
 			Config = conf
-			if Configured.Set() {
-				log.Println("Config updated")
-			}
+		}
+		c := Configured[path]
+		if c.Set(value) {
+			log.Println("Config updated")
 		}
 
 		// notify any interested services
@@ -148,7 +171,7 @@ func Setup() {
 	// listen for config changes
 	go ConfigWatcher()
 	// wait for initial config
-	Configured.Wait()
+	Configured["config"].Wait()
 }
 
 func Launch(ss []string) {
