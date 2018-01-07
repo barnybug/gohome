@@ -82,7 +82,7 @@ func readSensors() {
 			// send data
 			log.Printf("%s: %+v\n", name, sensors)
 			if !checkEvent(sensors) {
-				log.Printf("Ignoring sensor data outside sensible ranges: %s", sensors)
+				log.Printf("Ignoring sensor data outside sensible ranges: %+v", sensors)
 			}
 			sendEvent(name, sensors)
 		}
