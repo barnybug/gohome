@@ -62,12 +62,28 @@ func readFirmware() {
 	})
 }
 
+func checkEvent(sensors miflora.Sensors) bool {
+	if sensors.Temperature < -20 || sensors.Temperature > 50 {
+		return false
+	}
+	if sensors.Moisture > 100 {
+		return false
+	}
+	if sensors.Conductivity > 1000 {
+		return false
+	}
+	return true
+}
+
 func readSensors() {
 	iterateSensors(func(name string, dev *miflora.Miflora) error {
 		sensors, err := dev.ReadSensors()
 		if err == nil {
 			// send data
 			log.Printf("%s: %+v\n", name, sensors)
+			if !checkEvent(sensors) {
+				log.Printf("Ignoring sensor data outside sensible ranges: %s", sensors)
+			}
 			sendEvent(name, sensors)
 		}
 		return err
