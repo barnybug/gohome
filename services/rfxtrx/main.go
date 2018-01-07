@@ -140,6 +140,10 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		ev = pubsub.NewEvent("chime", fields)
 
 	case *gorfxtrx.Power:
+		if p.Power > 14400 {
+			log.Printf("Ignoring bad power value: %s", p)
+			return nil
+		}
 		source := fmt.Sprintf("owl.%04x", p.SensorId)
 		fields := map[string]interface{}{
 			"source":  source,
