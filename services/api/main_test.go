@@ -33,7 +33,7 @@ func ExampleDevices() {
 	apiDevices(rec, &r)
 	fmt.Println(rec.Body)
 	// Output:
-	// {"light.kitchen":{"caps":["light"],"events":{},"group":"downstairs","id":"light.kitchen","name":"Kitchen","type":"light"}}
+	// {"light.kitchen":{"aliases":null,"caps":["light"],"events":{},"group":"downstairs","id":"light.kitchen","name":"Kitchen","type":"light"}}
 }
 
 func ExampleDevicesSingle() {
@@ -43,7 +43,7 @@ func ExampleDevicesSingle() {
 	apiDevicesSingle(rec, &r, map[string]string{"device": "light.kitchen"})
 	fmt.Println(rec.Body)
 	// Output:
-	// {"caps":["light"],"events":{},"group":"downstairs","id":"light.kitchen","name":"Kitchen","type":"light"}
+	// {"aliases":null,"caps":["light"],"events":{},"group":"downstairs","id":"light.kitchen","name":"Kitchen","type":"light"}
 }
 
 func ExampleDevicesSingleNotFound() {
