@@ -48,6 +48,7 @@ type DeviceConf struct {
 	Group    string   `json:"group"`
 	Location string   `json:"location"`
 	Caps     []string `json:"caps"`
+	Aliases  []string `json:"aliases"`
 	Cap      map[string]bool
 }
 
