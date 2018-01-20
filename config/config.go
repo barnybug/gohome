@@ -62,10 +62,6 @@ type EarthConf struct {
 }
 
 type EndpointsConf struct {
-	Nanomsg struct {
-		Pub string
-		Sub string
-	}
 	Mqtt struct {
 		Broker string
 	}

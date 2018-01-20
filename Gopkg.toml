@@ -103,10 +103,6 @@
   version = "1.1.0"
 
 [[constraint]]
-  name = "github.com/gdamore/mangos"
-  version = "1.2.0"
-
-[[constraint]]
   branch = "master"
   name = "github.com/hashicorp/mdns"
 

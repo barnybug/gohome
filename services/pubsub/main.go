@@ -13,7 +13,6 @@ import (
 
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/pubsub/mqtt"
-	"github.com/barnybug/gohome/pubsub/nanomsg"
 	"github.com/barnybug/gohome/services"
 )
 
@@ -34,10 +33,6 @@ func (self *Service) Run() error {
 	// setup subscribers
 	var subscribers []pubsub.Subscriber
 	var publishers []pubsub.Publisher
-	if ep.Nanomsg.Pub != "" {
-		sub := nanomsg.NewSubscriber(ep.Nanomsg.Pub, "", false)
-		subscribers = append(subscribers, sub)
-	}
 	if ep.Mqtt.Broker != "" {
 		broker := mqtt.NewBroker(ep.Mqtt.Broker)
 		pub := broker.Publisher()
@@ -52,14 +47,6 @@ func (self *Service) Run() error {
 	}
 
 	// setup publishers
-	if ep.Nanomsg.Sub != "" {
-		pub := nanomsg.NewPublisher(ep.Nanomsg.Sub, false)
-		publishers = append(publishers, pub)
-		for _, sub := range subscribers {
-			routing[sub] = append(routing[sub], pub)
-		}
-	}
-
 	log.Println("Subscriber endpoints:")
 	for _, sub := range subscribers {
 		log.Println("-", sub.ID())

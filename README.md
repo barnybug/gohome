@@ -34,7 +34,6 @@ Home automation for the geek home. Built in Go.
 ## Services supported
 
 - MQTT
-- Nanomsg
 - Twitter
 - Jabber
 - REST API
@@ -86,7 +85,7 @@ Edit this to match your setup and upload to redis:
 
 gohome runs as a set of distributed and independent processes/services. They
 can run across different hosts connecting to the same network, with the pubsub
-bus (MQTT/nanomsg) connecting all the components together.
+bus (MQTT) connecting all the components together.
 
 To manually run a gohome service:
 

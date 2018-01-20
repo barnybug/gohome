@@ -68,18 +68,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  name = "github.com/gdamore/mangos"
-  packages = [".","protocol/pub","protocol/sub","transport/inproc","transport/tcp"]
-  revision = "7e2b8010de3b57f5880ae5b8201067fd943e3202"
-  version = "v1.2.0"
-
-[[projects]]
-  name = "github.com/go-mangos/mangos"
-  packages = ["."]
-  revision = "7e2b8010de3b57f5880ae5b8201067fd943e3202"
-  version = "v1.2.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/gogo/protobuf"
   packages = ["proto"]
@@ -206,6 +194,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bb0a72b968eb8ab7f636556871b65a82e853ede96ef2dcc5b00352022dc1c066"
+  inputs-digest = "bb9b66a9cc8c75f443172861493c2c88deec398dcb0943d6e9968f901bfc8459"
   solver-name = "gps-cdcl"
   solver-version = 1

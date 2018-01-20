@@ -9,9 +9,6 @@ devices:
     name: Kitchen
     type: light
 endpoints:
-  nanomsg:
-    pub: tcp://127.0.0.1:8792
-    sub: tcp://127.0.0.1:8793
   mqtt:
     broker: tcp://127.0.0.1:1883
 processes:
