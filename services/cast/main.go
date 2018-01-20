@@ -6,6 +6,7 @@ package cast
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/url"
@@ -174,8 +175,8 @@ func (service *Service) alerts() {
 // Run the service
 func (service *Service) Run() error {
 	// mdns is rather noisy. Disable logging for now.
-	// log.SetFlags(0)
-	// log.SetOutput(ioutil.Discard)
+	log.SetFlags(0)
+	log.SetOutput(ioutil.Discard)
 	ctx := context.Background()
 	discover := discovery.NewService(ctx)
 
