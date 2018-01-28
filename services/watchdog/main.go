@@ -179,7 +179,7 @@ func (self *Service) setupPings(now time.Time) {
 		devices[device] = &WatchdogDevice{
 			Name:      host,
 			Type:      "ping",
-			Timeout:   time.Second * 61,
+			Timeout:   time.Second * 301,
 			LastEvent: now,
 		}
 	}
