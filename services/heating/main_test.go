@@ -26,13 +26,16 @@ var (
 	evEmpty = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Empty", "timestamp": "2014-01-04 16:00:00.000"})
 	evFull  = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Full", "timestamp": "2014-01-04 16:00:00.000"})
 
-	evAfterParty = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000"})
+	evAfterParty    = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000"})
+	evBeforeHoliday = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-03 18:00:00.000"})
 )
 var (
 	timeLater  = evHot.Timestamp
 	timeLater2 = evBorderline.Timestamp
 	timeJustOn = time.Date(2014, 1, 4, 10, 20, 0, 0, time.UTC)
 	timeParty  = time.Date(2014, 1, 4, 16, 31, 0, 0, time.UTC)
+
+	timeAway = time.Date(2014, 1, 1, 0, 0, 0, 0, time.UTC)
 )
 var configYaml = `
 device: heater.boiler
@@ -147,6 +150,34 @@ func TestPartyMode(t *testing.T) {
 	assert.True(t, service.State)
 
 	service.Event(evAfterParty)
+	assert.False(t, service.State)
+}
+
+func TestHolidayMode(t *testing.T) {
+	Setup()
+	// house cold and empty initially
+	service.Event(evEmpty)
+	service.Event(evCold)
+	assert.False(t, service.State)
+
+	Clock = func() time.Time { return timeAway }
+	q := services.Question{Verb: "holiday", Args: "3d"}
+	service.queryHoliday(q)
+	fmt.Println(service.Holiday)
+
+	// still off
+	service.Event(evBeforeHoliday)
+	assert.False(t, service.State)
+
+	// almost back from hols
+	service.Event(evCold)
+	assert.True(t, service.State)
+
+	// back - holiday mode cancelled
+	service.Event(evFull)
+
+	// empty again
+	service.Event(evEmpty)
 	assert.False(t, service.State)
 }
 

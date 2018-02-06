@@ -217,6 +217,7 @@ type Service struct {
 	StateChanged  time.Time
 	Occupied      bool
 	Minimum       float64
+	Holiday       time.Time
 	Publisher     pubsub.Publisher
 }
 
@@ -252,6 +253,10 @@ func (self *Service) Event(ev *pubsub.Event) {
 			// house state update
 			state := ev.Fields["state"]
 			self.Occupied = (state != "Empty")
+			if self.Occupied && !self.Holiday.IsZero() {
+				// back from holiday - zero
+				self.Holiday = time.Time{}
+			}
 			self.Check(now, false)
 		}
 	}
@@ -269,7 +274,7 @@ func (self *Service) setParty(zone string, temp float64, duration time.Duration,
 func (self *Service) Target(zone *Zone, now time.Time) float64 {
 	if now.Before(zone.PartyUntil) {
 		return zone.PartyTemp
-	} else if self.Occupied {
+	} else if self.Occupied || (!self.Holiday.IsZero() && now.After(self.Holiday)) {
 		return zone.Schedule.Target(now, self.Minimum)
 	} else {
 		return self.Minimum
@@ -359,6 +364,11 @@ func (self *Service) Status(now time.Time) string {
 			msg += fmt.Sprintf(f+" %.1f°C at %s [%.1f°C]%s", name, zone.Temp, zone.At.Format(time.Stamp), target, star)
 		}
 	}
+
+	if !self.Holiday.IsZero() {
+		msg += fmt.Sprintf("\nHoliday until: %s", self.Holiday.Format(time.ANSIC))
+	}
+
 	return msg
 }
 
@@ -448,11 +458,13 @@ func (self *Service) ConfigUpdated(path string) {
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
-		"status": self.queryStatus,
-		"ch":     services.TextHandler(self.queryCh),
+		"status":  self.queryStatus,
+		"ch":      services.TextHandler(self.queryCh),
+		"holiday": services.TextHandler(self.queryHoliday),
 		"help": services.StaticHandler("" +
 			"status: get status\n" +
-			"ch temp [dur (1h)]: sets heating to temp for duration\n"),
+			"ch temp [duration (1h)]: sets heating to temp for duration\n" +
+			"holiday duration: sets holiday mode for this duration\n"),
 	}
 }
 
@@ -505,4 +517,18 @@ func (self *Service) queryCh(q services.Question) string {
 		}
 	}
 	return fmt.Sprint(err)
+}
+
+func (self *Service) queryHoliday(q services.Question) string {
+	if len(q.Args) == 0 {
+		return "Duration required"
+	}
+	duration, err := util.ParseDuration(q.Args)
+	if err != nil {
+		return fmt.Sprint(err)
+	}
+
+	until := Clock().Add(duration)
+	self.Holiday = until
+	return fmt.Sprintf("Holiday until %s", until.Format(time.ANSIC))
 }
