@@ -466,14 +466,19 @@ func (self *Service) queryStatus(q services.Question) services.Answer {
 
 func parseSet(value string) (err error, zone string, temp float64, duration time.Duration) {
 	vs := strings.Split(value, " ")
-	if len(vs) < 2 {
-		err = errors.New("required at least device and temperature")
+	if value == "" {
+		err = errors.New("Required at least temperature")
 		return
+	}
+	if len(vs) == 1 {
+		// "all"
+		vs = []string{"all", vs[0]}
 	}
 	ps := strings.SplitN(vs[0], ".", 2)
 	zone = ps[len(ps)-1] // drop "thermostat."
 	temp, err = strconv.ParseFloat(vs[1], 64)
 	if err != nil {
+		err = errors.New("Invalid temperature")
 		return
 	}
 	if temp < MinimumTemperature {

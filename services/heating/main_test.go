@@ -164,6 +164,17 @@ func TestPartyModeAll(t *testing.T) {
 	assert.True(t, service.State)
 }
 
+func TestPartyModeTempOnly(t *testing.T) {
+	Setup()
+	service.Event(evHot)
+	assert.False(t, service.State)
+
+	Clock = func() time.Time { return timeParty }
+	q := services.Question{Verb: "ch", Args: "20"}
+	service.queryCh(q)
+	assert.True(t, service.State)
+}
+
 func TestHolidayMode(t *testing.T) {
 	Setup()
 	// house cold and empty initially
@@ -239,11 +250,11 @@ var testQueries = []struct {
 }{
 	{
 		"",
-		"required at least device and temperature",
+		"Required at least temperature",
 	},
 	{
 		"abc",
-		"required at least device and temperature",
+		"Invalid temperature",
 	},
 	{
 		"hallway 18",
