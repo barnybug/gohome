@@ -145,8 +145,8 @@ func TestPartyMode(t *testing.T) {
 	assert.False(t, service.State)
 
 	Clock = func() time.Time { return timeParty }
-	q := services.Question{Verb: "ch", Args: "thermostat.hallway 20 30m"}
-	service.queryCh(q)
+	q := services.Question{Verb: "party", Args: "thermostat.hallway 20 30m"}
+	service.queryParty(q)
 	assert.True(t, service.State)
 
 	service.Event(evAfterParty)
@@ -159,8 +159,8 @@ func TestPartyModeAll(t *testing.T) {
 	assert.False(t, service.State)
 
 	Clock = func() time.Time { return timeParty }
-	q := services.Question{Verb: "ch", Args: "all 20 30m"}
-	service.queryCh(q)
+	q := services.Question{Verb: "party", Args: "all 20 30m"}
+	service.queryParty(q)
 	assert.True(t, service.State)
 }
 
@@ -170,8 +170,8 @@ func TestPartyModeTempOnly(t *testing.T) {
 	assert.False(t, service.State)
 
 	Clock = func() time.Time { return timeParty }
-	q := services.Question{Verb: "ch", Args: "20"}
-	service.queryCh(q)
+	q := services.Question{Verb: "party", Args: "20"}
+	service.queryParty(q)
 	assert.True(t, service.State)
 }
 
@@ -295,7 +295,7 @@ func TestQueries(t *testing.T) {
 	Clock = func() time.Time { return evBorderline.Timestamp }
 	service.Event(evCold)
 	for _, tt := range testQueries {
-		actual := service.queryCh(services.Question{"ch", tt.query, ""})
+		actual := service.queryParty(services.Question{"party", tt.query, ""})
 		assert.Equal(t, tt.response, actual)
 	}
 }

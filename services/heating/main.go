@@ -1,6 +1,7 @@
 // Service to thermostatically control central heating by schedule and zone.
-// Supports multiple temperature points on a daily schedule, temporary override
-// ('party mode'), and hibernation when the house is empty.
+// Supports multiple temperature points on a daily schedule, temporary
+// override ('party mode'), hibernation when the house is empty and advanced
+// preheating ('holiday mode').
 package heating
 
 import (
@@ -447,11 +448,12 @@ func (self *Service) ConfigUpdated(path string) {
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status":  self.queryStatus,
-		"ch":      services.TextHandler(self.queryCh),
+		"ch":      services.TextHandler(self.queryParty),
+		"party":   services.TextHandler(self.queryParty),
 		"holiday": services.TextHandler(self.queryHoliday),
 		"help": services.StaticHandler("" +
 			"status: get status\n" +
-			"ch temp [duration (1h)]: sets heating to temp for duration\n" +
+			"party [zone] temp [duration (1h)]: sets heating to temp for duration\n" +
 			"holiday duration: sets holiday mode for this duration\n"),
 	}
 }
@@ -464,7 +466,7 @@ func (self *Service) queryStatus(q services.Question) services.Answer {
 	}
 }
 
-func parseSet(value string) (err error, zone string, temp float64, duration time.Duration) {
+func parseParty(value string) (err error, zone string, temp float64, duration time.Duration) {
 	vs := strings.Split(value, " ")
 	if value == "" {
 		err = errors.New("Required at least temperature")
@@ -499,8 +501,8 @@ func parseSet(value string) (err error, zone string, temp float64, duration time
 	return
 }
 
-func (self *Service) queryCh(q services.Question) string {
-	err, zone, temp, duration := parseSet(q.Args)
+func (self *Service) queryParty(q services.Question) string {
+	err, zone, temp, duration := parseParty(q.Args)
 	if err == nil {
 		now := Clock()
 		err = self.setParty(zone, temp, duration, now)
