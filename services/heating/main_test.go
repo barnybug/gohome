@@ -153,6 +153,17 @@ func TestPartyMode(t *testing.T) {
 	assert.False(t, service.State)
 }
 
+func TestPartyModeAll(t *testing.T) {
+	Setup()
+	service.Event(evHot)
+	assert.False(t, service.State)
+
+	Clock = func() time.Time { return timeParty }
+	q := services.Question{Verb: "ch", Args: "all 20 30m"}
+	service.queryCh(q)
+	assert.True(t, service.State)
+}
+
 func TestHolidayMode(t *testing.T) {
 	Setup()
 	// house cold and empty initially

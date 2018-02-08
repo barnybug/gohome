@@ -245,8 +245,13 @@ func (self *Service) Event(ev *pubsub.Event) {
 	}
 }
 
-func (self *Service) setParty(zone string, temp float64, duration time.Duration, at time.Time) error {
-	if zone, ok := self.Zones[zone]; ok {
+func (self *Service) setParty(name string, temp float64, duration time.Duration, at time.Time) error {
+	if name == "all" {
+		for _, zone := range self.Zones {
+			zone.setParty(temp, duration, at)
+		}
+		return nil
+	} else if zone, ok := self.Zones[name]; ok {
 		zone.setParty(temp, duration, at)
 		return nil
 	} else {
