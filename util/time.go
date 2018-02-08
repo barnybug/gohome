@@ -134,7 +134,24 @@ func ShortDuration(d time.Duration) string {
 	return "0s"
 }
 
-var reParts = regexp.MustCompile(`([0-9]+(?:\.[0-9]+)?)([smhdwy])\s*`)
+var DOW = map[string]time.Weekday{
+	"Monday":    time.Monday,
+	"Tuesday":   time.Tuesday,
+	"Wednesday": time.Wednesday,
+	"Thursday":  time.Thursday,
+	"Friday":    time.Friday,
+	"Saturday":  time.Saturday,
+	"Sunday":    time.Sunday,
+	"Mon":       time.Monday,
+	"Tue":       time.Tuesday,
+	"Wed":       time.Wednesday,
+	"Thu":       time.Thursday,
+	"Fri":       time.Friday,
+	"Sat":       time.Saturday,
+	"Sun":       time.Sunday,
+}
+
+var reParts = regexp.MustCompile(`(\d+(?:\.\d+)?)([smhdwy])\s*`)
 
 var durationUnits = map[string]time.Duration{
 	"s": time.Second,
@@ -145,28 +162,70 @@ var durationUnits = map[string]time.Duration{
 	"y": 365 * 24 * time.Hour,
 }
 
+var reDur1 = regexp.MustCompile(`^(\d+(?:\.\d+)?)([smhdwy])$`)
+var reDur2 = regexp.MustCompile(`^(\d+(?:\.\d+)?)([smhdwy])\s*(\d+(?:\.\d+)?)([smhdwy])$`)
+
+func duration(m []string) time.Duration {
+	var i int
+	i, _ = strconv.Atoi(m[0])
+	return time.Duration(i) * durationUnits[m[1]]
+}
+
 // ParseDuration does the same as time.ParseDuration but understands more
 // units (d for day, w for week, y for year).
 func ParseDuration(s string) (total time.Duration, err error) {
 	s = strings.TrimSpace(s)
-	previous := 0
-	for _, submatch := range reParts.FindAllStringSubmatchIndex(s, -1) {
-		if submatch[0] != previous {
-			err = fmt.Errorf("time: invalid duration %s", s[previous:submatch[0]])
-			break
-		}
-		previous = submatch[1]
-		n := s[submatch[2]:submatch[3]]
-		u := s[submatch[4]:submatch[5]]
-		i, er := strconv.Atoi(n)
-		if er != nil {
-			err = er
-			break
-		}
-		total += time.Duration(i) * durationUnits[u]
+
+	m1 := reDur1.FindStringSubmatch(s)
+	if m1 != nil {
+		return duration(m1[1:3]), nil
 	}
-	if previous != len(s) {
-		err = fmt.Errorf("time: invalid duration %s", s[previous:])
+
+	m2 := reDur2.FindStringSubmatch(s)
+	if m2 != nil {
+		return duration(m2[1:3]) + duration(m2[3:5]), nil
 	}
-	return
+
+	return 0, errors.New("invalid duration")
+}
+
+const weekday = "(Sun|Mon|Tue|Wed|Thu|Fri|Sat|Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)"
+
+var reWeekday = regexp.MustCompile("^" + weekday + "$")
+var reWeekdayTime = regexp.MustCompile("^" + weekday + ` (\d+(?:am|pm))$`)
+
+func ParseDay(now time.Time, s string) time.Time {
+	n := int(DOW[s] - now.Weekday())
+	if n <= 0 {
+		n += 7
+	}
+	return now.Truncate(time.Hour * 24).Add(24 * time.Hour * time.Duration(n))
+}
+
+func ParseTime(s string) time.Duration {
+	t, _ := time.Parse("3pm", s)
+	return time.Hour * time.Duration(t.Hour())
+}
+
+// ParseRelative understands durations and relative time points (eg Sunday 7pm)
+func ParseRelative(now time.Time, s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+
+	d, err := ParseDuration(s)
+	if err == nil {
+		return now.Add(d), nil
+	}
+
+	m1 := reWeekday.FindStringSubmatch(s)
+	if m1 != nil {
+		return ParseDay(now, m1[1]), nil
+	}
+
+	m2 := reWeekdayTime.FindStringSubmatch(s)
+	if m2 != nil {
+		d := ParseDay(now, m2[1]).Add(ParseTime(m2[2]))
+		return d, nil
+	}
+
+	return time.Time{}, errors.New("invalid relative time")
 }

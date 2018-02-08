@@ -244,7 +244,7 @@ var testQueries = []struct {
 	},
 	{
 		"hallway 18 xyz",
-		"time: invalid duration xyz",
+		"invalid duration",
 	},
 	{
 		"hallway 18 1m",

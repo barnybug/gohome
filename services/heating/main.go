@@ -40,23 +40,6 @@ const (
 	MaximumTemperature = 25.0
 )
 
-var DOW = map[string]time.Weekday{
-	time.Monday.String():    time.Monday,
-	time.Tuesday.String():   time.Tuesday,
-	time.Wednesday.String(): time.Wednesday,
-	time.Thursday.String():  time.Thursday,
-	time.Friday.String():    time.Friday,
-	time.Saturday.String():  time.Saturday,
-	time.Sunday.String():    time.Sunday,
-	"Mon":                   time.Monday,
-	"Tue":                   time.Tuesday,
-	"Wed":                   time.Wednesday,
-	"Thu":                   time.Thursday,
-	"Fri":                   time.Friday,
-	"Sat":                   time.Saturday,
-	"Sun":                   time.Sunday,
-}
-
 var reHourMinuteRange = regexp.MustCompile(`^(\d+):(\d+)-(\d+):(\d+)$`)
 
 func ParseHourMinuteRange(s string) (int, int, error) {
@@ -110,15 +93,15 @@ func ParseWeekdays(s string) ([]time.Weekday, error) {
 			}
 			var start, end time.Weekday
 			var ok bool
-			if start, ok = DOW[ps[0]]; !ok {
+			if start, ok = util.DOW[ps[0]]; !ok {
 				return nil, fmt.Errorf("Invalid weekday: %s", ps[0])
 			}
-			if end, ok = DOW[ps[1]]; !ok {
+			if end, ok = util.DOW[ps[1]]; !ok {
 				return nil, fmt.Errorf("Invalid weekday: %s", ps[1])
 			}
 			weekdays = append(weekdays, WeekdayRange(start, end)...)
 		} else {
-			if weekday, ok := DOW[d]; ok {
+			if weekday, ok := util.DOW[d]; ok {
 				weekdays = append(weekdays, weekday)
 			} else {
 				return nil, fmt.Errorf("Invalid weekday: %s", weekday)
@@ -523,12 +506,11 @@ func (self *Service) queryHoliday(q services.Question) string {
 	if len(q.Args) == 0 {
 		return "Duration required"
 	}
-	duration, err := util.ParseDuration(q.Args)
+	until, err := util.ParseRelative(Clock(), q.Args)
 	if err != nil {
 		return fmt.Sprint(err)
 	}
 
-	until := Clock().Add(duration)
 	self.Holiday = until
 	return fmt.Sprintf("Holiday until %s", until.Format(time.ANSIC))
 }

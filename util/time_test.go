@@ -126,3 +126,32 @@ func TestParseDurationError(t *testing.T) {
 		assert.Error(t, err)
 	}
 }
+
+var testParseRelativeTable = []struct {
+	s string
+	t string
+}{
+	{"1s", "2018-02-04T10:20:01Z"},
+	{"1m", "2018-02-04T10:21:00Z"},
+	{"1h", "2018-02-04T11:20:00Z"},
+	{"1d", "2018-02-05T10:20:00Z"},
+	{"1w", "2018-02-11T10:20:00Z"},
+	{"1y", "2019-02-04T10:20:00Z"},
+
+	{"Sat", "2018-02-10T00:00:00Z"},
+	{"Sun", "2018-02-11T00:00:00Z"},
+	{"Mon", "2018-02-05T00:00:00Z"},
+	{"Monday", "2018-02-05T00:00:00Z"},
+
+	{"Sat 7am", "2018-02-10T07:00:00Z"},
+	{"Sun 1pm", "2018-02-11T13:00:00Z"},
+}
+
+func TestParseRelative(t *testing.T) {
+	now := time.Date(2018, 2, 4, 10, 20, 0, 0, time.UTC) // Sunday
+	for _, conf := range testParseRelativeTable {
+		tm, err := ParseRelative(now, conf.s)
+		assert.NoError(t, err)
+		assert.Equal(t, conf.t, tm.Format(time.RFC3339))
+	}
+}
