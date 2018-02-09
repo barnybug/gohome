@@ -214,6 +214,16 @@ func apiDevicesSingle(w http.ResponseWriter, r *http.Request, params map[string]
 	}
 }
 
+func matchDevices(n string) []string {
+	matches := []string{}
+	for name, dev := range services.Config.Devices {
+		if strings.Contains(name, n) && dev.IsSwitchable() {
+			matches = append(matches, name)
+		}
+	}
+	return matches
+}
+
 func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	device := q.Get("id")
@@ -226,6 +236,18 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 			command = "off"
 		}
 	}
+
+	matches := matchDevices(device)
+	if len(matches) == 0 {
+		badRequest(w, errors.New("device not found"))
+		return
+	}
+	if len(matches) > 1 {
+		badRequest(w, errors.New("device is ambiguous"))
+		return
+	}
+	device = matches[0]
+
 	// send command
 	ev := pubsub.NewCommand(device, command)
 	if q.Get("repeat") != "" {

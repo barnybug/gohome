@@ -52,6 +52,10 @@ type DeviceConf struct {
 	Cap      map[string]bool
 }
 
+func (d DeviceConf) IsSwitchable() bool {
+	return d.Cap["switch"]
+}
+
 type DataloggerConf struct {
 	Path string
 }

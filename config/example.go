@@ -8,6 +8,7 @@ devices:
     group: downstairs
     name: Kitchen
     type: light
+    caps: [switch]
 endpoints:
   mqtt:
     broker: tcp://127.0.0.1:1883
