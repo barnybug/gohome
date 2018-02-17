@@ -215,6 +215,10 @@ func apiDevicesSingle(w http.ResponseWriter, r *http.Request, params map[string]
 }
 
 func matchDevices(n string) []string {
+	if _, ok := services.Config.Devices[n]; ok {
+		return []string{n}
+	}
+
 	matches := []string{}
 	for name, dev := range services.Config.Devices {
 		if strings.Contains(name, n) && dev.IsSwitchable() {
