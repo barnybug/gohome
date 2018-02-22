@@ -201,6 +201,7 @@ type Service struct {
 	StateChanged  time.Time
 	Occupied      bool
 	Minimum       float64
+	Unoccupied    float64
 	Holiday       time.Time
 	Publisher     pubsub.Publisher
 }
@@ -266,7 +267,7 @@ func (self *Service) Target(zone *Zone, now time.Time) float64 {
 	} else if self.Occupied || (!self.Holiday.IsZero() && now.After(self.Holiday)) {
 		return zone.Schedule.Target(now, self.Minimum)
 	} else {
-		return self.Minimum
+		return self.Unoccupied
 	}
 }
 
@@ -442,6 +443,7 @@ func (self *Service) ConfigUpdated(path string) {
 	self.Zones = zones
 	self.Sensors = sensors
 	self.Minimum = conf.Minimum
+	self.Unoccupied = conf.Unoccupied
 	log.Printf("%d zones configured", len(self.Zones))
 }
 

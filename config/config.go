@@ -115,10 +115,11 @@ type ZoneConf struct {
 }
 
 type HeatingConf struct {
-	Device  string
-	Zones   map[string]ZoneConf
-	Slop    float64
-	Minimum float64
+	Device     string
+	Zones      map[string]ZoneConf
+	Slop       float64
+	Minimum    float64
+	Unoccupied float64
 }
 
 type IrrigationConf struct {

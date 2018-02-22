@@ -19,7 +19,7 @@ import (
 var (
 	evOff        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-04 10:19:00.000"})
 	evCold       = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-04 16:00:00.000"})
-	evColder     = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 9.0, "timestamp": "2014-01-04 16:00:00.000"})
+	evColder     = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 4.0, "timestamp": "2014-01-04 16:00:00.000"})
 	evBorderline = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 14.2, "timestamp": "2014-01-04 16:10:00.000"})
 	evHot        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 16:31:00.000"})
 
@@ -50,6 +50,7 @@ zones:
         - 07:30-08:10: 18.0
         - 17:30-22:20: 18.0
 minimum: 10.0
+unoccupied: 5.0
 `
 var (
 	testConfig config.HeatingConf
