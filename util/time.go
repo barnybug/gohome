@@ -189,12 +189,13 @@ func ParseDuration(s string) (total time.Duration, err error) {
 	return 0, errors.New("invalid duration")
 }
 
-const weekday = "(Sun|Mon|Tue|Wed|Thu|Fri|Sat|Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)"
+const weekday = "(?i)(Sun|Mon|Tue|Wed|Thu|Fri|Sat|Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)"
 
 var reWeekday = regexp.MustCompile("^" + weekday + "$")
 var reWeekdayTime = regexp.MustCompile("^" + weekday + ` (\d+(?:am|pm))$`)
 
 func ParseDay(now time.Time, s string) time.Time {
+	s = strings.Title(s)
 	n := int(DOW[s] - now.Weekday())
 	if n <= 0 {
 		n += 7
