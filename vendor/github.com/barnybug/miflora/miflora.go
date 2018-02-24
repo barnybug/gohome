@@ -2,6 +2,7 @@ package miflora
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"os/exec"
@@ -92,6 +93,28 @@ func (m *Miflora) enableRealtimeDataReading() error {
 	return gattCharWrite(m.mac, "0x33", "A01F", m.adapter)
 }
 
+func decodeSensors(data []byte) Sensors {
+	p := bytes.NewBuffer(data)
+	var t int16
+	var m uint8
+	var l, c uint16
+
+	// TT TT ?? LL LL ?? ?? MM CC CC
+	binary.Read(p, binary.LittleEndian, &t)
+	p.Next(1)
+	binary.Read(p, binary.LittleEndian, &l)
+	p.Next(2)
+	binary.Read(p, binary.LittleEndian, &m)
+	binary.Read(p, binary.LittleEndian, &c)
+
+	return Sensors{
+		Temperature:  float64(t) / 10,
+		Moisture:     m,
+		Light:        l,
+		Conductivity: c,
+	}
+}
+
 func (m *Miflora) ReadSensors() (Sensors, error) {
 	if m.firmware.Version >= "2.6.6" {
 		// newer firmwares explicitly need realtime reading enabling
@@ -105,11 +128,5 @@ func (m *Miflora) ReadSensors() (Sensors, error) {
 	if err != nil {
 		return Sensors{}, err
 	}
-	s := Sensors{
-		Temperature:  float64(int16(data[1])*256+int16(data[0])) / 10,
-		Moisture:     data[7],
-		Light:        uint16(data[4])*256 + uint16(data[3]),
-		Conductivity: uint16(data[9])*256 + uint16(data[8]),
-	}
-	return s, nil
+	return decodeSensors(data), nil
 }

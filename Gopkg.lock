@@ -41,7 +41,7 @@
   branch = "master"
   name = "github.com/barnybug/miflora"
   packages = ["."]
-  revision = "45743b8ad2a555644443bbab09181e067517321c"
+  revision = "3af98775a409c403edd63a0208e1758dca02e450"
 
 [[projects]]
   branch = "master"
