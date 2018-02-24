@@ -106,7 +106,7 @@ func (m *Miflora) ReadSensors() (Sensors, error) {
 		return Sensors{}, err
 	}
 	s := Sensors{
-		Temperature:  float64(uint16(data[1])*256+uint16(data[0])) / 10,
+		Temperature:  float64(int16(data[1])*256+int16(data[0])) / 10,
 		Moisture:     data[7],
 		Light:        uint16(data[4])*256 + uint16(data[3]),
 		Conductivity: uint16(data[9])*256 + uint16(data[8]),
