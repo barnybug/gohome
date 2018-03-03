@@ -161,27 +161,7 @@ func main() {
 	case "run":
 		service(ps)
 	case "switch":
-		if len(ps) < 2 {
-			usage()
-			return
-		}
-
-		params := url.Values{
-			"id":      []string{ps[0]},
-			"command": []string{ps[1]},
-		}
-		for _, arg := range ps[2:] {
-			ps := strings.SplitN(arg, "=", 2)
-			if len(ps) > 1 {
-				params[ps[0]] = ps[1:2]
-			}
-		}
-		resp, err := request("devices/control", params)
-		if err != nil {
-			fmtFatalf("error: %s\n")
-		}
-		defer resp.Body.Close()
-		io.Copy(os.Stdout, resp.Body)
+		commandSwitch(ps)
 	case "query":
 		if len(ps) == 0 {
 			usage()
@@ -191,6 +171,30 @@ func main() {
 	case "logs":
 		stream("logs", emptyParams)
 	}
+}
+
+func commandSwitch(ps []string) {
+	if len(ps) < 2 {
+		usage()
+		return
+	}
+
+	params := url.Values{
+		"id":      []string{ps[0]},
+		"command": []string{ps[1]},
+	}
+	for _, arg := range ps[2:] {
+		ps := strings.SplitN(arg, "=", 2)
+		if len(ps) > 1 {
+			params[ps[0]] = ps[1:2]
+		}
+	}
+	resp, err := request("devices/control", params)
+	if err != nil {
+		fmtFatalf("error: %s\n", err)
+	}
+	defer resp.Body.Close()
+	io.Copy(os.Stdout, resp.Body)
 }
 
 // Start builtin services
