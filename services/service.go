@@ -32,6 +32,7 @@ type ConfigSubscriber interface {
 var serviceMap map[string]Service = map[string]Service{}
 var enabled []Service
 var Config *config.Config
+var RawConfig []byte
 
 var Publisher pubsub.Publisher
 var Subscriber pubsub.Subscriber
@@ -93,6 +94,7 @@ func ConfigWatcher() {
 				continue
 			}
 			Config = conf
+			RawConfig = []byte(value)
 		}
 		c := Configured[path]
 		if c.Set(value) {
