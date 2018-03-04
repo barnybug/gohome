@@ -80,7 +80,7 @@ func mappedDevice(ev *pubsub.Event) {
 }
 
 func unmappedDevice(ev *pubsub.Event) {
-	if _, ok := services.Config.LookupSource(ev); ok {
+	if _, ok := services.Config.LookupSource(ev.Source()); ok {
 		// ignored
 		return
 	}

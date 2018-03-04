@@ -286,14 +286,14 @@ func OpenRaw(data []byte) (*Config, error) {
 }
 
 func (self *Config) AddDeviceToEvent(ev *pubsub.Event) {
-	if device, _ := self.LookupSource(ev); device != "" {
+	if device, _ := self.LookupSource(ev.Source()); device != "" {
 		ev.SetField("device", device)
 	}
 }
 
-func (self *Config) LookupSource(ev *pubsub.Event) (string, bool) {
+func (self *Config) LookupSource(source string) (string, bool) {
 	// split source into protocol.id
-	ps := strings.SplitN(ev.Source(), ".", 2)
+	ps := strings.SplitN(source, ".", 2)
 	protocol := ps[0]
 	var id string
 	if len(ps) > 1 {

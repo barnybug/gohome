@@ -3,6 +3,7 @@ package yeelight
 
 import (
 	"encoding/hex"
+	"fmt"
 	"log"
 	"regexp"
 	"time"
@@ -77,6 +78,17 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 	}
 }
 
+func announce(light yeelight.Light) {
+	source := fmt.Sprintf("yeelight.%s", light.ID)
+	fields := pubsub.Fields{
+		"source":   source,
+		"name":     light.Name,
+		"location": light.Location,
+	}
+	ev := pubsub.NewEvent("announce", fields)
+	services.Publisher.Emit(ev)
+}
+
 func (self *Service) discover() {
 	lights, err := yeelight.Discover(10 * time.Second)
 	if err != nil {
@@ -85,8 +97,10 @@ func (self *Service) discover() {
 	for i := range lights {
 		light := lights[i]
 		self.lights[light.ID] = &light
-		if _, ok := services.Config.Protocols["yeelight"][light.ID]; !ok {
-			log.Printf("New yeelight discovered: %s %s", light.ID, light.Location)
+		source := fmt.Sprintf("yeelight.%s", light.ID)
+		if _, ok := services.Config.LookupSource(source); !ok {
+			log.Printf("Announcing new yeelight discovered: %s %s", light.ID, light.Location)
+			announce(light)
 		}
 	}
 }
