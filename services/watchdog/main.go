@@ -56,10 +56,8 @@ func sendAlert(name string, state bool, since time.Time) {
 	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
 }
 
-var ignoreTopics = map[string]bool{
-	"log":   true,
-	"rpc":   true,
-	"query": true,
+func ignoreTopics(topic string) bool {
+	return topic == "log" || topic == "rpc" || topic == "query" || strings.HasPrefix(topic, "_")
 }
 
 func checkEvent(ev *pubsub.Event) {
@@ -67,7 +65,7 @@ func checkEvent(ev *pubsub.Event) {
 	if device != "" {
 		mappedDevice(ev)
 		touch(device, ev.Timestamp)
-	} else if ev.Source() != "" && !ignoreTopics[ev.Topic] {
+	} else if ev.Source() != "" && !ignoreTopics(ev.Topic) {
 		unmappedDevice(ev)
 	}
 }
