@@ -40,7 +40,8 @@ func (self WatchdogDevices) Swap(i, j int) {
 	self[i], self[j] = self[j], self[i]
 }
 
-var devices map[string]*WatchdogDevice
+var devices = map[string]*WatchdogDevice{}
+var unmapped = map[string]bool{}
 var repeatInterval, _ = time.ParseDuration("12h")
 
 func sendAlert(name string, state bool, since time.Time) {
@@ -55,9 +56,62 @@ func sendAlert(name string, state bool, since time.Time) {
 	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
 }
 
+var ignoreTopics = map[string]bool{
+	"log":   true,
+	"rpc":   true,
+	"query": true,
+}
+
 func checkEvent(ev *pubsub.Event) {
 	device := ev.Device()
-	touch(device, ev.Timestamp)
+	if device != "" {
+		mappedDevice(ev)
+		touch(device, ev.Timestamp)
+	} else if ev.Source() != "" && !ignoreTopics[ev.Topic] {
+		unmappedDevice(ev)
+	}
+}
+
+func mappedDevice(ev *pubsub.Event) {
+	if _, ok := unmapped[ev.Source()]; ok {
+		delete(unmapped, ev.Source())
+		announce(ev, true)
+	}
+}
+
+func unmappedDevice(ev *pubsub.Event) {
+	if _, ok := services.Config.LookupSource(ev); ok {
+		// ignored
+		return
+	}
+	if _, ok := unmapped[ev.Source()]; ok {
+		// already alerted
+		return
+	}
+	unmapped[ev.Source()] = true
+	announce(ev, false)
+}
+
+func announce(ev *pubsub.Event, mapped bool) {
+	source := ev.Source()
+	if mapped {
+		log.Printf("Announcing mapped device %s\n", source)
+	} else {
+		log.Printf("Announcing new device %s\n", source)
+	}
+	var message string
+	if mapped {
+		dev := services.Config.Devices[source]
+		message = fmt.Sprintf("✔️ Device configured %s", dev.Name)
+	} else {
+		// some discovered devices have friendly names (eg tradfri)
+		name := ev.StringField("name")
+		if name == "" {
+			name = "New device"
+		}
+		message = fmt.Sprintf("🔎 %s found %s emitting %s events", name, source, ev.Topic)
+	}
+	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
 }
 
 func touch(device string, timestamp time.Time) {
@@ -130,7 +184,6 @@ func (self *Service) ConfigUpdated(path string) {
 }
 
 func (self *Service) setup() {
-	devices = map[string]*WatchdogDevice{}
 	now := time.Now()
 	self.setupDevices(now)
 	self.setupHeartbeats(now)
@@ -227,8 +280,9 @@ func (self *Service) Run() error {
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
-		"status": services.TextHandler(self.queryStatus),
-		"help":   services.StaticHandler("status: get status\n"),
+		"status":     services.TextHandler(self.queryStatus),
+		"discovered": services.TextHandler(self.queryDiscovered),
+		"help":       services.StaticHandler("status: get status\n"),
 	}
 }
 
@@ -249,6 +303,14 @@ func (self *Service) queryStatus(q services.Question) string {
 		}
 		ago := util.ShortDuration(now.Sub(w.LastEvent))
 		out += fmt.Sprintf("- %-6s %7s %s %s\n", ago, w.Type, w.Name, problem)
+	}
+	return out
+}
+
+func (self *Service) queryDiscovered(q services.Question) string {
+	out := fmt.Sprintf("%d new devices discovered\n", len(unmapped))
+	for source := range unmapped {
+		out += fmt.Sprintf("%s\n", source)
 	}
 	return out
 }
