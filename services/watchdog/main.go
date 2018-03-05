@@ -99,7 +99,7 @@ func announce(ev *pubsub.Event, mapped bool) {
 	}
 	var message string
 	if mapped {
-		dev := services.Config.Devices[source]
+		dev := services.Config.Devices[ev.Device()]
 		message = fmt.Sprintf("✔️ Device configured %s", dev.Name)
 	} else {
 		// some discovered devices have friendly names (eg tradfri)
