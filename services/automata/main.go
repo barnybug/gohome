@@ -369,45 +369,6 @@ func (self *Service) queryLogs(q services.Question) string {
 	return string(data)
 }
 
-func (self *Service) PersistFile(automata *gofsm.Automata) {
-	w, err := os.Create(config.ConfigPath("automata.state"))
-	if err != nil {
-		log.Fatalln("Persisting automata state failed:", err)
-	}
-	defer w.Close()
-	enc := json.NewEncoder(w)
-	enc.Encode(automata.Persist())
-}
-
-func (self *Service) PersistStore(automata *gofsm.Automata, automaton string) {
-	state := automata.Persist()
-	v := state[automaton]
-	key := "gohome/state/automata/" + automaton
-	value, _ := json.Marshal(v)
-	err := services.Stor.Set(key, string(value))
-	if err != nil {
-		log.Println("Persisting automata state to store failed:", err)
-	}
-}
-
-func (self *Service) RestoreStore(automata *gofsm.Automata) {
-	p := gofsm.AutomataState{}
-	for name := range automata.Automaton {
-		key := "gohome/state/automata/" + name
-		value, err := services.Stor.Get(key)
-		var ps gofsm.AutomatonState
-		if err == nil {
-			err = json.Unmarshal([]byte(value), &ps)
-		}
-		if err != nil {
-			log.Println("Restoring automata state from store failed:", err)
-			continue
-		}
-		p[name] = ps
-	}
-	automata.Restore(p)
-}
-
 func loadAutomata() error {
 	c := services.Configured["config/automata"]
 	tmpl := template.New("Automata")
@@ -453,9 +414,18 @@ func timeit(name string, fn func()) {
 	log.Printf("%s took: %s", name, t2.Sub(t1))
 }
 
+func (self *Service) restoreState(ev *pubsub.Event) {
+	k := ev.Device()
+	if aut, ok := automata.Automaton[k]; ok {
+		state := gofsm.AutomataState{}
+		state[k] = gofsm.AutomatonState{ev.StringField("state"), ev.Timestamp}
+		automata.Restore(state)
+		log.Printf("Restored %s: %s at %s", k, aut.State.Name, aut.Since.Format(time.RFC3339))
+	}
+}
+
 // Run the service
 func (self *Service) Run() error {
-	services.SetupStore()
 	self.log = openLogFile()
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)
@@ -464,17 +434,6 @@ func (self *Service) Run() error {
 	if err != nil {
 		return err
 	}
-
-	// persistance can take a while and delay the workflow, so run in background
-	chanPersist := make(chan string, 32)
-	go func() {
-		for automaton := range chanPersist {
-			self.PersistStore(automata, automaton)
-		}
-	}()
-
-	self.RestoreStore(automata)
-	log.Printf("Initial states: %s", automata)
 
 	ch := services.Subscriber.Channel()
 	defer services.Subscriber.Close(ch)
@@ -486,6 +445,9 @@ func (self *Service) Run() error {
 				continue
 			}
 			if ev.Retained {
+				if ev.Topic == "state" {
+					self.restoreState(ev)
+				}
 				// ignore retained events from reconnecting
 				continue
 			}
@@ -498,7 +460,6 @@ func (self *Service) Run() error {
 			trigger := change.Trigger.(EventContext)
 			s := fmt.Sprintf("%-17s %s->%s", "["+change.Automaton+"]", change.Old, change.New)
 			log.Printf("%-40s (event: %s)", s, trigger)
-			chanPersist <- change.Automaton
 			// emit event
 			fields := pubsub.Fields{
 				"device":  change.Automaton,
@@ -520,12 +481,13 @@ func (self *Service) Run() error {
 		case <-self.configUpdated:
 			// live reload the automata!
 			log.Println("Automata config updated, reloading")
+			state := automata.Persist()
 			err := loadAutomata()
 			if err != nil {
 				log.Println("Failed to reload automata:", err)
 				continue
 			}
-			self.RestoreStore(automata)
+			automata.Restore(state)
 			log.Println("Automata reloaded successfully")
 		}
 	}
