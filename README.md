@@ -53,33 +53,26 @@ Rename and make the download executable:
 
     $ cp gohome-my-platform /usr/local/bin; chmod +x /usr/local/bin/gohome
 
-You also will need redis and mosquitto installed:
+You also will need mosquitto installed:
 
 ### Debian/Ubuntu/Raspbian:
 
-    $ apt-get install redis
-    $ service redis start
     $ apt-get install mosquitto
     $ service mosquitto start
 
 ### ArchLinux
-
-    $ pacman -S redis
-    $ systemctl enable --now redis
 
     $ packer -S mosquitto
     $ systemctl enable --now mosquitto
 
 ## Configuration
 
-Redis is used to store config.
-
 An example configuration is at:
 https://github.com/barnybug/gohome/blob/master/config.yml
 
-Edit this to match your setup and upload to redis:
+Edit this to match your setup and upload:
 
-    $ redis-cli -x set gohome/config < config.yml
+    $ curl -XPOST localhost:8723/config?path=config --data-binary config.yml
 
 ## Running
 
