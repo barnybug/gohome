@@ -48,6 +48,7 @@ type Service struct {
 }
 
 var Debug bool = false
+var DeviceState = map[string]map[string]*pubsub.Event{}
 
 // ID of the service
 func (service *Service) ID() string {
@@ -152,28 +153,15 @@ func apiVoice(w http.ResponseWriter, r *http.Request) {
 }
 
 func getDevicesEvents() map[string]map[string]interface{} {
-	// Get state from store
 	ret := make(map[string]map[string]interface{})
-	// gohome/state/events/<topic>/<device>
-	nodes, _ := services.Stor.GetRecursive("gohome/state/events")
-	for _, node := range nodes {
-		ks := strings.Split(node.Key, "/")
-		if len(ks) != 5 {
-			continue
-		}
-		ev := pubsub.Parse(node.Value)
-		topic := ks[3]
-		device := ks[4]
-		if _, ok := ret[device]; !ok {
-			ret[device] = make(map[string]interface{})
-		}
-		ret[device][topic] = ev.Map()
+	for device, conf := range services.Config.Devices {
+		ret[device] = deviceEntry(conf, DeviceState[device])
 	}
 	// returns {device: {topic: {event}}}
 	return ret
 }
 
-func deviceEntry(dev config.DeviceConf, events map[string]interface{}) interface{} {
+func deviceEntry(dev config.DeviceConf, events map[string]*pubsub.Event) map[string]interface{} {
 	value := make(map[string]interface{})
 	value["id"] = dev.Id
 	value["name"] = dev.Name
@@ -184,29 +172,23 @@ func deviceEntry(dev config.DeviceConf, events map[string]interface{}) interface
 	if dev.Location != "" {
 		value["location"] = dev.Location
 	}
-	if events == nil {
-		events = make(map[string]interface{})
+	ev := map[string]interface{}{}
+	for topic, event := range events {
+		ev[topic] = event.Map()
 	}
-	value["events"] = events
+	value["events"] = ev
 	return value
 }
 
 func apiDevices(w http.ResponseWriter, r *http.Request) {
-	ret := make(map[string]interface{})
-	events := getDevicesEvents()
-
-	for name, dev := range services.Config.Devices {
-		ret[name] = deviceEntry(dev, events[name])
-	}
-
+	ret := getDevicesEvents()
 	jsonResponse(w, ret)
 }
 
 func apiDevicesSingle(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	device := params["device"]
 	if dev, ok := services.Config.Devices[device]; ok {
-		events := getDevicesEvents()
-		ret := deviceEntry(dev, events[device])
+		ret := deviceEntry(dev, DeviceState[device])
 		jsonResponse(w, ret)
 	} else {
 		w.WriteHeader(http.StatusNotFound)
@@ -468,6 +450,12 @@ func recordEvents() {
 	for ev := range services.Subscriber.Channel() {
 		// record to store
 		if ev.Device() != "" {
+			if _, ok := DeviceState[ev.Device()]; !ok {
+				DeviceState[ev.Device()] = make(map[string]*pubsub.Event)
+			}
+			DeviceState[ev.Device()][ev.Topic] = ev
+
+			// deprecated - storing state in persisted mqtt - drop this code eventually
 			key := fmt.Sprintf("gohome/state/events/%s/%s", ev.Topic, ev.Device())
 			services.Stor.Set(key, ev.String())
 		}
