@@ -288,6 +288,7 @@ func OpenRaw(data []byte) (*Config, error) {
 func (self *Config) AddDeviceToEvent(ev *pubsub.Event) {
 	if device, _ := self.LookupSource(ev.Source()); device != "" {
 		ev.SetField("device", device)
+		ev.SetRetained(true) // retain device events
 	}
 }
 
