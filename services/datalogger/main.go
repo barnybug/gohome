@@ -72,6 +72,10 @@ func (self *Service) ConfigUpdated(path string) {
 func (self *Service) Run() error {
 	self.ConfigUpdated("config")
 	for ev := range services.Subscriber.Channel() {
+		if ev.Retained {
+			// ignore retained events from reconnecting
+			continue
+		}
 		event(ev)
 	}
 	return nil
