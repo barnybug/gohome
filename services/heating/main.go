@@ -435,6 +435,13 @@ func (self *Service) ConfigUpdated(path string) {
 			Sensor:     zoneConf.Sensor,
 			Thermostat: thermostat,
 		}
+		if old, ok := self.Zones[zone]; ok {
+			// preserve temp/party when live reloading
+			z.Temp = old.Temp
+			z.At = old.At
+			z.PartyTemp = old.PartyTemp
+			z.PartyUntil = old.PartyUntil
+		}
 		zones[zone] = z
 		sensors[zoneConf.Sensor] = z
 	}
