@@ -454,17 +454,12 @@ func recordEvents() {
 				DeviceState[ev.Device()] = make(map[string]*pubsub.Event)
 			}
 			DeviceState[ev.Device()][ev.Topic] = ev
-
-			// deprecated - storing state in persisted mqtt - drop this code eventually
-			key := fmt.Sprintf("gohome/state/events/%s/%s", ev.Topic, ev.Device())
-			services.Stor.Set(key, ev.String())
 		}
 	}
 }
 
 // Run the service
 func (service *Service) Run() error {
-	services.SetupStore()
 	go recordEvents()
 	httpEndpoint()
 	return nil

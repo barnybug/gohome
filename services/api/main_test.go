@@ -25,7 +25,6 @@ func TestIndex(t *testing.T) {
 }
 
 func TestDevices(t *testing.T) {
-	services.Stor = &services.MockStore{}
 	services.Config = config.ExampleConfig
 	rec := httptest.NewRecorder()
 	r := http.Request{}

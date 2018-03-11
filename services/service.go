@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log"
-	"net/url"
 	"os"
 	"time"
 
@@ -36,7 +35,6 @@ var RawConfig []byte
 
 var Publisher pubsub.Publisher
 var Subscriber pubsub.Subscriber
-var Stor Store
 
 type ConfigEntry struct {
 	value string
@@ -107,38 +105,6 @@ func ConfigWatcher() {
 				f.ConfigUpdated(path)
 			}
 		}
-	}
-}
-
-func SetupStore() {
-	if Stor != nil {
-		return
-	}
-
-	var err error
-
-	address := "redis://:6379"
-	if os.Getenv("GOHOME_STORE") != "" {
-		address = os.Getenv("GOHOME_STORE")
-	}
-
-	url, err := url.Parse(address)
-	if err != nil {
-		log.Fatalln("could not parse store url: ", address, err)
-	}
-
-	switch url.Scheme {
-	case "redis":
-		Stor, err = NewRedisStore(url.Host)
-	case "mock":
-		// only for testing
-		Stor = NewMockStore()
-	default:
-		log.Fatalln("scheme", url.Scheme, "not recognised")
-	}
-
-	if err != nil {
-		log.Fatalln("error connecting to store:", err)
 	}
 }
 
