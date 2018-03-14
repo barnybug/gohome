@@ -6,10 +6,11 @@ package cast
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/url"
+	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -172,11 +173,19 @@ func (service *Service) alerts() {
 	}
 }
 
+type FilteredWriter struct{}
+
+func (f FilteredWriter) Write(p []byte) (int, error) {
+	if strings.Contains(string(p), "mdns:") {
+		return 0, nil
+	}
+	return os.Stdout.Write(p)
+}
+
 // Run the service
 func (service *Service) Run() error {
 	// mdns is rather noisy. Disable logging for now.
-	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(FilteredWriter{})
 	ctx := context.Background()
 	discover := discovery.NewService(ctx)
 
