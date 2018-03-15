@@ -17,7 +17,7 @@ import (
 	fastping "github.com/tatsushid/go-fastping"
 )
 
-type WatchdogDevice struct {
+type Watch struct {
 	Name        string
 	Type        string
 	Timeout     time.Duration
@@ -26,21 +26,21 @@ type WatchdogDevice struct {
 	LastEvent   time.Time
 }
 
-type WatchdogDevices []*WatchdogDevice
+type Watches []*Watch
 
-func (self WatchdogDevices) Less(i, j int) bool {
+func (self Watches) Less(i, j int) bool {
 	return self[i].LastEvent.Before(self[j].LastEvent)
 }
 
-func (self WatchdogDevices) Len() int {
+func (self Watches) Len() int {
 	return len(self)
 }
 
-func (self WatchdogDevices) Swap(i, j int) {
+func (self Watches) Swap(i, j int) {
 	self[i], self[j] = self[j], self[i]
 }
 
-var devices = map[string]*WatchdogDevice{}
+var watches = map[string]*Watch{}
 var unmapped = map[string]bool{}
 var repeatInterval, _ = time.ParseDuration("12h")
 
@@ -114,7 +114,7 @@ func announce(ev *pubsub.Event, mapped bool) {
 
 func touch(device string, timestamp time.Time) {
 	// check if in devices monitored
-	w := devices[device]
+	w := watches[device]
 	if w == nil {
 		return
 	}
@@ -141,7 +141,7 @@ func processPing(host string) {
 func checkTimeouts() {
 	timeouts := []string{}
 	var lastEvent time.Time
-	for _, w := range devices {
+	for _, w := range watches {
 		if w.Alerted {
 			// check if should repeat
 			if time.Since(w.LastAlerted) > repeatInterval {
@@ -196,7 +196,7 @@ func (self *Service) setupDevices(now time.Time) {
 		}
 		// give devices grace period for first event
 		d := services.Config.Devices[device]
-		devices[device] = &WatchdogDevice{
+		watches[device] = &Watch{
 			Name:      fmt.Sprintf("%s (%s)", d.Name, d.Type),
 			Type:      "device",
 			Timeout:   duration,
@@ -208,9 +208,9 @@ func (self *Service) setupDevices(now time.Time) {
 func (self *Service) setupHeartbeats(now time.Time) {
 	// monitor gohome processes heartbeats
 	for _, process := range services.Config.Watchdog.Processes {
-		device := fmt.Sprintf("heartbeat.%s", process)
+		name := fmt.Sprintf("heartbeat.%s", process)
 		// if a process misses 2 heartbeats, mark as problem
-		devices[device] = &WatchdogDevice{
+		watches[name] = &Watch{
 			Name:      process,
 			Type:      "process",
 			Timeout:   time.Second * 241,
@@ -226,8 +226,8 @@ func (self *Service) setupPings(now time.Time) {
 	}
 
 	for _, host := range services.Config.Watchdog.Pings {
-		device := fmt.Sprintf("ping.%s", host)
-		devices[device] = &WatchdogDevice{
+		name := fmt.Sprintf("ping.%s", host)
+		watches[name] = &Watch{
 			Name:      host,
 			Type:      "ping",
 			Timeout:   time.Second * 301,
@@ -286,9 +286,11 @@ func (self *Service) QueryHandlers() services.QueryHandlers {
 
 func (self *Service) queryStatus(q services.Question) string {
 	var out string
-	var list WatchdogDevices
-	for _, device := range devices {
-		list = append(list, device)
+
+	// build list
+	var list Watches
+	for _, watch := range watches {
+		list = append(list, watch)
 	}
 	// return oldest last
 	sort.Sort(sort.Reverse(list))
@@ -299,7 +301,12 @@ func (self *Service) queryStatus(q services.Question) string {
 		if w.Alerted {
 			problem = "PROBLEM"
 		}
-		ago := util.ShortDuration(now.Sub(w.LastEvent))
+		var ago string
+		if w.LastEvent.IsZero() {
+			ago = "never"
+		} else {
+			ago = util.ShortDuration(now.Sub(w.LastEvent))
+		}
 		out += fmt.Sprintf("- %-6s %7s %s %s\n", ago, w.Type, w.Name, problem)
 	}
 	return out
