@@ -182,13 +182,20 @@ func (self *Service) ConfigUpdated(path string) {
 }
 
 func (self *Service) setup() {
-	now := time.Now()
-	self.setupDevices(now)
-	self.setupHeartbeats(now)
-	self.setupPings(now)
+	previous := watches
+	watches = map[string]*Watch{}
+	self.setupDevices()
+	self.setupHeartbeats()
+	self.setupPings()
+	// preserve last event when reloading config
+	for k, v := range watches {
+		if o, ok := previous[k]; ok {
+			v.LastEvent = o.LastEvent
+		}
+	}
 }
 
-func (self *Service) setupDevices(now time.Time) {
+func (self *Service) setupDevices() {
 	for device, timeout := range services.Config.Watchdog.Devices {
 		duration, err := time.ParseDuration(timeout)
 		if err != nil {
@@ -205,7 +212,7 @@ func (self *Service) setupDevices(now time.Time) {
 	}
 }
 
-func (self *Service) setupHeartbeats(now time.Time) {
+func (self *Service) setupHeartbeats() {
 	// monitor gohome processes heartbeats
 	for _, process := range services.Config.Watchdog.Processes {
 		name := fmt.Sprintf("heartbeat.%s", process)
@@ -219,7 +226,7 @@ func (self *Service) setupHeartbeats(now time.Time) {
 	}
 }
 
-func (self *Service) setupPings(now time.Time) {
+func (self *Service) setupPings() {
 	if self.pinger != nil {
 		// reconfiguring - stop previous pinger
 		self.pinger.Stop()
