@@ -184,6 +184,7 @@ func Heartbeat(id string) {
 		uptime := int(time.Now().Sub(started).Seconds())
 		fields["uptime"] = uptime
 		ev := pubsub.NewEvent("heartbeat", fields)
+		ev.SetRetained(true)
 		Publisher.Emit(ev)
 		time.Sleep(time.Second * 60)
 	}

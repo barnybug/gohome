@@ -200,7 +200,7 @@ func (self *Service) setupDevices(now time.Time) {
 			Name:      fmt.Sprintf("%s (%s)", d.Name, d.Type),
 			Type:      "device",
 			Timeout:   duration,
-			LastEvent: now,
+			LastEvent: time.Time{},
 		}
 	}
 }
@@ -214,7 +214,7 @@ func (self *Service) setupHeartbeats(now time.Time) {
 			Name:      process,
 			Type:      "process",
 			Timeout:   time.Second * 241,
-			LastEvent: now,
+			LastEvent: time.Time{},
 		}
 	}
 }
@@ -231,7 +231,7 @@ func (self *Service) setupPings(now time.Time) {
 			Name:      host,
 			Type:      "ping",
 			Timeout:   time.Second * 301,
-			LastEvent: now,
+			LastEvent: time.Time{},
 		}
 	}
 
