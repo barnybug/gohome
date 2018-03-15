@@ -58,7 +58,7 @@ var (
 	service    *Service
 )
 
-func SetupService() {
+func SetupTests() {
 	services.Config = config.ExampleConfig
 	yaml.Unmarshal([]byte(configYaml), &testConfig)
 	services.Config.Heating = testConfig
@@ -68,12 +68,8 @@ func SetupService() {
 	service.Event(evFull) // retained state
 }
 
-func Setup() {
-	SetupService()
-}
-
 func TestOnOff(t *testing.T) {
-	Setup()
+	SetupTests()
 	assert.False(t, service.State)
 
 	service.Event(evCold)
@@ -98,7 +94,7 @@ func TestOnOff(t *testing.T) {
 }
 
 func TestTimeChange(t *testing.T) {
-	Setup()
+	SetupTests()
 	service.Event(evOff)
 	assert.False(t, service.State)
 
@@ -108,7 +104,7 @@ func TestTimeChange(t *testing.T) {
 }
 
 func TestStaleTemperature(t *testing.T) {
-	Setup()
+	SetupTests()
 	service.Event(evCold)
 	// should start On
 	assert.True(t, service.State)
@@ -123,7 +119,7 @@ func TestStaleTemperature(t *testing.T) {
 }
 
 func TestOccupiedToEmptyToFull(t *testing.T) {
-	Setup()
+	SetupTests()
 	service.Event(evCold)
 	assert.True(t, service.State)
 
@@ -141,7 +137,7 @@ func TestOccupiedToEmptyToFull(t *testing.T) {
 }
 
 func TestPartyMode(t *testing.T) {
-	Setup()
+	SetupTests()
 	service.Event(evHot)
 	assert.False(t, service.State)
 
@@ -155,7 +151,7 @@ func TestPartyMode(t *testing.T) {
 }
 
 func TestPartyModeAll(t *testing.T) {
-	Setup()
+	SetupTests()
 	service.Event(evHot)
 	assert.False(t, service.State)
 
@@ -166,7 +162,7 @@ func TestPartyModeAll(t *testing.T) {
 }
 
 func TestPartyModeTempOnly(t *testing.T) {
-	Setup()
+	SetupTests()
 	service.Event(evHot)
 	assert.False(t, service.State)
 
@@ -177,7 +173,7 @@ func TestPartyModeTempOnly(t *testing.T) {
 }
 
 func TestHolidayMode(t *testing.T) {
-	Setup()
+	SetupTests()
 	// house cold and empty initially
 	service.Event(evEmpty)
 	service.Event(evCold)
@@ -211,7 +207,7 @@ func ExampleInterfaces() {
 }
 
 func ExampleStatus() {
-	Setup()
+	SetupTests()
 	fmt.Println(service.Status(evCold.Timestamp))
 	service.Event(evCold)
 	fmt.Println(service.Status(evBorderline.Timestamp))
@@ -223,7 +219,7 @@ func ExampleStatus() {
 }
 
 func ExampleQueryStatusText() {
-	Setup()
+	SetupTests()
 	Clock = func() time.Time { return evBorderline.Timestamp }
 	service.Event(evCold)
 	q := services.Question{"status", "", ""}
@@ -234,7 +230,7 @@ func ExampleQueryStatusText() {
 }
 
 func ExampleQueryStatusJson() {
-	Setup()
+	SetupTests()
 	Clock = func() time.Time { return evBorderline.Timestamp }
 	service.Event(evCold)
 	q := services.Question{"status", "", ""}
@@ -292,12 +288,14 @@ var testQueries = []struct {
 }
 
 func TestQueries(t *testing.T) {
-	Setup()
+	SetupTests()
 	Clock = func() time.Time { return evBorderline.Timestamp }
 	service.Event(evCold)
 	for _, tt := range testQueries {
-		actual := service.queryParty(services.Question{"party", tt.query, ""})
-		assert.Equal(t, tt.response, actual)
+		t.Run(tt.query, func(t *testing.T) {
+			actual := service.queryParty(services.Question{"party", tt.query, ""})
+			assert.Equal(t, tt.response, actual)
+		})
 	}
 }
 
@@ -359,7 +357,9 @@ func TestSchedule(t *testing.T) {
 	s, err := NewSchedule(schedule)
 	require.Nil(t, err)
 	for _, tt := range testScheduleTable {
-		assert.Equal(t, tt.temp, s.Target(tt.t, 0))
+		t.Run(tt.t.Format(time.RFC3339), func(t *testing.T) {
+			assert.Equal(t, tt.temp, s.Target(tt.t, 0))
+		})
 	}
 }
 
@@ -423,7 +423,9 @@ Weekdays:
 	s, err := NewSchedule(schedule)
 	require.Nil(t, err)
 	for _, tt := range testScheduleWithoutWeekendsTable {
-		assert.Equal(t, tt.temp, s.Target(tt.t, 0))
+		t.Run(tt.t.Format(time.RFC3339), func(t *testing.T) {
+			assert.Equal(t, tt.temp, s.Target(tt.t, 0))
+		})
 	}
 }
 
@@ -500,10 +502,12 @@ var testScheduleParseErrorTable = []string{
 
 func TestScheduleParseError(t *testing.T) {
 	for _, conf := range testScheduleParseErrorTable {
-		var schedule config.ScheduleConf
-		yaml.Unmarshal([]byte(conf), &schedule)
-		s, err := NewSchedule(schedule)
-		assert.Error(t, err)
-		assert.Nil(t, s)
+		t.Run(conf, func(t *testing.T) {
+			var schedule config.ScheduleConf
+			yaml.Unmarshal([]byte(conf), &schedule)
+			s, err := NewSchedule(schedule)
+			assert.Error(t, err)
+			assert.Nil(t, s)
+		})
 	}
 }
