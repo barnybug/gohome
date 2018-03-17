@@ -96,7 +96,7 @@ func ConfigWatcher() {
 		}
 		c := Configured[path]
 		if c.Set(value) {
-			log.Println("Config updated")
+			log.Printf("%s updated", path)
 		}
 
 		// notify any interested services
