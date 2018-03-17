@@ -27,7 +27,8 @@ func createClientOpts(broker string) *MQTT.ClientOptions {
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(broker)
 	opts.SetClientID(clientId)
-	opts.SetCleanSession(true)
+	// ensure subscriptions survive across disconnections
+	opts.SetCleanSession(false)
 	return opts
 }
 
