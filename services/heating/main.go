@@ -206,14 +206,14 @@ type Service struct {
 	Publisher     pubsub.Publisher
 }
 
-func (self *Service) Heartbeat(now time.Time) {
-	self.Check(now, true)
+func (self *Service) Heartbeat() {
+	self.Check(true)
 	// emit event for datalogging
 	fields := pubsub.Fields{
 		"device":  self.HeatingDevice,
 		"source":  "ch",
 		"heating": self.State,
-		"status":  self.Json(now),
+		"status":  self.Json(Clock()),
 	}
 	ev := pubsub.NewEvent("heating", fields)
 	self.Publisher.Emit(ev)
@@ -222,15 +222,15 @@ func (self *Service) Heartbeat(now time.Time) {
 }
 
 func (self *Service) Event(ev *pubsub.Event) {
-	now := ev.Timestamp.Local() // must use Local time, as schedule is in local
 	switch ev.Topic {
 	case "temp":
 		// temperature device update
 		device := ev.Device()
 		if zone, ok := self.Sensors[device]; ok {
 			temp, _ := ev.Fields["temp"].(float64)
-			zone.Update(temp, now)
-			self.Check(now, false)
+			timestamp := ev.Timestamp.Local() // must use Local time, as schedule is in local
+			zone.Update(temp, timestamp)
+			self.Check(false)
 		}
 	case "state":
 		device := ev.Device()
@@ -242,7 +242,7 @@ func (self *Service) Event(ev *pubsub.Event) {
 				// back from holiday - zero
 				self.Holiday = time.Time{}
 			}
-			self.Check(now, false)
+			self.Check(false)
 		}
 	}
 }
@@ -271,7 +271,8 @@ func (self *Service) Target(zone *Zone, now time.Time) float64 {
 	}
 }
 
-func (self *Service) Check(now time.Time, emitEvents bool) {
+func (self *Service) Check(emitEvents bool) {
+	now := Clock()
 	state := false
 	trigger := ""
 	for id, zone := range self.Zones {
@@ -409,8 +410,8 @@ func (self *Service) Run() error {
 		select {
 		case ev := <-events:
 			self.Event(ev)
-		case tick := <-ticker.C:
-			self.Heartbeat(tick)
+		case <-ticker.C:
+			self.Heartbeat()
 		}
 	}
 	return nil
@@ -516,7 +517,7 @@ func (self *Service) queryParty(q services.Question) string {
 		now := Clock()
 		err = self.setParty(zone, temp, duration, now)
 		if err == nil {
-			self.Check(now, true)
+			self.Check(true)
 			return fmt.Sprintf("Set %s to %v°C for %s", zone, temp, util.FriendlyDuration(duration))
 		}
 	}

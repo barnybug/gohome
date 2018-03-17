@@ -65,97 +65,110 @@ func SetupTests() {
 	em = &dummy.Publisher{}
 	service = &Service{}
 	service.Initialize(em)
-	service.Event(evFull) // retained state
+	fire(evFull) // retained state
+}
+
+func setClock(t time.Time) {
+	Clock = func() time.Time { return t }
+}
+
+func fire(ev *pubsub.Event) {
+	// set Clock to event time - as events trigger check of heating
+	setClock(ev.Timestamp)
+	service.Event(ev)
 }
 
 func TestOnOff(t *testing.T) {
 	SetupTests()
 	assert.False(t, service.State)
 
-	service.Event(evCold)
+	fire(evCold)
 	// should switch on
 	assert.True(t, service.State)
 	assert.Equal(t, 1, len(em.Events))
 	em.Events = em.Events[:0]
 
 	// should stay on at 14.2, within slop
-	service.Event(evBorderline)
+	fire(evBorderline)
 	assert.True(t, service.State)
 
-	service.Heartbeat(evBorderline.Timestamp)
+	service.Heartbeat()
 	assert.True(t, service.State)
 	assert.Equal(t, 3, len(em.Events))
 	em.Events = em.Events[:0]
 
 	// should switch off
-	service.Event(evHot)
+	fire(evHot)
 	assert.False(t, service.State)
 	assert.Equal(t, 1, len(em.Events))
 }
 
 func TestTimeChange(t *testing.T) {
 	SetupTests()
-	service.Event(evOff)
+	fire(evOff)
 	assert.False(t, service.State)
 
-	service.Heartbeat(timeJustOn)
+	setClock(timeJustOn)
+	service.Heartbeat()
 	// should switch on
 	assert.True(t, service.State)
 }
 
 func TestStaleTemperature(t *testing.T) {
 	SetupTests()
-	service.Event(evCold)
+	fire(evCold)
 	// should start On
 	assert.True(t, service.State)
 
 	// should switch off due to stale temperature data
-	service.Heartbeat(timeLater)
+	setClock(timeLater)
+	service.Heartbeat()
 	assert.False(t, service.State)
 
 	// and stay off
-	service.Heartbeat(timeLater2)
+	setClock(timeLater2)
+	service.Heartbeat()
 	assert.False(t, service.State)
 }
 
 func TestOccupiedToEmptyToFull(t *testing.T) {
 	SetupTests()
-	service.Event(evCold)
+	fire(evCold)
 	assert.True(t, service.State)
 
 	// should switch off due to house being empty
-	service.Event(evEmpty)
+	fire(evEmpty)
 	assert.False(t, service.State)
 
 	// should switch on due to house being too cold
-	service.Event(evColder)
+	fire(evColder)
 	assert.True(t, service.State)
 
 	// should switch on due to house being full
-	service.Event(evFull)
+	fire(evFull)
 	assert.True(t, service.State)
 }
 
 func TestPartyMode(t *testing.T) {
 	SetupTests()
-	service.Event(evHot)
+	fire(evHot)
 	assert.False(t, service.State)
 
-	Clock = func() time.Time { return timeParty }
+	setClock(timeParty)
 	q := services.Question{Verb: "party", Args: "thermostat.hallway 20 30m"}
 	service.queryParty(q)
 	assert.True(t, service.State)
 
-	service.Event(evAfterParty)
+	fire(evAfterParty)
 	assert.False(t, service.State)
 }
 
 func TestPartyModeAll(t *testing.T) {
 	SetupTests()
-	service.Event(evHot)
+	fire(evHot)
 	assert.False(t, service.State)
 
-	Clock = func() time.Time { return timeParty }
+	setClock(timeParty)
 	q := services.Question{Verb: "party", Args: "all 20 30m"}
 	service.queryParty(q)
 	assert.True(t, service.State)
@@ -163,10 +176,10 @@ func TestPartyModeAll(t *testing.T) {
 
 func TestPartyModeTempOnly(t *testing.T) {
 	SetupTests()
-	service.Event(evHot)
+	fire(evHot)
 	assert.False(t, service.State)
 
-	Clock = func() time.Time { return timeParty }
+	setClock(timeParty)
 	q := services.Question{Verb: "party", Args: "20"}
 	service.queryParty(q)
 	assert.True(t, service.State)
@@ -175,28 +188,28 @@ func TestPartyModeTempOnly(t *testing.T) {
 func TestHolidayMode(t *testing.T) {
 	SetupTests()
 	// house cold and empty initially
-	service.Event(evEmpty)
-	service.Event(evCold)
+	fire(evEmpty)
+	fire(evCold)
 	assert.False(t, service.State)
 
-	Clock = func() time.Time { return timeAway }
+	setClock(timeAway)
 	q := services.Question{Verb: "holiday", Args: "3d"}
 	service.queryHoliday(q)
 	fmt.Println(service.Holiday)
 
 	// still off
-	service.Event(evBeforeHoliday)
+	fire(evBeforeHoliday)
 	assert.False(t, service.State)
 
 	// almost back from hols
-	service.Event(evCold)
+	fire(evCold)
 	assert.True(t, service.State)
 
 	// back - holiday mode cancelled
-	service.Event(evFull)
+	fire(evFull)
 
 	// empty again
-	service.Event(evEmpty)
+	fire(evEmpty)
 	assert.False(t, service.State)
 }
 
@@ -209,7 +222,7 @@ func ExampleInterfaces() {
 func ExampleStatus() {
 	SetupTests()
 	fmt.Println(service.Status(evCold.Timestamp))
-	service.Event(evCold)
+	fire(evCold)
 	fmt.Println(service.Status(evBorderline.Timestamp))
 	// Output:
 	// Heating: false for unknown
@@ -220,8 +233,8 @@ func ExampleStatus() {
 
 func ExampleQueryStatusText() {
 	SetupTests()
-	Clock = func() time.Time { return evBorderline.Timestamp }
-	service.Event(evCold)
+	fire(evCold)
+	setClock(evBorderline.Timestamp)
 	q := services.Question{"status", "", ""}
 	fmt.Println(service.queryStatus(q).Text)
 	// Output:
@@ -231,8 +244,8 @@ func ExampleQueryStatusText() {
 
 func ExampleQueryStatusJson() {
 	SetupTests()
-	Clock = func() time.Time { return evBorderline.Timestamp }
-	service.Event(evCold)
+	setClock(evBorderline.Timestamp)
+	fire(evCold)
 	q := services.Question{"status", "", ""}
 	data := service.queryStatus(q).Json
 	s, _ := json.Marshal(data)
@@ -289,8 +302,8 @@ var testQueries = []struct {
 
 func TestQueries(t *testing.T) {
 	SetupTests()
-	Clock = func() time.Time { return evBorderline.Timestamp }
-	service.Event(evCold)
+	setClock(evBorderline.Timestamp)
+	fire(evCold)
 	for _, tt := range testQueries {
 		t.Run(tt.query, func(t *testing.T) {
 			actual := service.queryParty(services.Question{"party", tt.query, ""})
