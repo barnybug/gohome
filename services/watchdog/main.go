@@ -141,10 +141,10 @@ func touch(device string, timestamp time.Time) {
 		return
 	}
 
-	// discard if timestamp is over a year
+	// discard if timestamp is over a year, or event not latest by timestamp
 	now := time.Now()
 	age := now.Sub(timestamp)
-	if age.Hours() > 24*365 {
+	if age.Hours() > 24*365 || timestamp.Before(w.LastEvent) {
 		return
 	}
 	w.LastEvent = timestamp
