@@ -30,7 +30,14 @@ type Watch struct {
 type Watches []*Watch
 
 func (self Watches) Less(i, j int) bool {
-	return self[i].LastEvent.Before(self[j].LastEvent)
+	a := self[i]
+	b := self[j]
+	if a.Problem != b.Problem {
+		// sort i first if Problematic
+		return a.Problem
+	}
+	// tied, sort by last event
+	return a.LastEvent.Before(b.LastEvent)
 }
 
 func (self Watches) Len() int {
@@ -308,14 +315,7 @@ func (self *Service) queryStatus(q services.Question) string {
 	// build list
 	var list Watches
 	for _, watch := range watches {
-		if !watch.Problem {
-			continue // only show problematic
-		}
 		list = append(list, watch)
-	}
-
-	if len(list) == 0 {
-		return "Everything is well"
 	}
 
 	// return oldest last
@@ -323,9 +323,9 @@ func (self *Service) queryStatus(q services.Question) string {
 
 	now := time.Now()
 	for _, w := range list {
-		problem := ""
+		symbol := "✔️"
 		if w.Problem {
-			problem = "PROBLEM"
+			symbol = "✖️️"
 		}
 		var ago string
 		if w.LastEvent.IsZero() {
@@ -333,7 +333,7 @@ func (self *Service) queryStatus(q services.Question) string {
 		} else {
 			ago = util.ShortDuration(now.Sub(w.LastEvent))
 		}
-		out += fmt.Sprintf("- %-8s %-20s %s %s\n", ago, w.Id, w.Name, problem)
+		out += fmt.Sprintf("%s %-8s %-20s %s\n", symbol, ago, w.Id, w.Name)
 	}
 	return out
 }
