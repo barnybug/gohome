@@ -22,6 +22,7 @@ type Watch struct {
 	Id          string
 	Timeout     time.Duration
 	Problem     bool
+	Recover     bool
 	LastAlerted time.Time
 	LastEvent   time.Time
 }
@@ -43,17 +44,31 @@ func (self Watches) Swap(i, j int) {
 var watches = map[string]*Watch{}
 var unmapped = map[string]bool{}
 var repeatInterval, _ = time.ParseDuration("12h")
+var alerts = time.NewTimer(time.Second)
 
-func sendAlert(name string, state bool, since time.Time) {
-	log.Printf("Sending %t watchdog alert for: %s\n", state, name)
-	var message string
-	if state {
-		message = fmt.Sprintf("💓 %s RECOVERED", name)
-	} else {
-		now := time.Now()
-		message = fmt.Sprintf("💓 %s PROBLEM for %s", name, util.FriendlyDuration(now.Sub(since)))
+func sendAlert(message string) {
+	log.Printf("Sending watchdog alert: %s\n", message)
+	services.SendAlert("💓 "+message, services.Config.Watchdog.Alert, "", 0)
+}
+
+func sendRecoveries() {
+	names := []string{}
+	for _, w := range watches {
+		if w.Recover {
+			names = append(names, w.Name)
+			w.Recover = false
+		}
 	}
-	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
+
+	if len(names) > 0 {
+		// send a single notification
+		message := fmt.Sprintf("%s RECOVERED", listOfLots(names, 10))
+		sendAlert(message)
+		// delay multiple recovered messages
+		alerts.Reset(30 * time.Second)
+	} else {
+		alerts.Reset(5 * time.Second)
+	}
 }
 
 func ignoreTopics(topic string) bool {
@@ -119,18 +134,20 @@ func touch(device string, timestamp time.Time) {
 		return
 	}
 
+	// discard if timestamp is over a year
+	now := time.Now()
+	age := now.Sub(timestamp)
+	if age.Hours() > 24*365 {
+		return
+	}
+	w.LastEvent = timestamp
+
 	// recovered?
 	if w.Problem {
 		w.Problem = false
-		sendAlert(w.Name, true, w.LastEvent)
+		w.Recover = true
+		// picked up by next sendRecoveries()
 	}
-	// if timestamp looks too old, use now instead
-	now := time.Now()
-	age := now.Sub(timestamp)
-	if age.Hours() > 1 {
-		timestamp = now
-	}
-	w.LastEvent = timestamp
 }
 
 func processPing(host string) {
@@ -158,10 +175,22 @@ func checkTimeouts() {
 		}
 	}
 
-	// send a single email for multiple devices
 	if len(timeouts) > 0 {
-		sendAlert(strings.Join(timeouts, ", "), false, lastEvent)
+		// send a single notification
+		message := fmt.Sprintf("%s PROBLEM", listOfLots(timeouts, 10))
+		if len(timeouts) == 1 {
+			now := time.Now()
+			message += " for " + util.FriendlyDuration(now.Sub(lastEvent))
+		}
+		sendAlert(message)
 	}
+}
+
+func listOfLots(ss []string, limit int) string {
+	if len(ss) > limit {
+		return fmt.Sprintf("%s and %d others", ss[0], len(ss)-1)
+	}
+	return strings.Join(ss, ", ")
 }
 
 // Service watchdog
@@ -265,24 +294,6 @@ func (self *Service) setupPings() {
 	self.pinger = p
 }
 
-func (self *Service) Run() error {
-	self.pings = make(chan string, 10)
-	self.setup()
-	ticker := time.NewTicker(time.Minute)
-	events := services.Subscriber.Channel()
-	for {
-		select {
-		case ev := <-events:
-			checkEvent(ev)
-		case <-ticker.C:
-			checkTimeouts()
-		case ping := <-self.pings:
-			processPing(ping)
-		}
-	}
-	return nil
-}
-
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status":     services.TextHandler(self.queryStatus),
@@ -297,9 +308,9 @@ func (self *Service) queryStatus(q services.Question) string {
 	// build list
 	var list Watches
 	for _, watch := range watches {
-		// if !watch.Problem {
-		// 	continue // only show problematic
-		// }
+		if !watch.Problem {
+			continue // only show problematic
+		}
 		list = append(list, watch)
 	}
 
@@ -333,4 +344,24 @@ func (self *Service) queryDiscovered(q services.Question) string {
 		out += fmt.Sprintf("%s\n", source)
 	}
 	return out
+}
+
+func (self *Service) Run() error {
+	self.pings = make(chan string, 10)
+	self.setup()
+	ticker := time.NewTicker(time.Minute)
+	events := services.Subscriber.Channel()
+	for {
+		select {
+		case ev := <-events:
+			checkEvent(ev)
+		case <-ticker.C:
+			checkTimeouts()
+		case ping := <-self.pings:
+			processPing(ping)
+		case <-alerts.C:
+			sendRecoveries()
+		}
+	}
+	return nil
 }
