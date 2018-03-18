@@ -79,7 +79,7 @@ func sendRecoveries() {
 }
 
 func ignoreTopics(topic string) bool {
-	return topic == "log" || topic == "rpc" || topic == "query" || strings.HasPrefix(topic, "_")
+	return topic == "log" || topic == "rpc" || topic == "query" || topic == "alert" || strings.HasPrefix(topic, "_")
 }
 
 func checkEvent(ev *pubsub.Event) {
