@@ -19,9 +19,9 @@ import (
 
 type Watch struct {
 	Name        string
-	Type        string
+	Id          string
 	Timeout     time.Duration
-	Alerted     bool
+	Problem     bool
 	LastAlerted time.Time
 	LastEvent   time.Time
 }
@@ -120,8 +120,8 @@ func touch(device string, timestamp time.Time) {
 	}
 
 	// recovered?
-	if w.Alerted {
-		w.Alerted = false
+	if w.Problem {
+		w.Problem = false
 		sendAlert(w.Name, true, w.LastEvent)
 	}
 	// if timestamp looks too old, use now instead
@@ -142,7 +142,7 @@ func checkTimeouts() {
 	timeouts := []string{}
 	var lastEvent time.Time
 	for _, w := range watches {
-		if w.Alerted {
+		if w.Problem {
 			// check if should repeat
 			if time.Since(w.LastAlerted) > repeatInterval {
 				timeouts = append(timeouts, w.Name)
@@ -153,7 +153,7 @@ func checkTimeouts() {
 			// first alert
 			timeouts = append(timeouts, w.Name)
 			lastEvent = w.LastEvent
-			w.Alerted = true
+			w.Problem = true
 			w.LastAlerted = time.Now()
 		}
 	}
@@ -204,8 +204,8 @@ func (self *Service) setupDevices() {
 		// give devices grace period for first event
 		d := services.Config.Devices[device]
 		watches[device] = &Watch{
-			Name:      fmt.Sprintf("%s (%s)", d.Name, d.Type),
-			Type:      "device",
+			Id:        device,
+			Name:      d.Name,
 			Timeout:   duration,
 			LastEvent: time.Time{},
 		}
@@ -215,11 +215,11 @@ func (self *Service) setupDevices() {
 func (self *Service) setupHeartbeats() {
 	// monitor gohome processes heartbeats
 	for _, process := range services.Config.Watchdog.Processes {
-		name := fmt.Sprintf("heartbeat.%s", process)
+		id := fmt.Sprintf("heartbeat.%s", process)
 		// if a process misses 2 heartbeats, mark as problem
-		watches[name] = &Watch{
+		watches[id] = &Watch{
+			Id:        id,
 			Name:      process,
-			Type:      "process",
 			Timeout:   time.Second * 241,
 			LastEvent: time.Time{},
 		}
@@ -233,10 +233,10 @@ func (self *Service) setupPings() {
 	}
 
 	for _, host := range services.Config.Watchdog.Pings {
-		name := fmt.Sprintf("ping.%s", host)
-		watches[name] = &Watch{
+		id := fmt.Sprintf("ping.%s", host)
+		watches[id] = &Watch{
+			Id:        id,
 			Name:      host,
-			Type:      "ping",
 			Timeout:   time.Second * 301,
 			LastEvent: time.Time{},
 		}
@@ -297,15 +297,23 @@ func (self *Service) queryStatus(q services.Question) string {
 	// build list
 	var list Watches
 	for _, watch := range watches {
+		// if !watch.Problem {
+		// 	continue // only show problematic
+		// }
 		list = append(list, watch)
 	}
+
+	if len(list) == 0 {
+		return "Everything is well"
+	}
+
 	// return oldest last
 	sort.Sort(sort.Reverse(list))
 
 	now := time.Now()
 	for _, w := range list {
 		problem := ""
-		if w.Alerted {
+		if w.Problem {
 			problem = "PROBLEM"
 		}
 		var ago string
@@ -314,7 +322,7 @@ func (self *Service) queryStatus(q services.Question) string {
 		} else {
 			ago = util.ShortDuration(now.Sub(w.LastEvent))
 		}
-		out += fmt.Sprintf("- %-6s %7s %s %s\n", ago, w.Type, w.Name, problem)
+		out += fmt.Sprintf("- %-8s %-20s %s %s\n", ago, w.Id, w.Name, problem)
 	}
 	return out
 }
