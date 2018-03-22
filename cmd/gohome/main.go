@@ -167,7 +167,7 @@ func main() {
 			usage()
 			return
 		}
-		query(ps[0], ps[1:], emptyParams)
+		query(ps[0], ps[1:], url.Values{"timeout": {"5000"}, "responses": {"1"}})
 	case "logs":
 		stream("logs", emptyParams)
 	}
