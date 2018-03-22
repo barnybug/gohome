@@ -416,6 +416,14 @@ func (self *Service) restoreState(ev *pubsub.Event) {
 	}
 }
 
+func handleCommand(ev *pubsub.Event) {
+	if strings.HasPrefix(ev.Device(), "scene.") {
+		// scenes are simply scripts named with the convention <scene name>.sh
+		name := ev.Device()[6:] + ".sh"
+		asyncScript(name)
+	}
+}
+
 // Run the service
 func (self *Service) Run() error {
 	self.log = openLogFile()
@@ -433,6 +441,7 @@ func (self *Service) Run() error {
 		select {
 		case ev := <-ch:
 			if ev.Topic == "command" {
+				handleCommand(ev)
 				// ignore direct commands - ack/homeeasy events indicate commands completing.
 				continue
 			}
@@ -566,14 +575,7 @@ func (self EventAction) Video(device string, preset int64, secs float64, ir bool
 }
 
 func (self EventAction) Script(cmd string) {
-	// run non-blocking
-	go func() {
-		output, err := script(cmd)
-		if err != nil {
-			log.Printf("Script action '%s' failed: %s", cmd, err)
-		}
-		log.Printf("Script finished successfully: %s", output)
-	}()
+	asyncScript(cmd)
 }
 
 func script(command string) (string, error) {
@@ -587,6 +589,17 @@ func script(command string) (string, error) {
 	log.Println("Running script:", cmd)
 	output, err := exec.Command(cmd, args...).CombinedOutput()
 	return string(output), err
+}
+
+func asyncScript(command string) {
+	// run non-blocking
+	go func() {
+		output, err := script(cmd)
+		if err != nil {
+			log.Printf("Script action '%s' failed: %s", cmd, err)
+		}
+		log.Printf("Script finished successfully: %s", output)
+	}()
 }
 
 func (self EventAction) Alert(message string, target string) {
