@@ -84,7 +84,8 @@ type GeneralEmailConf struct {
 }
 
 type GeneralConf struct {
-	Email GeneralEmailConf
+	Email   GeneralEmailConf
+	Scripts string
 }
 
 type Duration struct {

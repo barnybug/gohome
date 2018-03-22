@@ -341,19 +341,11 @@ func sendCommmand(name string, command string, params pubsub.Fields) {
 }
 
 func (self *Service) queryScript(q services.Question) string {
-	args := strings.Split(q.Args, " ")
-	if len(args) == 0 {
-		return "Expected a script name argument"
-	}
-	progname := path.Base(args[0])
-	cmd := path.Join(util.ExpandUser("~/bin/gohome"), progname)
-	log.Println("Running script:", cmd)
-
-	output, err := exec.Command(cmd, args[1:]...).Output()
+	output, err := script(q.Args)
 	if err != nil {
-		return fmt.Sprintf("Command failed: %s", err)
+		return fmt.Sprintf("Script failed: %s", err)
 	}
-	return string(output)
+	return output
 }
 
 func tail(filename string, lines int64) ([]byte, error) {
@@ -574,15 +566,27 @@ func (self EventAction) Video(device string, preset int64, secs float64, ir bool
 }
 
 func (self EventAction) Script(cmd string) {
-	log.Println("Script:", cmd)
-	// run exec non-blocking
+	// run non-blocking
 	go func() {
-		cmd = util.ExpandUser(cmd)
-		_, err := exec.Command(cmd).Output()
+		output, err := script(cmd)
 		if err != nil {
-			log.Printf("Exec %s: %s", cmd, err)
+			log.Printf("Script action '%s' failed: %s", cmd, err)
 		}
+		log.Printf("Script finished successfully: %s", output)
 	}()
+}
+
+func script(command string) (string, error) {
+	args := strings.Split(command, " ")
+	name := path.Base(args[0])
+	if name == "" {
+		return "", errors.New("Expected a script name argument")
+	}
+	args = args[1:]
+	cmd := path.Join(util.ExpandUser(services.Config.General.Scripts), name)
+	log.Println("Running script:", cmd)
+	output, err := exec.Command(cmd, args...).Output()
+	return string(output), err
 }
 
 func (self EventAction) Alert(message string, target string) {
