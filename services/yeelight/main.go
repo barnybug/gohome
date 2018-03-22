@@ -89,7 +89,7 @@ func announce(light yeelight.Light) {
 	services.Publisher.Emit(ev)
 }
 
-func (self *Service) discover() {
+func (self *Service) discover() int {
 	lights, err := yeelight.Discover(10 * time.Second)
 	if err != nil {
 		log.Fatal(err)
@@ -103,6 +103,19 @@ func (self *Service) discover() {
 			announce(light)
 		}
 	}
+	return len(lights)
+}
+
+func (self *Service) QueryHandlers() services.QueryHandlers {
+	return services.QueryHandlers{
+		"discover": services.TextHandler(self.queryDiscover),
+		"help":     services.StaticHandler("discover: run discovery\n"),
+	}
+}
+
+func (self *Service) queryDiscover(q services.Question) string {
+	devices := self.discover()
+	return fmt.Sprintf("Discovered %d devices", devices)
 }
 
 func (self *Service) Run() error {
