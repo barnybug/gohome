@@ -585,7 +585,7 @@ func script(command string) (string, error) {
 	args = args[1:]
 	cmd := path.Join(util.ExpandUser(services.Config.General.Scripts), name)
 	log.Println("Running script:", cmd)
-	output, err := exec.Command(cmd, args...).Output()
+	output, err := exec.Command(cmd, args...).CombinedOutput()
 	return string(output), err
 }
 
