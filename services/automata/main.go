@@ -594,11 +594,12 @@ func script(command string) (string, error) {
 func asyncScript(command string) {
 	// run non-blocking
 	go func() {
-		output, err := script(cmd)
+		output, err := script(command)
 		if err != nil {
-			log.Printf("Script action '%s' failed: %s", cmd, err)
+			log.Printf("Script '%s' failed: %s", command, err)
 		}
-		log.Printf("Script finished successfully: %s", output)
+		output = strings.TrimSpace(output)
+		log.Printf("Script '%s' successful: %s", command, output)
 	}()
 }
 
