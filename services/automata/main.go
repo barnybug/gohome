@@ -419,8 +419,9 @@ func (self *Service) restoreState(ev *pubsub.Event) {
 func handleCommand(ev *pubsub.Event) {
 	if strings.HasPrefix(ev.Device(), "scene.") {
 		// scenes are simply scripts named with the convention <scene name>.sh
-		name := ev.Device()[6:] + ".sh"
-		asyncScript(name)
+		// They're called with the command as first argument (on/off)
+		cmd := fmt.Sprintf("%s.sh %s", ev.Device()[6:], ev.Command())
+		asyncScript(cmd)
 	}
 }
 
