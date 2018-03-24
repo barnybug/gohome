@@ -313,7 +313,7 @@ func (self *Service) querySwitch(q services.Question) string {
 	dev := services.Config.Devices[matches[0]]
 	// rest of key=value arguments
 	command, fields := parseArgs(args[1:])
-	sendCommmand(matches[0], command, fields)
+	sendCommand(matches[0], command, fields)
 	return fmt.Sprintf("Switched %s %s", dev.Name, command)
 }
 
@@ -333,7 +333,7 @@ func parseArgs(args []string) (string, pubsub.Fields) {
 	return command, fields
 }
 
-func sendCommmand(name string, command string, params pubsub.Fields) {
+func sendCommand(name string, command string, params pubsub.Fields) {
 	ev := pubsub.NewEvent("command", params)
 	ev.SetField("command", command)
 	ev.SetField("device", name)
@@ -621,21 +621,12 @@ func (self EventAction) Command(text string) {
 	args := strings.Split(text, " ")
 	device := args[0]
 	command, fields := parseArgs(args[1:])
-	sendCommmand(device, command, fields)
+	sendCommand(device, command, fields)
 }
 
 var stateCommand = map[bool]string{
 	false: "off",
 	true:  "on",
-}
-
-func (self EventAction) Switch(device string, state bool) {
-	command := stateCommand[state]
-	sendCommmand(device, command, pubsub.Fields{"repeat": 3})
-}
-
-func (self EventAction) Dim(device string, level int64) {
-	sendCommmand(device, "on", pubsub.Fields{"repeat": 3, "level": level})
 }
 
 func (self EventAction) Snapshot(device string, target string, message string) {
