@@ -270,6 +270,10 @@ func (self *Service) transmitCommands(dev *gorfxtrx.Device) {
 			continue
 		}
 		repeat := ev.IntField("repeat")
+		if repeat == 0 {
+			// default to repeating - radio is unreliable
+			repeat = 3
+		}
 		err = self.repeatSend(dev, ev, pkt, repeat)
 		if err != nil {
 			log.Fatalln("Exiting after error sending:", err)
