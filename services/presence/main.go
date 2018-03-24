@@ -416,7 +416,8 @@ func (self *Service) Run() error {
 
 	timer := time.NewTimer(time.Hour)
 	timer.Stop()
-	commands := services.Subscriber.Channel()
+	commands := services.Subscriber.FilteredChannel("command")
+	triggers := services.Subscriber.FilteredChannel("lock")
 L:
 	for {
 		select {
@@ -424,11 +425,11 @@ L:
 			break L
 		case ev := <-commands:
 			// manual command login/out command
-			if ev.Topic == "command" {
-				if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Cap["presence"] {
-					emit(ev.Device(), ev.Command() == "on")
-				}
-			} else if ev.Device() == services.Config.Presence.Trigger {
+			if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Cap["presence"] {
+				emit(ev.Device(), ev.Command() == "on", "manual")
+			}
+		case ev := <-triggers:
+			if ev.Device() == services.Config.Presence.Trigger {
 				if !alert {
 					log.Printf("Alert: true (%s)", ev.Device())
 					alert = true
