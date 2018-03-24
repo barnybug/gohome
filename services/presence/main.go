@@ -33,11 +33,14 @@ func (self *Service) ID() string {
 	return "presence"
 }
 
-func emit(device string, state bool) {
+func emit(device string, state bool, cause string) {
+	d := "away"
 	command := "off"
 	if state {
+		d = "home"
 		command = "on"
 	}
+	log.Printf("%s %s (%s)", device, d, cause)
 	fields := pubsub.Fields{
 		"device":  device,
 		"command": command,
@@ -324,11 +327,10 @@ func (w *Watchdog) watcher() {
 	timeout := time.NewTimer(interval)
 	for {
 		select {
-		case name := <-alive:
+		case cause := <-alive:
 			if !home {
-				log.Printf("%s home (%s)", w.device, name)
 				home = true
-				emit(w.device, home)
+				emit(w.device, home, cause)
 			}
 			// make next time period use passive checks
 			active = false
@@ -348,9 +350,8 @@ func (w *Watchdog) watcher() {
 			} else {
 				// passive and active checkers exhausted
 				if home && alert {
-					log.Printf("%s away", w.device)
 					home = false
-					emit(w.device, home)
+					emit(w.device, home, "timeout")
 				}
 			}
 			// start timeout again
@@ -429,14 +430,14 @@ L:
 				}
 			} else if ev.Device() == services.Config.Presence.Trigger {
 				if !alert {
-					log.Println("Alert: true")
+					log.Printf("Alert: true (%s)", ev.Device())
 					alert = true
 				}
 				timer.Reset(time.Minute * 10)
 			}
 		case <-timer.C:
 			alert = false
-			log.Println("Alert: false")
+			log.Println("Alert: false (timeout)")
 		}
 	}
 
