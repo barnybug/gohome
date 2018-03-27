@@ -127,10 +127,11 @@ func (self *Service) defineFunctions() {
 	// govaluate functions
 	self.functions = map[string]govaluate.ExpressionFunction{
 		"State":      State,
-		"Log":        self.Log,
 		"Alert":      self.Alert,
-		"Query":      self.Query,
 		"Command":    self.Command,
+		"Log":        self.Log,
+		"Query":      self.Query,
+		"Script":     self.Script,
 		"Snapshot":   self.Snapshot,
 		"StartTimer": self.StartTimer,
 	}
