@@ -70,10 +70,11 @@ func openLogFile() *os.File {
 
 // Service automata
 type Service struct {
-	timers        map[string]*time.Timer
-	configUpdated chan bool
-	log           *os.File
-	functions     map[string]govaluate.ExpressionFunction
+	timers            map[string]*time.Timer
+	configUpdated     chan bool
+	log               *os.File
+	functions         map[string]govaluate.ExpressionFunction
+	restoredAutomaton map[string]bool
 }
 
 var automata *gofsm.Automata
@@ -421,6 +422,7 @@ func (self *Service) restoreState(ev *pubsub.Event) {
 		state[k] = gofsm.AutomatonState{ev.StringField("state"), ev.Timestamp}
 		automata.Restore(state)
 		log.Printf("Restored %s: %s at %s", k, aut.State.Name, aut.Since.Format(time.RFC3339))
+		self.restoredAutomaton[k] = true
 	}
 }
 
@@ -455,11 +457,34 @@ func (self *Service) performAction(action gofsm.Action) {
 	}
 }
 
+func (self *Service) stateRestored() {
+	for k, aut := range automata.Automaton {
+		if _, ok := self.restoredAutomaton[k]; !ok {
+			// automaton defaulted to initial state - 'persist' it
+			publishState(k, aut.State.Name, "initial")
+			log.Printf("Initial state %s: %s", k, aut.State.Name)
+			self.restoredAutomaton[k] = true
+		}
+	}
+}
+
+func publishState(device, state, trigger string) {
+	fields := pubsub.Fields{
+		"device":  device,
+		"state":   state,
+		"trigger": trigger,
+	}
+	ev := pubsub.NewEvent("state", fields)
+	ev.SetRetained(true)
+	services.Publisher.Emit(ev)
+}
+
 // Run the service
 func (self *Service) Run() error {
 	self.log = openLogFile()
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)
+	self.restoredAutomaton = map[string]bool{}
 	// load templated automata
 	err := self.loadAutomata()
 	if err != nil {
@@ -468,6 +493,8 @@ func (self *Service) Run() error {
 
 	ch := services.Subscriber.Channel()
 	defer services.Subscriber.Close(ch)
+	stateRestored := time.NewTimer(time.Second * 5)
+
 	for {
 		select {
 		case ev := <-ch:
@@ -493,14 +520,7 @@ func (self *Service) Run() error {
 			s := fmt.Sprintf("%-17s %s->%s", "["+change.Automaton+"]", change.Old, change.New)
 			log.Printf("%-40s (event: %s)", s, trigger)
 			// emit event
-			fields := pubsub.Fields{
-				"device":  change.Automaton,
-				"state":   change.New,
-				"trigger": trigger.String(),
-			}
-			ev := pubsub.NewEvent("state", fields)
-			ev.SetRetained(true)
-			services.Publisher.Emit(ev)
+			publishState(change.Automaton, change.New, trigger.String())
 
 		case action := <-automata.Actions:
 			self.performAction(action)
@@ -516,6 +536,11 @@ func (self *Service) Run() error {
 			}
 			automata.Restore(state)
 			log.Println("Automata reloaded successfully")
+			self.stateRestored()
+
+		case <-stateRestored.C:
+			// all retained State has been restored. Persist any missing State initial states.
+			self.stateRestored()
 		}
 	}
 	return nil
