@@ -28,5 +28,5 @@ func config(path, filename string) {
 	ev.SetRetained(true) // config messages are retained
 	services.SetupBroker()
 	services.Publisher.Emit(ev)
-	fmt.Printf("Updated %s (%d bytes)", path, len(data))
+	fmt.Printf("Updated %s (%d bytes)\n", path, len(data))
 }
