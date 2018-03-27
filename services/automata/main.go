@@ -646,7 +646,9 @@ func (self *Service) Script(args ...interface{}) (interface{}, error) {
 	if err := checkArguments(args, "", "string"); err != nil {
 		return nil, err
 	}
+	context := args[0].(ChangeContext)
 	cmd := args[1].(string)
+	cmd = context.Format(cmd)
 	asyncScript(cmd)
 	return nil, nil
 }
