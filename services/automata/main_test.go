@@ -11,11 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var service = &Service{}
 var (
-	evOn      = NewEventContext(pubsub.NewEvent("ack", pubsub.Fields{"device": "light.porch", "command": "on", "timestamp": "2017-09-26 19:24:22.069"}))
-	evState   = NewEventContext(pubsub.NewEvent("state", pubsub.Fields{"device": "light.porch", "state": "On", "timestamp": "2017-09-26 19:24:22.069"}))
-	evTime    = NewEventContext(pubsub.NewEvent("time", pubsub.Fields{"device": "time", "hhmm": "2230", "timestamp": "2017-09-26 22:30:00.000"}))
-	evMissing = NewEventContext(pubsub.NewEvent("ack", pubsub.Fields{"timestamp": "2017-09-26 19:24:22.069"}))
+	evOn      = NewEventContext(service, pubsub.NewEvent("ack", pubsub.Fields{"device": "light.porch", "command": "on", "timestamp": "2017-09-26 19:24:22.069"}))
+	evState   = NewEventContext(service, pubsub.NewEvent("state", pubsub.Fields{"device": "light.porch", "state": "On", "timestamp": "2017-09-26 19:24:22.069"}))
+	evTime    = NewEventContext(service, pubsub.NewEvent("time", pubsub.Fields{"device": "time", "hhmm": "2230", "timestamp": "2017-09-26 22:30:00.000"}))
+	evMissing = NewEventContext(service, pubsub.NewEvent("ack", pubsub.Fields{"timestamp": "2017-09-26 19:24:22.069"}))
 )
 
 func ExampleInterfaces() {

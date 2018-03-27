@@ -73,6 +73,7 @@ type Service struct {
 	timers        map[string]*time.Timer
 	configUpdated chan bool
 	log           *os.File
+	functions     map[string]govaluate.ExpressionFunction
 }
 
 var automata *gofsm.Automata
@@ -84,14 +85,9 @@ func (self *Service) ID() string {
 
 var reAction = regexp.MustCompile(`(\w+)\((.+)\)`)
 
-type EventAction struct {
+type EventContext struct {
 	service *Service
 	event   *pubsub.Event
-	change  gofsm.Change
-}
-
-type EventContext struct {
-	event *pubsub.Event
 }
 
 func (c EventContext) Get(name string) (interface{}, error) {
@@ -107,11 +103,8 @@ func (c EventContext) Get(name string) (interface{}, error) {
 	}
 }
 
-func NewEventContext(event *pubsub.Event) EventContext {
-	// params := Parameters(event.Map())
-	// ps := strings.SplitN(event.Device(), ".", 2)
-	// params["type"] = ps[0]
-	return EventContext{event}
+func NewEventContext(service *Service, event *pubsub.Event) EventContext {
+	return EventContext{service, event}
 }
 
 func State(args ...interface{}) (interface{}, error) {
@@ -127,17 +120,31 @@ func State(args ...interface{}) (interface{}, error) {
 	return aut.State.Name, nil
 }
 
-var functions = map[string]govaluate.ExpressionFunction{
-	"State": State,
-}
-
 var parsingCache = map[string]*govaluate.EvaluableExpression{}
 
-func ParseCached(s string) (*govaluate.EvaluableExpression, error) {
+func (self *Service) defineFunctions() {
+	// govaluate functions
+	self.functions = map[string]govaluate.ExpressionFunction{
+		"State":      State,
+		"Log":        self.Log,
+		"Alert":      self.Alert,
+		"Query":      self.Query,
+		"Command":    self.Command,
+		"Snapshot":   self.Snapshot,
+		"StartTimer": self.StartTimer,
+	}
+}
+
+func (self *Service) ParseCached(s string) (*govaluate.EvaluableExpression, error) {
 	if expr, ok := parsingCache[s]; ok {
 		return expr, nil
 	}
-	expr, err := govaluate.NewEvaluableExpressionWithFunctions(s, functions)
+
+	if self.functions == nil {
+		self.defineFunctions()
+	}
+
+	expr, err := govaluate.NewEvaluableExpressionWithFunctions(s, self.functions)
 	if err != nil {
 		return nil, fmt.Errorf("Bad expression '%s': %s", s, err)
 	}
@@ -146,9 +153,9 @@ func ParseCached(s string) (*govaluate.EvaluableExpression, error) {
 }
 
 func (self EventContext) Match(when string) bool {
-	expr, err := ParseCached(when)
+	expr, err := self.service.ParseCached(when)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Error parsing expression '%s': %s", when, err)
 		return false
 	}
 	result, err := expr.Eval(self)
@@ -361,7 +368,7 @@ func (self *Service) queryLogs(q services.Question) string {
 	return string(data)
 }
 
-func loadAutomata() error {
+func (self *Service) loadAutomata() error {
 	c := services.Configured["config/automata"]
 	tmpl := template.New("Automata")
 	tmpl, err := tmpl.Parse(c.Get())
@@ -382,12 +389,13 @@ func loadAutomata() error {
 	if err != nil {
 		return err
 	}
+
 	// precompile expressions
 	parsingCache = map[string]*govaluate.EvaluableExpression{}
 	for _, aut := range updated.Automaton {
 		for _, transition := range aut.Transitions {
 			for _, t := range transition {
-				_, err := ParseCached(t.When)
+				_, err := self.ParseCached(t.When)
 				if err != nil {
 					return err
 				}
@@ -425,13 +433,35 @@ func handleCommand(ev *pubsub.Event) {
 	}
 }
 
+func (self *Service) performAction(action gofsm.Action) {
+	code := action.Name
+	// rewrite expressions to add implicit 'context' first parameter
+	// Might do away with this.
+	code = strings.Replace(code, "(", "(context, ", 1)
+	expr, err := self.ParseCached(code)
+	if err != nil {
+		log.Println("Error parsing action:", err)
+		return
+	}
+
+	e := action.Trigger.(EventContext)
+	params := map[string]interface{}{
+		"context": ChangeContext{e.event, action.Change},
+	}
+	// log.Printf("Running: '%s'", code)
+	_, err = expr.Evaluate(params)
+	if err != nil {
+		log.Printf("Error action '%s': %s", action.Name, err)
+	}
+}
+
 // Run the service
 func (self *Service) Run() error {
 	self.log = openLogFile()
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)
 	// load templated automata
-	err := loadAutomata()
+	err := self.loadAutomata()
 	if err != nil {
 		return err
 	}
@@ -455,7 +485,7 @@ func (self *Service) Run() error {
 			}
 
 			// send relevant events to the automata
-			event := NewEventContext(ev)
+			event := NewEventContext(self, ev)
 			automata.Process(event)
 
 		case change := <-automata.Changes:
@@ -473,18 +503,13 @@ func (self *Service) Run() error {
 			services.Publisher.Emit(ev)
 
 		case action := <-automata.Actions:
-			wrapper := action.Trigger.(EventContext)
-			ea := EventAction{self, wrapper.event, action.Change}
-			err := DynamicCall(ea, action.Name)
-			if err != nil {
-				log.Println("Error:", err)
-			}
+			self.performAction(action)
 
 		case <-self.configUpdated:
 			// live reload the automata!
 			log.Println("Automata config updated, reloading")
 			state := automata.Persist()
-			err := loadAutomata()
+			err := self.loadAutomata()
 			if err != nil {
 				log.Println("Failed to reload automata:", err)
 				continue
@@ -556,27 +581,19 @@ func (c ChangeContext) Format(msg string) string {
 	})
 }
 
-func (self EventAction) substitute(msg string) string {
-	return ChangeContext{self.event, self.change}.Format(msg)
-}
-
-func (self EventAction) Log(msg string) {
-	msg = self.substitute(msg)
-	self.service.appendLog(msg)
+func (self *Service) Log(args ...interface{}) (interface{}, error) {
+	context := args[0].(ChangeContext)
+	msg := args[1].(string)
+	msg = context.Format(msg)
+	self.appendLog(msg)
 	log.Println("Log: ", msg)
+	return nil, nil
 }
 
-func (self EventAction) Video(device string, preset int64, secs float64, ir bool) {
-	log.Printf("Video: %s at %d for %.1fs (ir: %v)", device, preset, secs, ir)
-	ev := pubsub.NewCommand(device, "video")
-	ev.SetField("timeout", secs)
-	ev.SetField("preset", preset)
-	ev.SetField("ir", ir)
-	services.Publisher.Emit(ev)
-}
-
-func (self EventAction) Script(cmd string) {
+func (self *Service) Script(args ...interface{}) (interface{}, error) {
+	cmd := args[1].(string)
 	asyncScript(cmd)
+	return nil, nil
 }
 
 func script(command string) (string, error) {
@@ -604,43 +621,53 @@ func asyncScript(command string) {
 	}()
 }
 
-func (self EventAction) Alert(message string, target string) {
-	message = self.substitute(message)
-	log.Printf("%s: %s", strings.Title(target), message)
-	services.SendAlert(message, target, "", 0)
+func (self *Service) Alert(args ...interface{}) (interface{}, error) {
+	context := args[0].(ChangeContext)
+	msg := args[1].(string)
+	target := args[2].(string)
+	msg = context.Format(msg)
+	log.Printf("%s: %s", strings.Title(target), msg)
+	services.SendAlert(msg, target, "", 0)
+	return nil, nil
 }
 
-func (self EventAction) Query(query string) {
+func (self *Service) Query(args ...interface{}) (interface{}, error) {
+	query := args[1].(string)
 	log.Printf("Query %s", query)
 	services.QueryChannel(query, time.Second*5)
 	// results currently discarded
+	return nil, nil
 }
 
-func (self EventAction) Command(text string) {
-	log.Printf("Sending %s", text)
-	args := strings.Split(text, " ")
-	device := args[0]
-	command, fields := parseArgs(args[1:])
+func (self *Service) Command(args ...interface{}) (interface{}, error) {
+	text := args[1].(string)
+	// log.Printf("Sending %s", text)
+	argv := strings.Split(text, " ")
+	device := argv[0]
+	command, fields := parseArgs(argv[1:])
 	sendCommand(device, command, fields)
+	return nil, nil
 }
 
-var stateCommand = map[bool]string{
-	false: "off",
-	true:  "on",
-}
-
-func (self EventAction) Snapshot(device string, target string, message string) {
-	message = self.substitute(message)
+func (self *Service) Snapshot(args ...interface{}) (interface{}, error) {
+	context := args[0].(ChangeContext)
+	device := args[1].(string)
+	target := args[2].(string)
+	msg := args[3].(string)
+	msg = context.Format(msg)
 	ev := pubsub.NewCommand(device, "snapshot")
-	ev.SetField("message", message)
+	ev.SetField("message", msg)
 	ev.SetField("notify", target)
 	services.Publisher.Emit(ev)
+	return nil, nil
 }
 
-func (self EventAction) StartTimer(name string, d int64) {
-	// log.Printf("Starting timer: %s for %ds", name, d)
+func (self *Service) StartTimer(args ...interface{}) (interface{}, error) {
+	name := args[1].(string)
+	d := args[2].(float64)
+	log.Printf("Starting timer: %s for %.0fs", name, d)
 	duration := time.Duration(d) * time.Second
-	if timer, ok := self.service.timers[name]; ok {
+	if timer, ok := self.timers[name]; ok {
 		// cancel any existing
 		timer.Stop()
 	}
@@ -655,5 +682,6 @@ func (self EventAction) StartTimer(name string, d int64) {
 
 		services.Publisher.Emit(ev)
 	})
-	self.service.timers[name] = timer
+	self.timers[name] = timer
+	return nil, nil
 }
