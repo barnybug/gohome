@@ -7,6 +7,7 @@ import (
 	"github.com/barnybug/gofsm"
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/pubsub/dummy"
 	"github.com/barnybug/gohome/services"
 	"github.com/stretchr/testify/assert"
 )
@@ -96,12 +97,16 @@ func TestEventContextString(t *testing.T) {
 	assert.Equal(t, "light.porch command=on", evOn.String())
 }
 
-func TestFormat(t *testing.T) {
-	services.Config = config.ExampleConfig
+func testChangeContext() ChangeContext {
 	ev := pubsub.NewEvent("state", pubsub.Fields{"device": "light.kitchen", "state": "On", "timestamp": "2017-09-26 19:24:22.069", "number": 2.5})
 	now := time.Now()
 	change := gofsm.Change{"", "", "", now, time.Minute, nil}
-	context := ChangeContext{ev, change}
+	return ChangeContext{ev, change}
+}
+
+func TestFormat(t *testing.T) {
+	services.Config = config.ExampleConfig
+	context := testChangeContext()
 
 	assert.Equal(t, "test", context.Format("test"))
 	assert.Equal(t, "$missing", context.Format("$missing"))
@@ -111,4 +116,58 @@ func TestFormat(t *testing.T) {
 	assert.Equal(t, "1 minute", context.Format("$duration"))
 	assert.Equal(t, "On", context.Format("$state"))
 	assert.Equal(t, "2.5", context.Format("$number"))
+}
+
+func TestLog(t *testing.T) {
+	services.Publisher = &dummy.Publisher{}
+	context := testChangeContext()
+
+	_, err := service.Log("argument")
+	assert.Error(t, err)
+	_, err = service.Log(1)
+	assert.Error(t, err)
+
+	_, err = service.Log(context, "test")
+	assert.NoError(t, err)
+}
+
+func TestCommand(t *testing.T) {
+	services.Publisher = &dummy.Publisher{}
+	context := testChangeContext()
+
+	_, err := service.Command("argument")
+	assert.Error(t, err)
+	_, err = service.Command(1)
+	assert.Error(t, err)
+
+	_, err = service.Command(context, "command")
+	assert.NoError(t, err)
+}
+
+func TestStartTimer(t *testing.T) {
+	services.Publisher = &dummy.Publisher{}
+	service.timers = map[string]*time.Timer{}
+	context := testChangeContext()
+
+	_, err := service.StartTimer(context, "command", "a")
+	assert.Error(t, err)
+
+	_, err = service.StartTimer(context, "command", 1.0)
+	assert.NoError(t, err)
+	_, err = service.StartTimer(context, "command", 1)
+	assert.NoError(t, err)
+	_, err = service.StartTimer(context, "command", int64(1))
+	assert.NoError(t, err)
+}
+
+func TestCheckArguments(t *testing.T) {
+	assert.NoError(t, checkArguments([]interface{}{}))
+	assert.NoError(t, checkArguments([]interface{}{"expected"}, "string"))
+	assert.NoError(t, checkArguments([]interface{}{"expected", 1.0}, "string", "float64"))
+
+	assert.Error(t, checkArguments([]interface{}{}, "string"))
+	assert.Error(t, checkArguments([]interface{}{"unexpected"}))
+	assert.Error(t, checkArguments([]interface{}{1}, "string"))
+	assert.Error(t, checkArguments([]interface{}{"a"}, "float64"))
+	assert.Error(t, checkArguments([]interface{}{"a", "a"}, "string", "float64"))
 }

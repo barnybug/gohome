@@ -581,7 +581,34 @@ func (c ChangeContext) Format(msg string) string {
 	})
 }
 
+func checkArguments(args []interface{}, types ...string) error {
+	if len(args) != len(types) {
+		return fmt.Errorf("Expected %d arguments, but got %d", len(types), len(args))
+	}
+	for i, arg := range args {
+		switch types[i] {
+		case "string":
+			if _, ok := arg.(string); !ok {
+				return fmt.Errorf("Expected %s for argument %d, but got %v", types[i], i, arg)
+			}
+		case "float64":
+			if n, ok := arg.(int); ok {
+				args[i] = float64(n) // convert int->float64
+			} else if n, ok := arg.(int64); ok {
+				args[i] = float64(n) // convert int64->float64
+			} else if _, ok := arg.(float64); !ok {
+				return fmt.Errorf("Expected %s for argument %d, but got %v", types[i], i, arg)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (self *Service) Log(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string"); err != nil {
+		return nil, err
+	}
 	context := args[0].(ChangeContext)
 	msg := args[1].(string)
 	msg = context.Format(msg)
@@ -591,6 +618,9 @@ func (self *Service) Log(args ...interface{}) (interface{}, error) {
 }
 
 func (self *Service) Script(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string"); err != nil {
+		return nil, err
+	}
 	cmd := args[1].(string)
 	asyncScript(cmd)
 	return nil, nil
@@ -622,6 +652,9 @@ func asyncScript(command string) {
 }
 
 func (self *Service) Alert(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string", "string"); err != nil {
+		return nil, err
+	}
 	context := args[0].(ChangeContext)
 	msg := args[1].(string)
 	target := args[2].(string)
@@ -632,6 +665,9 @@ func (self *Service) Alert(args ...interface{}) (interface{}, error) {
 }
 
 func (self *Service) Query(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string"); err != nil {
+		return nil, err
+	}
 	query := args[1].(string)
 	log.Printf("Query %s", query)
 	services.QueryChannel(query, time.Second*5)
@@ -640,6 +676,9 @@ func (self *Service) Query(args ...interface{}) (interface{}, error) {
 }
 
 func (self *Service) Command(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string"); err != nil {
+		return nil, err
+	}
 	text := args[1].(string)
 	// log.Printf("Sending %s", text)
 	argv := strings.Split(text, " ")
@@ -650,6 +689,9 @@ func (self *Service) Command(args ...interface{}) (interface{}, error) {
 }
 
 func (self *Service) Snapshot(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string", "string", "string"); err != nil {
+		return nil, err
+	}
 	context := args[0].(ChangeContext)
 	device := args[1].(string)
 	target := args[2].(string)
@@ -663,6 +705,9 @@ func (self *Service) Snapshot(args ...interface{}) (interface{}, error) {
 }
 
 func (self *Service) StartTimer(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string", "float64"); err != nil {
+		return nil, err
+	}
 	name := args[1].(string)
 	d := args[2].(float64)
 	log.Printf("Starting timer: %s for %.0fs", name, d)
