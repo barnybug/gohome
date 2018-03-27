@@ -118,7 +118,7 @@ func SetupFlags() {
 	flag.Parse()
 }
 
-func Setup() {
+func SetupBroker() {
 	// create Publisher
 	url := os.Getenv("GOHOME_MQTT")
 	if url == "" {
@@ -136,6 +136,10 @@ func Setup() {
 		log.Fatalln("Failed to initialise sub endpoint")
 	}
 
+}
+
+func Setup() {
+	SetupBroker()
 	// listen for config changes
 	go ConfigWatcher()
 	// wait for initial config

@@ -32,7 +32,6 @@ import (
 	"github.com/barnybug/gohome/services/miflora"
 	"github.com/barnybug/gohome/services/orvibo"
 	"github.com/barnybug/gohome/services/presence"
-	"github.com/barnybug/gohome/services/pubsub"
 	"github.com/barnybug/gohome/services/pushbullet"
 	"github.com/barnybug/gohome/services/raspi"
 	"github.com/barnybug/gohome/services/rfid"
@@ -77,7 +76,6 @@ func registerServices() {
 	services.Register(&miflora.Service{})
 	services.Register(&orvibo.Service{})
 	services.Register(&presence.Service{})
-	services.Register(&pubsub.Service{})
 	services.Register(&pushbullet.Service{})
 	services.Register(&raspi.Service{})
 	services.Register(&rfid.Service{})
@@ -102,14 +100,14 @@ func usage() {
 	fmt.Println("Usage: gohome COMMAND [PROCESS/SERVICE]")
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Println("   logs    Tail logs")
-	fmt.Println("   restart Restart a process")
-	fmt.Println("   rotate  Rotate logs")
-	fmt.Println("   run     Run a service")
-	fmt.Println("   start   Start a process")
-	fmt.Println("   status  Get process status")
-	fmt.Println("   stop    Stop a process")
-	fmt.Println("   query   Query services")
+	fmt.Println("   config  path filename   Update config")
+	fmt.Println("   logs                    Tail logs")
+	fmt.Println("   restart [service]       Restart a service")
+	fmt.Println("   run     [service]       Run a service")
+	fmt.Println("   start   [service]       Start a service")
+	fmt.Println("   status  [service]       Get service status")
+	fmt.Println("   stop    [service]       Stop a process")
+	fmt.Println("   query   ...             Query services")
 	fmt.Println()
 }
 
@@ -142,6 +140,12 @@ func main() {
 	switch command {
 	default:
 		usage()
+	case "config":
+		if len(ps) < 2 {
+			usage()
+			return
+		}
+		config(ps[0], ps[1])
 	case "start":
 		query("start", ps, emptyParams)
 	case "stop":
