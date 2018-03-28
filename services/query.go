@@ -73,6 +73,35 @@ func splitLast(s string, sep string) string {
 	return bits[len(bits)-1]
 }
 
+func handleQuery(ev *pubsub.Event, queryables []Queryable) {
+	parts := strings.SplitN(ev.StringField("query"), " ", 2)
+	args := ""
+	if len(parts) > 1 {
+		args = parts[1]
+	}
+	first := strings.ToLower(parts[0])
+	ps := strings.SplitN(first, "/", 2)
+	limit := ""
+	if len(ps) == 2 {
+		limit = ps[0]
+	}
+	verb := ps[len(ps)-1]
+	from := ev.StringField("source") + ":" + ev.StringField("remote")
+	q := Question{Verb: verb, Args: args, From: from}
+
+	for _, service := range queryables {
+		if limit != "" && limit != service.ID() {
+			continue
+		}
+		if handler, ok := service.QueryHandlers()[verb]; ok {
+			go func() {
+				a := handler(q)
+				sendAnswer(ev, service.ID(), a)
+			}()
+		}
+	}
+}
+
 func QuerySubscriber() {
 	var queryables []Queryable
 	for _, service := range enabled {
@@ -85,33 +114,7 @@ func QuerySubscriber() {
 		return
 	}
 
-	// build map of handlers
-	handlers := map[string][]QueryHandler{}
-	for _, service := range queryables {
-		for key, handler := range service.QueryHandlers() {
-			handlers[key] = append(handlers[key], handler)
-			handlers[service.ID()+"/"+key] = append(handlers[service.ID()+"/"+key], handler)
-		}
-	}
-
 	for ev := range Subscriber.FilteredChannel("query") {
-		parts := strings.SplitN(ev.StringField("query"), " ", 2)
-		args := ""
-		if len(parts) > 1 {
-			args = parts[1]
-		}
-		first := strings.ToLower(parts[0])
-		verb := splitLast(first, "/")
-		from := ev.StringField("source") + ":" + ev.StringField("remote")
-		q := Question{Verb: verb, Args: args, From: from}
-
-		for _, service := range queryables {
-			if handlerList, ok := handlers[first]; ok {
-				for _, handler := range handlerList {
-					a := handler(q)
-					sendAnswer(ev, service.ID(), a)
-				}
-			}
-		}
+		handleQuery(ev, queryables)
 	}
 }
