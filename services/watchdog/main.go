@@ -112,6 +112,39 @@ func unmappedDevice(ev *pubsub.Event) {
 	announce(ev, false)
 }
 
+func guessDeviceName(topic string) string {
+	switch topic {
+	case "temp":
+		return "Thermometer"
+	case "light":
+		return "Light"
+	case "chime":
+		return "Chime"
+	case "door":
+		return "Door sensor"
+	case "pir":
+		return "PIR motion detector"
+	case "power":
+		return "Power meter"
+	case "pressure":
+		return "Barometer"
+	case "rain":
+		return "Rain meter"
+	case "sensor":
+		return "Sensor"
+	case "soil":
+		return "Soil moisture"
+	case "ups":
+		return "UPS"
+	case "voltage":
+		return "Battery voltage"
+	case "wind":
+		return "Wind meter"
+	default:
+		return "New device"
+	}
+}
+
 func announce(ev *pubsub.Event, mapped bool) {
 	source := ev.Source()
 	if mapped {
@@ -127,7 +160,7 @@ func announce(ev *pubsub.Event, mapped bool) {
 		// some discovered devices have friendly names (eg tradfri)
 		name := ev.StringField("name")
 		if name == "" {
-			name = "New device"
+			name = guessDeviceName(ev.Topic)
 		}
 		message = fmt.Sprintf("🔎 Discovered: '%s' id: '%s' emitting '%s' events", name, source, ev.Topic)
 	}
