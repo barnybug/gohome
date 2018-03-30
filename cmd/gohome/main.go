@@ -52,6 +52,8 @@ import (
 	"github.com/barnybug/gohome/services/yeelight"
 )
 
+var version = "master" /* passed in by go build */
+
 func registerServices() {
 	// register available services
 	services.Register(&api.Service{})
@@ -98,6 +100,7 @@ func registerServices() {
 
 func usage() {
 	fmt.Println("Usage: gohome COMMAND [PROCESS/SERVICE]")
+	fmt.Println("version", version)
 	fmt.Println()
 	fmt.Println("Commands:")
 	fmt.Println("   config  path filename   Update config")

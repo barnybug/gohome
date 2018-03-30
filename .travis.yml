@@ -8,6 +8,10 @@ before_script:
 script:
 - make test
 after_success:
+- test -n "$TRAVIS_TAG" && curl -sL https://git.io/goreleaser | bash
+
+
+after_success:
 - make release
 deploy:
   provider: releases

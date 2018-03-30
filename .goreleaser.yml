@@ -1,0 +1,15 @@
+builds:
+  - binary: gohome
+    main: ./cmd/gohome
+    ldflags: -s -w -X=github.com/barnybug/gohome/cmd/gohome.version={{.Version}}
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - 386
+      - arm
+    hooks:
+      post: make upx
+archive:
+  name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  format: binary

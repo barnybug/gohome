@@ -1,5 +1,3 @@
-export GO15VENDOREXPERIMENT=1
-
 exe = github.com/barnybug/gohome/cmd/gohome
 
 .PHONY: all build install test coverage deps release
@@ -19,18 +17,18 @@ coverage:
 	xdg-open /tmp/coverage.html
 
 release-arm:
-	GOOS=linux GOARCH=arm go build -o release/gohome-linux-arm $(exe)
+	GOOS=linux GOARCH=arm go build -o dist/gohome-linux-arm/gohome-linux-arm $(exe)
 
 release-arm64:
-	GOOS=linux GOARCH=arm64 go build -o release/gohome-linux-arm64 $(exe)
+	GOOS=linux GOARCH=arm64 go build -o dist/gohome-linux-arm64/gohome-linux-arm64 $(exe)
 
 release-amd64:
-	GOOS=linux GOARCH=amd64 go build -o release/gohome-linux-amd64 $(exe)
+	GOOS=linux GOARCH=amd64 go build -o dist/gohome-linux-amd64/gohome-linux-amd64 $(exe)
 
 release-386:
-	GOOS=linux GOARCH=386 go build -o release/gohome-linux-386 $(exe)
+	GOOS=linux GOARCH=386 go build -o dist/gohome-linux-386/gohome-linux-386 $(exe)
 
 upx:
-	upx release/*
+	upx dist/gohome-*/gohome-*
 
 release: release-amd64 release-386 release-arm upx
