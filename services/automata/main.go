@@ -36,6 +36,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path"
@@ -75,6 +76,7 @@ type Service struct {
 	log               *os.File
 	functions         map[string]govaluate.ExpressionFunction
 	restoredAutomaton map[string]bool
+	rand              *rand.Rand
 }
 
 var automata *gofsm.Automata
@@ -126,14 +128,15 @@ var parsingCache = map[string]*govaluate.EvaluableExpression{}
 func (self *Service) defineFunctions() {
 	// govaluate functions
 	self.functions = map[string]govaluate.ExpressionFunction{
-		"State":      State,
-		"Alert":      self.Alert,
-		"Command":    self.Command,
-		"Log":        self.Log,
-		"Query":      self.Query,
-		"Script":     self.Script,
-		"Snapshot":   self.Snapshot,
-		"StartTimer": self.StartTimer,
+		"State":       State,
+		"Alert":       self.Alert,
+		"Command":     self.Command,
+		"Log":         self.Log,
+		"Query":       self.Query,
+		"Script":      self.Script,
+		"Snapshot":    self.Snapshot,
+		"StartTimer":  self.StartTimer,
+		"RandomTimer": self.RandomTimer,
 	}
 }
 
@@ -486,6 +489,7 @@ func (self *Service) Run() error {
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)
 	self.restoredAutomaton = map[string]bool{}
+	self.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	// load templated automata
 	err := self.loadAutomata()
 	if err != nil {
@@ -732,13 +736,8 @@ func (self *Service) Snapshot(args ...interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func (self *Service) StartTimer(args ...interface{}) (interface{}, error) {
-	if err := checkArguments(args, "", "string", "float64"); err != nil {
-		return nil, err
-	}
-	name := args[1].(string)
-	d := args[2].(float64)
-	log.Printf("Starting timer: %s for %.0fs", name, d)
+func (self *Service) startTimer(name string, d float64) {
+	log.Printf("Starting timer: %s for %.1fs", name, d)
 	duration := time.Duration(d) * time.Second
 	if timer, ok := self.timers[name]; ok {
 		// cancel any existing
@@ -756,5 +755,29 @@ func (self *Service) StartTimer(args ...interface{}) (interface{}, error) {
 		services.Publisher.Emit(ev)
 	})
 	self.timers[name] = timer
+}
+
+func (self *Service) StartTimer(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string", "float64"); err != nil {
+		return nil, err
+	}
+	name := args[1].(string)
+	d := args[2].(float64)
+	self.startTimer(name, d)
+	return nil, nil
+}
+
+func (self *Service) RandomTimer(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string", "float64", "float64"); err != nil {
+		return nil, err
+	}
+	name := args[1].(string)
+	min := args[2].(float64)
+	max := args[3].(float64)
+	if max <= min {
+		return nil, errors.New("RandomTimer max must be greater than min")
+	}
+	d := self.rand.Float64()*(max-min) + min
+	self.startTimer(name, d)
 	return nil, nil
 }
