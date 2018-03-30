@@ -128,9 +128,9 @@ func sendAlert(client *cast.Client, message string) error {
 	if err != nil {
 		return err
 	}
-	defer client.Close()
 	media, err := client.Media(ctx)
 	if err != nil {
+		client.Close()
 		return err
 	}
 	params := url.Values{"text": []string{message}}
@@ -148,8 +148,41 @@ func sendAlert(client *cast.Client, message string) error {
 		ContentType: "audio/x-wav",
 		StreamType:  "BUFFERED",
 	}
+
+	// remember volume
+	var previousVolume *controllers.Volume
+	receiver := client.Receiver()
+	status, err := client.Receiver().GetStatus(ctx)
+	if err == nil {
+		previousVolume = status.Volume
+	} else {
+		defer client.Close()
+	}
+
+	// set volume
+	level := 0.2
+	muted := false
+	newVolume := controllers.Volume{Level: &level, Muted: &muted}
+	_, err = receiver.SetVolume(ctx, &newVolume)
+	if err != nil {
+		log.Println("Error setting volume:", err)
+	}
+
 	log.Printf("Playing url: %s", u.String())
+	// play media
 	_, err = media.LoadMedia(ctx, item, 0, true, nil)
+
+	// restore volume after media has had a chance to play
+	if previousVolume != nil {
+		time.AfterFunc(time.Second*10, func() {
+			_, err = receiver.SetVolume(ctx, previousVolume)
+			if err != nil {
+				log.Println("Error setting volume:", err)
+			}
+			client.Close()
+		})
+	}
+
 	return err
 }
 
