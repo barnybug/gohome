@@ -2,6 +2,7 @@ package services
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/barnybug/gohome/pubsub"
 )
@@ -73,6 +74,8 @@ func splitLast(s string, sep string) string {
 	return bits[len(bits)-1]
 }
 
+var queries sync.WaitGroup
+
 func handleQuery(ev *pubsub.Event, queryables []Queryable) {
 	parts := strings.SplitN(ev.StringField("query"), " ", 2)
 	args := ""
@@ -94,7 +97,9 @@ func handleQuery(ev *pubsub.Event, queryables []Queryable) {
 			continue
 		}
 		if handler, ok := service.QueryHandlers()[verb]; ok {
+			queries.Add(1)
 			go func() {
+				defer queries.Done()
 				a := handler(q)
 				sendAnswer(ev, service.ID(), a)
 			}()
@@ -117,4 +122,5 @@ func QuerySubscriber() {
 	for ev := range Subscriber.FilteredChannel("query") {
 		handleQuery(ev, queryables)
 	}
+	queries.Wait() // mostly for tests
 }
