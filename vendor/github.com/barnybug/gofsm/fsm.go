@@ -103,40 +103,48 @@ func (self *Automata) String() string {
 	return out
 }
 
+func (self *Automaton) ChangeState(next string, event Event) {
+	self.changeState(next, event, Actions{})
+}
+
+func (self *Automaton) changeState(next string, event Event, actions Actions) {
+	now := time.Now()
+	var change Change
+	// is a state change happening
+	stateChanged := (self.State.Name != next)
+
+	if stateChanged {
+		duration := now.Sub(self.Since)
+		change = Change{Automaton: self.Name, Old: self.State.Name, New: next, Duration: duration, Since: self.Since, Trigger: event}
+
+		// emit leaving actions
+		for _, action := range self.State.Leaving {
+			self.actions <- Action{action, event, change}
+		}
+	}
+
+	// emit transition actions
+	for _, action := range actions {
+		self.actions <- Action{action, event, change}
+	}
+
+	// change state
+	if stateChanged {
+		self.State = self.sm[next]
+		self.Since = now
+		self.changes <- change
+
+		// emit entering actions
+		for _, action := range self.State.Entering {
+			self.actions <- Action{action, event, change}
+		}
+	}
+}
+
 func (self *Automaton) Process(event Event) {
 	for _, t := range self.State.Steps {
 		if event.Match(t.When) {
-			now := time.Now()
-			var change Change
-			// is a state change happening
-			stateChanged := (self.State.Name != t.Next)
-
-			if stateChanged {
-				duration := now.Sub(self.Since)
-				change = Change{Automaton: self.Name, Old: self.State.Name, New: t.Next, Duration: duration, Since: self.Since, Trigger: event}
-
-				// emit leaving actions
-				for _, action := range self.State.Leaving {
-					self.actions <- Action{action, event, change}
-				}
-			}
-
-			// emit transition actions
-			for _, action := range t.Actions {
-				self.actions <- Action{action, event, change}
-			}
-
-			// change state
-			if stateChanged {
-				self.State = self.sm[t.Next]
-				self.Since = now
-				self.changes <- change
-
-				// emit entering actions
-				for _, action := range self.State.Entering {
-					self.actions <- Action{action, event, change}
-				}
-			}
+			self.changeState(t.Next, event, t.Actions)
 		}
 	}
 }

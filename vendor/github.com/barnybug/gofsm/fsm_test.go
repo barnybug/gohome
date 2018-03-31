@@ -59,6 +59,19 @@ func (s *S) TestEvents(c *C) {
 	c.Assert(ch.Duration > time.Millisecond, Equals, true)
 }
 
+func (s *S) TestChangeState(c *C) {
+	aut, err := LoadFile("examples/simple.yaml")
+	c.Assert(err, Equals, nil)
+	dog := aut.Automaton["simple"]
+
+	dog.ChangeState("Eating", StringEvent("dummy"))
+	c.Assert(dog.State.Name, Equals, "Eating")
+
+	dog.ChangeState("Full", StringEvent("dummy"))
+	c.Assert(dog.State.Name, Equals, "Full")
+	c.Assert((<-aut.Actions).Name, Equals, "groan()")
+}
+
 func (s *S) TestString(c *C) {
 	aut, _ := LoadFile("examples/simple.yaml")
 	c.Assert(aut.String(), Matches, "simple: Hungry for .*")

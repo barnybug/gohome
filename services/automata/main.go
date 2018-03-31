@@ -210,16 +210,16 @@ func (self *Service) RestoreFile(automata *gofsm.Automata) {
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status": services.TextHandler(self.queryStatus),
-		"tag":    services.TextHandler(self.queryTag),
 		"switch": services.TextHandler(self.querySwitch),
 		"logs":   services.TextHandler(self.queryLogs),
 		"script": services.TextHandler(self.queryScript),
+		"state":  services.TextHandler(self.queryState),
 		"help": services.StaticHandler("" +
 			"status: get status\n" +
-			"tag name: activate tag for name\n" +
 			"switch device on|off: switch device\n" +
 			"logs: get recent event logs\n" +
-			"script: run a script\n"),
+			"script: run a script\n" +
+			"state: manually update automaton state"),
 	}
 }
 
@@ -252,20 +252,31 @@ func (self *Service) queryStatus(q services.Question) string {
 	return out
 }
 
-func (self *Service) queryTag(q services.Question) string {
-	tagName := strings.ToLower(q.Args)
-	device := fmt.Sprintf("person.%s", tagName)
-	if _, ok := services.Config.Devices[device]; !ok {
-		return fmt.Sprintf("Tag %s not found", tagName)
+type DummyEvent struct{}
+
+func (d DummyEvent) String() string {
+	return "user"
+}
+
+func (d DummyEvent) Match(s string) bool {
+	return false
+}
+
+func (self *Service) queryState(q services.Question) string {
+	args := strings.Split(q.Args, " ")
+	if len(args) != 2 {
+		return "usage: state automata state"
 	}
-	fields := pubsub.Fields{
-		"device":  device,
-		"command": "on",
-		"source":  tagName,
+	aut, ok := automata.Automaton[args[0]]
+	if !ok {
+		return fmt.Sprintf("automata: '%s' not found", args[0])
 	}
-	ev := pubsub.NewEvent("rfid", fields)
-	services.Publisher.Emit(ev)
-	return fmt.Sprintf("Emitted tag for %s", tagName)
+	_, ok = aut.States[args[1]]
+	if !ok {
+		return fmt.Sprintf("automata state: '%s' not found", args[1])
+	}
+	aut.ChangeState(args[1], DummyEvent{})
+	return fmt.Sprintf("Change %s state to %s", args[0], args[1])
 }
 
 func keywordArgs(args []string) map[string]string {
@@ -472,6 +483,13 @@ func (self *Service) stateRestored() {
 	}
 }
 
+func changeState(change gofsm.Change) {
+	s := fmt.Sprintf("%-17s %s->%s", "["+change.Automaton+"]", change.Old, change.New)
+	log.Printf("%-40s (event: %s)", s, change.Trigger)
+	// emit event
+	publishState(change.Automaton, change.New, fmt.Sprint(change.Trigger))
+}
+
 func publishState(device, state, trigger string) {
 	fields := pubsub.Fields{
 		"device":  device,
@@ -521,11 +539,7 @@ func (self *Service) Run() error {
 			automata.Process(event)
 
 		case change := <-automata.Changes:
-			trigger := change.Trigger.(EventContext)
-			s := fmt.Sprintf("%-17s %s->%s", "["+change.Automaton+"]", change.Old, change.New)
-			log.Printf("%-40s (event: %s)", s, trigger)
-			// emit event
-			publishState(change.Automaton, change.New, trigger.String())
+			changeState(change)
 
 		case action := <-automata.Actions:
 			self.performAction(action)

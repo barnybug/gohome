@@ -23,7 +23,7 @@
   branch = "master"
   name = "github.com/barnybug/gofsm"
   packages = ["."]
-  revision = "fc5a2da99ee6b348d275618f3e4514e2b064fa03"
+  revision = "ad853eda72c5b5305f7b98c2f5ef96b0db9b07d4"
 
 [[projects]]
   branch = "master"
@@ -60,12 +60,6 @@
   name = "github.com/edgard/yeelight"
   packages = ["."]
   revision = "c32a2f3eb57cf9482fbcca1a2223391237886100"
-
-[[projects]]
-  name = "github.com/garyburd/redigo"
-  packages = ["internal","redis"]
-  revision = "433969511232c397de61b1442f9fd49ec06ae9ba"
-  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -194,6 +188,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bb9b66a9cc8c75f443172861493c2c88deec398dcb0943d6e9968f901bfc8459"
+  inputs-digest = "f7dd5c7222a94265765b1323750448f64a60c56f4804037d91b6356c297a9ee3"
   solver-name = "gps-cdcl"
   solver-version = 1
