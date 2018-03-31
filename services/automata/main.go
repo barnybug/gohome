@@ -384,6 +384,19 @@ func (self *Service) queryLogs(q services.Question) string {
 	return string(data)
 }
 
+type MultiError []error
+
+func (m MultiError) Error() string {
+	s := ""
+	for i, err := range m {
+		if i > 0 {
+			s += ", "
+		}
+		s += err.Error()
+	}
+	return s
+}
+
 func (self *Service) loadAutomata() error {
 	c := services.Configured["config/automata"]
 	tmpl := template.New("Automata")
@@ -407,16 +420,43 @@ func (self *Service) loadAutomata() error {
 	}
 
 	// precompile expressions
+	errors := MultiError{}
 	parsingCache = map[string]*govaluate.EvaluableExpression{}
 	for _, aut := range updated.Automaton {
 		for _, transition := range aut.Transitions {
 			for _, t := range transition {
 				_, err := self.ParseCached(t.When)
 				if err != nil {
-					return err
+					errors = append(errors, err)
+				}
+
+				for _, action := range t.Actions {
+					_, err := self.ParseCached(action)
+					if err != nil {
+						errors = append(errors, err)
+					}
 				}
 			}
 		}
+
+		for _, state := range aut.States {
+			for _, action := range state.Entering {
+				_, err := self.ParseCached(action)
+				if err != nil {
+					errors = append(errors, err)
+				}
+			}
+			for _, action := range state.Leaving {
+				_, err := self.ParseCached(action)
+				if err != nil {
+					errors = append(errors, err)
+				}
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return errors
 	}
 
 	automata = updated
