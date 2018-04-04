@@ -34,9 +34,6 @@ func nextEvent(loc Location) (at time.Time, name string) {
 	} else if sunset := loc.Sunset(now, ZenithOfficial); now.Before(sunset) {
 		at = sunset
 		name = "sunset"
-	} else if midnight := now.Round(time.Hour * 24); now.Before(midnight) {
-		at = midnight
-		name = "midnight"
 	} else if sunrise := loc.Sunrise(now.Add(time.Hour*24), ZenithOfficial); now.Before(sunrise) {
 		at = sunrise
 		name = "sunrise"
