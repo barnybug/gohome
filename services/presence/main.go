@@ -290,7 +290,7 @@ type Beacon struct {
 }
 
 func NewBeacon(mac string) Checker {
-	return &Beacon{mac: mac}
+	return &Beacon{mac: strings.ToLower(mac)}
 }
 
 func (s *Beacon) run(alive chan string) {
@@ -298,7 +298,7 @@ func (s *Beacon) run(alive chan string) {
 
 	beacons := services.Subscriber.FilteredChannel("beacon")
 	for ev := range beacons {
-		mac := ev.StringField("mac")
+		mac := strings.ToLower(ev.StringField("mac"))
 		if mac == s.mac {
 			alive <- "beacon"
 		}
