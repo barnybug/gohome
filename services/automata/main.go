@@ -483,10 +483,14 @@ func (self *Service) restoreState(ev *pubsub.Event) {
 
 func handleCommand(ev *pubsub.Event) {
 	if strings.HasPrefix(ev.Device(), "scene.") {
-		// scenes are simply scripts named with the convention <scene name>.sh
-		// They're called with the command as first argument (on/off)
-		cmd := fmt.Sprintf("%s.sh %s", ev.Device()[6:], ev.Command())
-		asyncScript(cmd)
+		// simply ack the scene. This allows automata to handle running scripts,
+		// and perform state changes as necessary to the ack event.
+		fields := pubsub.Fields{
+			"device":  ev.Device(),
+			"command": ev.Command(),
+		}
+		ev := pubsub.NewEvent("ack", fields)
+		services.Publisher.Emit(ev)
 	}
 }
 
