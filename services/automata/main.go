@@ -297,6 +297,10 @@ func isSwitchable(dev config.DeviceConf) bool {
 }
 
 func matchDevices(n string) []string {
+	if _, ok := services.Config.Devices[n]; ok {
+		return []string{n}
+	}
+
 	matches := []string{}
 	for name, dev := range services.Config.Devices {
 		if strings.Contains(name, n) && isSwitchable(dev) {
