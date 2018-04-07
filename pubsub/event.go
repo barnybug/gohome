@@ -63,6 +63,11 @@ func (event *Event) IntField(name string) int64 {
 	return int64(ret)
 }
 
+func (event *Event) FloatField(name string) float64 {
+	ret, _ := event.Fields[name].(float64)
+	return ret
+}
+
 func (event *Event) SetRepeat(repeat int) {
 	event.Fields["repeat"] = repeat
 }

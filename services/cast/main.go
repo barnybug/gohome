@@ -91,7 +91,7 @@ LOOP:
 
 func EmitStopped(name, command, app string) {
 	source := fmt.Sprintf("cast.%s", name)
-	fields := map[string]interface{}{
+	fields := pubsub.Fields{
 		"command": command,
 		"source":  source,
 		"app":     app,
@@ -186,26 +186,71 @@ func sendAlert(client *cast.Client, message string) error {
 	return err
 }
 
-func (service *Service) alerts() {
-	for ev := range services.Subscriber.FilteredChannel("alert") {
-		pids := services.Config.LookupDeviceProtocol(ev.Target())
-		message, ok := ev.Fields["message"].(string)
-		if pids["cast"] == "" || !ok {
-			continue
-		}
+func (service *Service) handleAlert(ev *pubsub.Event) {
+	pids := services.Config.LookupDeviceProtocol(ev.Target())
+	message, ok := ev.Fields["message"].(string)
+	if pids["cast"] == "" || !ok {
+		return
+	}
 
-		if client, ok := connected[pids["cast"]]; ok {
-			log.Printf("Casting to %s message: %s", pids["cast"], message)
-			err := sendAlert(client, message)
-			if err != nil {
-				log.Printf("Error casting media: %s", err)
-			}
-		} else {
-			log.Printf("Couldn't find cast client: %s", pids["cast"])
+	if client, ok := connected[pids["cast"]]; ok {
+		log.Printf("Casting to %s message: %s", pids["cast"], message)
+		err := sendAlert(client, message)
+		if err != nil {
+			log.Printf("Error casting media: %s", err)
 		}
+	} else {
+		log.Printf("Couldn't find cast client: %s", pids["cast"])
 	}
 }
 
+func (service *Service) handleCommand(ev *pubsub.Event) {
+	pids := services.Config.LookupDeviceProtocol(ev.Device())
+	if pids["cast"] == "" {
+		return
+	}
+
+	client, ok := connected[pids["cast"]]
+	if !ok {
+		log.Println("Couldn't find cast client:", pids["cast"])
+		return
+	}
+
+	// open a new connection
+	client = cast.NewClient(client.IP(), client.Port())
+	ctx := context.Background()
+	err := client.Connect(ctx)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	command := ev.Command()
+	switch command {
+	case "quit":
+		receiver := client.Receiver()
+		receiver.QuitApp(ctx)
+	case "on":
+		level := ev.FloatField("volume")
+		if level != 0 {
+			receiver := client.Receiver()
+			muted := false
+			volume := controllers.Volume{Level: &level, Muted: &muted}
+			_, err := receiver.SetVolume(ctx, &volume)
+			if err == nil {
+				log.Printf("Set %s volume to %.2f", pids["cast"], level)
+			} else {
+				log.Println(err)
+			}
+		}
+	default:
+		log.Println("Command not recognised:", command)
+		return
+	}
+
+}
+
+// Writer to use for logging that filters out noise
 type FilteredWriter struct{}
 
 func (f FilteredWriter) Write(p []byte) (int, error) {
@@ -223,8 +268,18 @@ func (service *Service) Run() error {
 	discover := discovery.NewService(ctx)
 
 	go service.listener(discover)
-	go service.alerts()
+	go discover.Run(ctx, time.Second*300)
 
-	discover.Run(ctx, time.Second*300)
+	commands := services.Subscriber.FilteredChannel("command")
+	alerts := services.Subscriber.FilteredChannel("alert")
+	for {
+		select {
+		case ev := <-alerts:
+			service.handleAlert(ev)
+		case ev := <-commands:
+			service.handleCommand(ev)
+		}
+	}
+
 	return nil
 }
