@@ -227,7 +227,7 @@ func (service *Service) handleCommand(ev *pubsub.Event) {
 
 	command := ev.Command()
 	switch command {
-	case "quit":
+	case "off":
 		receiver := client.Receiver()
 		receiver.QuitApp(ctx)
 	case "on":
