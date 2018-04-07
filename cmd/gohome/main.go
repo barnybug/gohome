@@ -186,16 +186,17 @@ func commandSwitch(ps []string) {
 		return
 	}
 
-	params := url.Values{
-		"id":      []string{ps[0]},
-		"command": []string{ps[1]},
-	}
-	for _, arg := range ps[2:] {
+	command := "on"
+	params := url.Values{"id": []string{ps[0]}}
+	for _, arg := range ps[1:] {
 		ps := strings.SplitN(arg, "=", 2)
-		if len(ps) > 1 {
+		if len(ps) < 2 {
+			command = ps[0]
+		} else {
 			params[ps[0]] = ps[1:2]
 		}
 	}
+	params["command"] = []string{command}
 	resp, err := request("devices/control", params)
 	if err != nil {
 		fmtFatalf("error: %s\n", err)
