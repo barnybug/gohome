@@ -237,8 +237,8 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	// send command
 	ev := pubsub.NewCommand(device, command)
 	for key, values := range q {
-		// convert to int if possible
-		if n, err := strconv.Atoi(values[0]); err == nil {
+		// convert to float if possible
+		if n, err := strconv.ParseFloat(values[0], 64); err == nil {
 			ev.SetField(key, n)
 		} else {
 			ev.SetField(key, values[0])

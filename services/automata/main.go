@@ -351,7 +351,7 @@ func parseArgs(args []string) (string, pubsub.Fields) {
 	for field, value := range kwargs {
 		if field == "" {
 			command = value
-		} else if num, err := strconv.Atoi(value); err == nil {
+		} else if num, err := strconv.ParseFloat(value, 64); err == nil {
 			fields[field] = num
 		} else {
 			fields[field] = value
