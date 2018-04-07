@@ -236,28 +236,12 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 
 	// send command
 	ev := pubsub.NewCommand(device, command)
-	if q.Get("repeat") != "" {
-		if repeat, err := strconv.Atoi(q.Get("repeat")); err == nil {
-			ev.SetRepeat(repeat)
-		}
-	}
-	if q.Get("level") != "" {
-		if level, err := strconv.Atoi(q.Get("level")); err == nil {
-			ev.SetField("level", level)
-		}
-	}
-	if q.Get("colour") != "" {
-		colour := q.Get("colour")
-		ev.SetField("colour", colour)
-	}
-	if q.Get("temp") != "" {
-		if temp, err := strconv.Atoi(q.Get("temp")); err == nil {
-			ev.SetField("temp", temp)
-		}
-	}
-	if q.Get("duration") != "" {
-		if duration, err := strconv.Atoi(q.Get("duration")); err == nil {
-			ev.SetField("duration", duration)
+	for key, values := range q {
+		// convert to int if possible
+		if n, err := strconv.Atoi(values[0]); err == nil {
+			ev.SetField(key, n)
+		} else {
+			ev.SetField(key, values[0])
 		}
 	}
 	services.Publisher.Emit(ev)
