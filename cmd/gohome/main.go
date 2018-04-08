@@ -20,7 +20,6 @@ import (
 	"github.com/barnybug/gohome/services/cheerlights"
 	"github.com/barnybug/gohome/services/currentcost"
 	"github.com/barnybug/gohome/services/datalogger"
-	"github.com/barnybug/gohome/services/earth"
 	"github.com/barnybug/gohome/services/energenie"
 	"github.com/barnybug/gohome/services/espeaker"
 	"github.com/barnybug/gohome/services/graphite"
@@ -66,7 +65,6 @@ func registerServices() {
 	services.Register(&cheerlights.Service{})
 	services.Register(&currentcost.Service{})
 	services.Register(&datalogger.Service{})
-	services.Register(&earth.Service{})
 	services.Register(&energenie.Service{})
 	services.Register(&espeaker.Service{})
 	services.Register(&graphite.Service{})

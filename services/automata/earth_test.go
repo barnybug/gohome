@@ -1,4 +1,4 @@
-package earth
+package automata
 
 import (
 	"fmt"

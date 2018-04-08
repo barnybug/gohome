@@ -562,9 +562,12 @@ func (self *Service) Run() error {
 		return err
 	}
 
+	// setup channels
 	ch := services.Subscriber.Channel()
 	defer services.Subscriber.Close(ch)
 	stateRestored := time.NewTimer(time.Second * 5)
+	earth := earthChannel()
+	clock := util.NewScheduler(time.Duration(0), time.Minute)
 
 	for {
 		select {
@@ -608,6 +611,15 @@ func (self *Service) Run() error {
 		case <-stateRestored.C:
 			// all retained State has been restored. Persist any missing State initial states.
 			self.stateRestored()
+
+		case tev := <-earth:
+			ev := pubsub.NewEvent("earth",
+				pubsub.Fields{"device": "earth", "command": tev.Event})
+			services.Publisher.Emit(ev)
+		case tick := <-clock.C:
+			ev := pubsub.NewEvent("clock",
+				pubsub.Fields{"device": "clock", "time": tick.Format("1504")})
+			services.Publisher.Emit(ev)
 		}
 	}
 	return nil
