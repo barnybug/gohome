@@ -785,7 +785,9 @@ func (self *Service) Command(args ...interface{}) (interface{}, error) {
 	if err := checkArguments(args, "", "string"); err != nil {
 		return nil, err
 	}
+	context := args[0].(ChangeContext)
 	text := args[1].(string)
+	text = context.Format(text)
 	// log.Printf("Sending %s", text)
 	argv := strings.Split(text, " ")
 	device := argv[0]
