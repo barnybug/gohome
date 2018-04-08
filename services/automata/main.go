@@ -697,7 +697,6 @@ func (self *Service) Log(args ...interface{}) (interface{}, error) {
 	msg := args[1].(string)
 	msg = context.Format(msg)
 	self.appendLog(msg)
-	log.Println("Log: ", msg)
 	return nil, nil
 }
 
