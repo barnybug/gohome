@@ -592,6 +592,7 @@ func (self *Service) Run() error {
 			self.stateRestored()
 
 		case tev := <-earth:
+			log.Printf("Earth: %s at %v\n", tev.Event, tev.At.Local())
 			ev := pubsub.NewEvent("earth",
 				pubsub.Fields{"device": "earth", "command": tev.Event})
 			services.Publisher.Emit(ev)

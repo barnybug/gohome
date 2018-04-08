@@ -104,8 +104,7 @@ func (pos Location) calculate(now time.Time, zenith float64, sunrise bool) time.
 		hour, minute, second, 0, time.UTC)
 }
 
-func nextEvent(loc Location) (at time.Time, name string) {
-	now := time.Now()
+func nextEvent(loc Location, now time.Time) (at time.Time, name string) {
 	if sunrise := loc.Sunrise(now, ZenithOfficial); now.Before(sunrise) {
 		at = sunrise
 		name = "sunrise"
@@ -127,6 +126,28 @@ func nextEvent(loc Location) (at time.Time, name string) {
 	return
 }
 
+func previousEvent(loc Location, now time.Time) (at time.Time, name string) {
+	if sunset := loc.Sunset(now, ZenithOfficial); now.After(sunset) {
+		at = sunset
+		name = "sunset"
+	} else if dark := loc.Sunset(now, ZenithLight); now.After(dark) {
+		at = dark
+		name = "dark"
+	} else if light := loc.Sunrise(now, ZenithLight); now.After(light) {
+		at = light
+		name = "light"
+	} else if sunrise := loc.Sunrise(now, ZenithOfficial); now.After(sunrise) {
+		at = sunrise
+		name = "sunrise"
+	} else if sunset := loc.Sunset(now.Add(-time.Hour*24), ZenithOfficial); now.After(sunset) {
+		at = sunset
+		name = "sunset"
+	} else {
+		log.Println("This shouldn't happen")
+	}
+	return
+}
+
 type TimeEvent struct {
 	At    time.Time
 	Event string
@@ -139,10 +160,12 @@ func earthChannel() chan TimeEvent {
 	}
 	ch := make(chan TimeEvent)
 	go func() {
+		// send initial state
+		at, event := previousEvent(loc, time.Now())
+		ch <- TimeEvent{at, event}
 		for {
-			at, event := nextEvent(loc)
+			at, event := nextEvent(loc, time.Now())
 			delay := at.Sub(time.Now())
-			log.Printf("Next: %s at %v (in %s)\n", event, at.Local(), delay)
 			time.Sleep(delay)
 			ch <- TimeEvent{at, event}
 		}
