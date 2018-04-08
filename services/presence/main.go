@@ -33,18 +33,19 @@ func (self *Service) ID() string {
 	return "presence"
 }
 
-func emit(device string, state bool, cause string) {
+func emit(device string, state bool, trigger string) {
 	d := "away"
 	command := "off"
 	if state {
 		d = "home"
 		command = "on"
 	}
-	log.Printf("%s %s (%s)", device, d, cause)
+	log.Printf("%s %s (%s)", device, d, trigger)
 	fields := pubsub.Fields{
 		"device":  device,
 		"command": command,
 		"source":  "presence",
+		"trigger": trigger,
 	}
 	ev := pubsub.NewEvent("presence", fields)
 	services.Publisher.Emit(ev)
@@ -327,10 +328,10 @@ func (w *Watchdog) watcher() {
 	timeout := time.NewTimer(interval)
 	for {
 		select {
-		case cause := <-alive:
+		case trigger := <-alive:
 			if !home {
 				home = true
-				emit(w.device, home, cause)
+				emit(w.device, home, trigger)
 			}
 			// make next time period use passive checks
 			active = false
