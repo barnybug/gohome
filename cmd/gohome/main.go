@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"strings"
 
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/services/api"
@@ -49,6 +48,7 @@ import (
 	"github.com/barnybug/gohome/services/wunderground"
 	"github.com/barnybug/gohome/services/xpl"
 	"github.com/barnybug/gohome/services/yeelight"
+	"github.com/barnybug/gohome/util"
 )
 
 var version = "master" /* passed in by go build */
@@ -184,15 +184,13 @@ func commandSwitch(ps []string) {
 		return
 	}
 
-	command := "on"
 	params := url.Values{"id": []string{ps[0]}}
-	for _, arg := range ps[1:] {
-		ps := strings.SplitN(arg, "=", 2)
-		if len(ps) < 2 {
-			command = ps[0]
-		} else {
-			params[ps[0]] = ps[1:2]
-		}
+	command, vals := util.ParseArgs(ps[1:])
+	for k, v := range vals {
+		params[k] = []string{fmt.Sprint(v)}
+	}
+	if command == "" {
+		command = "on"
 	}
 	params["command"] = []string{command}
 	resp, err := request("devices/control", params)

@@ -279,19 +279,6 @@ func (self *Service) queryState(q services.Question) string {
 	return fmt.Sprintf("Change %s state to %s", args[0], args[1])
 }
 
-func keywordArgs(args []string) map[string]string {
-	ret := map[string]string{}
-	for _, arg := range args {
-		p := strings.SplitN(arg, "=", 2)
-		if len(p) == 2 {
-			ret[p[0]] = p[1]
-		} else {
-			ret[""] = p[0]
-		}
-	}
-	return ret
-}
-
 func isSwitchable(dev config.DeviceConf) bool {
 	return dev.Cap["switch"]
 }
@@ -345,17 +332,9 @@ func (self *Service) querySwitch(q services.Question) string {
 }
 
 func parseArgs(args []string) (string, pubsub.Fields) {
-	kwargs := keywordArgs(args)
-	command := "on"
-	fields := pubsub.Fields{}
-	for field, value := range kwargs {
-		if field == "" {
-			command = value
-		} else if num, err := strconv.ParseFloat(value, 64); err == nil {
-			fields[field] = num
-		} else {
-			fields[field] = value
-		}
+	command, fields := util.ParseArgs(args)
+	if command == "" {
+		command = "on"
 	}
 	return command, fields
 }
