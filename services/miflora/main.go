@@ -40,15 +40,16 @@ func sendEvent(mac string, sensors miflora.Sensors) {
 }
 
 func iterateSensors(f func(mac, name string) error) {
-	for mac, name := range services.Config.Protocols["miflora"] {
+	for _, dev := range services.Config.DevicesByProtocol("miflora") {
+		mac := dev.SourceId()
 		for i := 0; i < MaxRetries; i += 1 {
-			err := f(mac, name)
+			err := f(mac, dev.Name)
 			if err == nil {
 				break
 			}
 			if i == MaxRetries-1 {
 				// last retry
-				log.Printf("Failed to read %s after %d retries: %s", name, MaxRetries, err)
+				log.Printf("Failed to read %s after %d retries: %s", dev.Name, MaxRetries, err)
 			}
 		}
 	}

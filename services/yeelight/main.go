@@ -26,8 +26,8 @@ var reHexCode = regexp.MustCompile(`^#[0-9a-f]{6}$`)
 
 func (self *Service) handleCommand(ev *pubsub.Event) {
 	dev := ev.Device()
-	pids := services.Config.LookupDeviceProtocol(dev)
-	if pids["yeelight"] == "" {
+	ident, ok := services.Config.LookupDeviceProtocol(dev, "yeelight")
+	if !ok {
 		return // command not for us
 	}
 	command := ev.Command()
@@ -35,7 +35,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		log.Println("Command not recognised:", command)
 		return
 	}
-	if light, ok := self.lights[pids["yeelight"]]; ok {
+	if light, ok := self.lights[ident]; ok {
 		log.Printf("Setting device %s to %s\n", dev, command)
 		duration := 500
 		if _, ok := ev.Fields["duration"]; ok {

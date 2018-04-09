@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/yaml.v1"
+
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/util"
-
-	"gopkg.in/yaml.v1"
 )
 
 type BillConf struct {
@@ -49,11 +49,20 @@ type DeviceConf struct {
 	Location string   `json:"location"`
 	Caps     []string `json:"caps"`
 	Aliases  []string `json:"aliases"`
+	Source   string   `json:"source"`
 	Cap      map[string]bool
 }
 
 func (d DeviceConf) IsSwitchable() bool {
 	return d.Cap["switch"]
+}
+
+func (d DeviceConf) SourceId() string {
+	i := strings.Index(d.Source, ".")
+	if i != -1 {
+		return d.Source[i+1:]
+	}
+	return ""
 }
 
 type DataloggerConf struct {
@@ -215,7 +224,6 @@ type WundergroundConf struct {
 type Config struct {
 	// yaml fields
 	Devices      map[string]DeviceConf
-	Protocols    map[string]map[string]string
 	Endpoints    EndpointsConf
 	Bill         BillConf
 	Camera       CameraConf
@@ -240,6 +248,8 @@ type Config struct {
 	Watchdog     WatchdogConf
 	Weather      WeatherConf
 	Wunderground WundergroundConf
+
+	Sources map[string]string // source -> device id
 }
 
 // Open configuration from disk.
@@ -263,13 +273,14 @@ func OpenReader(r io.Reader) (*Config, error) {
 
 // Open configuration from []byte.
 func OpenRaw(data []byte) (*Config, error) {
-	self := &Config{}
-	err := yaml.Unmarshal(data, self)
+	config := &Config{}
+	config.Sources = map[string]string{}
+	err := yaml.Unmarshal(data, config)
 	if err != nil {
 		return nil, err
 	}
 
-	for id, device := range self.Devices {
+	for id, device := range config.Devices {
 		device.Id = id
 		if len(device.Caps) == 0 {
 			major := strings.Split(id, ".")[0]
@@ -280,10 +291,13 @@ func OpenRaw(data []byte) (*Config, error) {
 		for _, c := range device.Caps {
 			device.Cap[c] = true
 		}
-		self.Devices[id] = device
+		config.Devices[id] = device
+		if device.Source != "" {
+			config.Sources[device.Source] = device.Id
+		}
 	}
 
-	return self, nil
+	return config, nil
 }
 
 func (self *Config) AddDeviceToEvent(ev *pubsub.Event) {
@@ -294,25 +308,27 @@ func (self *Config) AddDeviceToEvent(ev *pubsub.Event) {
 }
 
 func (self *Config) LookupSource(source string) (string, bool) {
-	// split source into protocol.id
-	ps := strings.SplitN(source, ".", 2)
-	protocol := ps[0]
-	var id string
-	if len(ps) > 1 {
-		id = ps[1]
-	}
-	s, ok := self.Protocols[protocol][id]
+	s, ok := self.Sources[source]
 	return s, ok
 }
 
-// Find the protocol and identifier for by device name
-func (self *Config) LookupDeviceProtocol(matchName string) map[string]string {
-	ret := map[string]string{}
-	for protocol, value := range self.Protocols {
-		for id, name := range value {
-			if name == matchName {
-				ret[protocol] = id
-			}
+// Find the identifier for a given protocol by device name
+func (self *Config) LookupDeviceProtocol(device string, protocol string) (string, bool) {
+	if d, ok := self.Devices[device]; ok {
+		if strings.HasPrefix(d.Source, protocol+".") {
+			// return just the protocol identifier part
+			return d.Source[len(protocol)+1:], true
+		}
+	}
+	return "", false
+}
+
+func (self *Config) DevicesByProtocol(protocol string) []DeviceConf {
+	var ret []DeviceConf
+	protocol += "."
+	for _, d := range self.Devices {
+		if strings.HasPrefix(d.Source, protocol) {
+			ret = append(ret, d)
 		}
 	}
 	return ret
@@ -332,4 +348,11 @@ func ConfigPath(p string) string {
 // Get path to a log file
 func LogPath(p string) string {
 	return path.Join(util.ExpandUser("~/go/log"), p)
+}
+
+func Must(c *Config, err error) *Config {
+	if err != nil {
+		panic(err)
+	}
+	return c
 }

@@ -187,12 +187,12 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 	device := ev.Device()
 	command := ev.Command()
-	pids := services.Config.LookupDeviceProtocol(device)
-	if len(pids) == 0 {
-		return nil, nil
-	}
 
-	if pids["homeeasy"] == "" && pids["x10"] == "" && pids["byronsx"] == "" {
+	homeeasy, _ := services.Config.LookupDeviceProtocol(device, "homeeasy")
+	x10, _ := services.Config.LookupDeviceProtocol(device, "x10")
+	byronsx, _ := services.Config.LookupDeviceProtocol(device, "byronsx")
+
+	if homeeasy == "" && x10 == "" && byronsx == "" {
 		// command not for us
 		return nil, nil
 	}
@@ -203,7 +203,7 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 	}
 
 	switch {
-	case pids["homeeasy"] != "":
+	case homeeasy != "":
 		level := ev.IntField("level")
 		// scale 0->100 => 0->15
 		level = (level + 6) * 15 / 100
@@ -213,16 +213,16 @@ func translateCommands(ev *pubsub.Event) (gorfxtrx.OutPacket, error) {
 		if level != 0 {
 			command = "set level"
 		}
-		pkt, err := gorfxtrx.NewLightingHE(0x00, pids["homeeasy"], command)
+		pkt, err := gorfxtrx.NewLightingHE(0x00, homeeasy, command)
 		if level != 0 {
 			pkt.Level = byte(level)
 		}
 		return pkt, err
-	case pids["x10"] != "":
-		return gorfxtrx.NewLightingX10(0x01, pids["x10"], command)
-	case pids["byronsx"] != "":
-		id := pids["byronsx"][0:4]
-		chime, _ := strconv.ParseUint(pids["byronsx"][4:5], 16, 8)
+	case x10 != "":
+		return gorfxtrx.NewLightingX10(0x01, x10, command)
+	case byronsx != "":
+		id := byronsx[0:4]
+		chime, _ := strconv.ParseUint(byronsx[4:5], 16, 8)
 		if ev.IntField("chime") != 0 {
 			// allow the chime to be set per event
 			chime = uint64(ev.IntField("chime"))

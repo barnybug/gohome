@@ -8,9 +8,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/barnybug/ener314/rpio"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
-	"github.com/stianeikeland/go-rpio"
 )
 
 // Service raspi
@@ -67,33 +67,32 @@ func interruptListener(pin rpio.Pin, name string, interrupts chan InterruptEvent
 }
 
 func setupPins(interrupts chan InterruptEvent) {
-	for name, _ := range services.Config.Protocols["raspi"] {
-		if n, ok := PinAliases[name]; ok {
-			dir := PinDirection[name]
+	for _, dev := range services.Config.DevicesByProtocol("raspi") {
+		if n, ok := PinAliases[dev.Source]; ok {
+			dir := PinDirection[dev.Source]
 			pin := rpio.Pin(n)
 			if dir == rpio.Input {
 				pin.Input()
 				pin.PullOff()
-				go interruptListener(pin, name, interrupts)
+				go interruptListener(pin, dev.Source, interrupts)
 			} else {
 				pin.Output()
 			}
 		} else {
-			fmt.Println("Pin not recognised:", name)
+			fmt.Println("Pin not recognised:", dev.Source)
 		}
 	}
 }
 
 func handleCommand(ev *pubsub.Event) {
-	p := services.Config.LookupDeviceProtocol(ev.Device())
-	if name, ok := p["raspi"]; ok {
-		if n, ok := PinAliases[name]; ok {
+	if ident, ok := services.Config.LookupDeviceProtocol(ev.Device(), "raspi"); ok {
+		if n, ok := PinAliases[ident]; ok {
 			pin := rpio.Pin(n)
 			state := rpio.Low
 			if ev.Command() == "on" {
 				state = rpio.High
 			}
-			log.Println("Switching", name, state)
+			log.Println("Switching", ident, state)
 			pin.Write(state)
 		}
 	}

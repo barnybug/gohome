@@ -26,8 +26,7 @@ func (self *Service) Run() error {
 	for ev := range services.Subscriber.FilteredChannel("command") {
 		device := ev.Device()
 		code := ev.Command()
-		pids := services.Config.LookupDeviceProtocol(device)
-		if remote, ok := pids["lirc"]; ok {
+		if remote, ok := services.Config.LookupDeviceProtocol(device, "lirc"); ok {
 			ir.Send(remote + " " + code)
 			if err != nil {
 				log.Printf("Error sending command: %s", err)

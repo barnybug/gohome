@@ -111,7 +111,8 @@ func (self *Service) Run() error {
 		listeners: map[string]bool{},
 		done:      make(chan struct{}),
 	}
-	for mac, _ := range services.Config.Protocols["ble"] {
+	for _, dev := range services.Config.DevicesByProtocol("ble") {
+		mac := dev.SourceId()
 		log.Printf("Scanning bluetooth %s (passive)", mac)
 		hcitool.listeners[mac] = true
 	}

@@ -187,32 +187,35 @@ func sendAlert(client *cast.Client, message string) error {
 }
 
 func (service *Service) handleAlert(ev *pubsub.Event) {
-	pids := services.Config.LookupDeviceProtocol(ev.Target())
+	ident, ok := services.Config.LookupDeviceProtocol(ev.Target(), "cast")
+	if !ok {
+		return
+	}
 	message, ok := ev.Fields["message"].(string)
-	if pids["cast"] == "" || !ok {
+	if !ok {
 		return
 	}
 
-	if client, ok := connected[pids["cast"]]; ok {
-		log.Printf("Casting to %s message: %s", pids["cast"], message)
+	if client, ok := connected[ident]; ok {
+		log.Printf("Casting to %s message: %s", ident, message)
 		err := sendAlert(client, message)
 		if err != nil {
 			log.Printf("Error casting media: %s", err)
 		}
 	} else {
-		log.Printf("Couldn't find cast client: %s", pids["cast"])
+		log.Printf("Couldn't find cast client: %s", ident)
 	}
 }
 
 func (service *Service) handleCommand(ev *pubsub.Event) {
-	pids := services.Config.LookupDeviceProtocol(ev.Device())
-	if pids["cast"] == "" {
+	ident, ok := services.Config.LookupDeviceProtocol(ev.Device(), "cast")
+	if !ok {
 		return
 	}
 
-	client, ok := connected[pids["cast"]]
+	client, ok := connected[ident]
 	if !ok {
-		log.Println("Couldn't find cast client:", pids["cast"])
+		log.Println("Couldn't find cast client:", ident)
 		return
 	}
 
@@ -238,7 +241,7 @@ func (service *Service) handleCommand(ev *pubsub.Event) {
 			volume := controllers.Volume{Level: &level, Muted: &muted}
 			_, err := receiver.SetVolume(ctx, &volume)
 			if err == nil {
-				log.Printf("Set %s volume to %.2f", pids["cast"], level)
+				log.Printf("Set %s volume to %.2f", ident, level)
 			} else {
 				log.Println(err)
 			}

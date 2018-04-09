@@ -53,9 +53,7 @@ func (self *Service) Run() error {
 	}
 
 	for ev := range services.Subscriber.FilteredChannel("command") {
-		p := services.Config.LookupDeviceProtocol(ev.Device())
-		code, ok := p["arduino"]
-		if ok {
+		if code, ok := services.Config.LookupDeviceProtocol(ev.Device(), "arduino"); ok {
 			on := ev.Command() == "on"
 			command(dev, code, on)
 		}

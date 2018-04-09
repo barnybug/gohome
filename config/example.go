@@ -9,6 +9,19 @@ devices:
     name: Kitchen
     type: light
     caps: [switch]
+    source: x10.b06
+  light.glowworm:
+    group: downstairs
+    name: Glowworm
+    type: light
+    caps: [switch]
+    source: homeeasy.00123453
+  trv.living:
+    name: Living room thermostat
+    source: energenie.00097f
+  trv.spareroom:
+    name: Spareroom thermostat
+    source: energenie.00098b
 endpoints:
   mqtt:
     broker: tcp://127.0.0.1:1883
@@ -62,11 +75,11 @@ heating:
   minimum: 10
   slop: 0.3
 irrigation:
-  at: 6h
+  // at: 6h
   device: pump.garden
   enabled: true
   factor: 1.5
-  interval: 12h
+  // interval: 12h
   max_temp: 25
   max_time: 60
   min_temp: 13
@@ -169,4 +182,4 @@ wunderground:
   password: password
   url: http://weatherstation.wunderground.com/weatherstation/updateweatherstation.php`
 
-var ExampleConfig, _ = OpenReader(strings.NewReader(ExampleYaml))
+var ExampleConfig = Must(OpenReader(strings.NewReader(ExampleYaml)))

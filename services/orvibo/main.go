@@ -14,15 +14,15 @@ import (
 func handleCommand(ev *pubsub.Event) {
 	dev := ev.Device()
 	command := ev.Command()
-	pids := services.Config.LookupDeviceProtocol(dev)
-	if pids["orvibo"] == "" {
+	ident, ok := services.Config.LookupDeviceProtocol(dev, "orvibo")
+	if !ok {
 		return // command not for us
 	}
 	if command != "off" && command != "on" {
 		log.Println("Command not recognised:", command)
 		return
 	}
-	if device, ok := devices[pids["orvibo"]]; ok {
+	if device, ok := devices[ident]; ok {
 		log.Printf("Setting device %s to %s\n", dev, command)
 		SetState(device, command == "on")
 	} else {

@@ -204,8 +204,7 @@ func (self *Service) handleMessage(msg *ener314.Message) {
 
 func lookupSensorId(device string) uint32 {
 	trv := strings.Replace(device, "thermostat.", "trv.", 1)
-	matches := services.Config.LookupDeviceProtocol(trv)
-	if sid, ok := matches["energenie"]; ok {
+	if sid, ok := services.Config.LookupDeviceProtocol(trv, "energenie"); ok {
 		id, _ := strconv.ParseUint(sid, 16, 32)
 		return uint32(id)
 	}
@@ -214,7 +213,8 @@ func lookupSensorId(device string) uint32 {
 
 func allSensorIds() []uint32 {
 	var ret []uint32
-	for sid := range services.Config.Protocols["energenie"] {
+	for _, dev := range services.Config.DevicesByProtocol("energenie") {
+		sid := dev.SourceId()
 		id, _ := strconv.ParseUint(sid, 16, 32)
 		ret = append(ret, uint32(id))
 	}
@@ -222,8 +222,8 @@ func allSensorIds() []uint32 {
 }
 
 func lookupDevice(sensorId uint32) string {
-	sensorSid := fmt.Sprintf("%06x", sensorId)
-	device, _ := services.Config.Protocols["energenie"][sensorSid]
+	source := fmt.Sprintf("energenie.%06x", sensorId)
+	device, _ := services.Config.Sources[source]
 	return device
 }
 

@@ -29,8 +29,7 @@ func TestDevices(t *testing.T) {
 	rec := httptest.NewRecorder()
 	r := http.Request{}
 	apiDevices(rec, &r)
-	assert.Equal(t, rec.Body.String(), `{"light.kitchen":{"aliases":null,"caps":["switch"],"events":{},"group":"downstairs","id":"light.kitchen","name":"Kitchen","type":"switch"}}
-`)
+	assert.Contains(t, rec.Body.String(), `"light.kitchen":{"aliases":null,"caps":["switch"],"events":{},"group":"downstairs","id":"light.kitchen","name":"Kitchen","type":"switch"}`)
 }
 
 func TestDevicesSingle(t *testing.T) {

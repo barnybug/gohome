@@ -20,8 +20,8 @@ import (
 func handleCommand(ev *pubsub.Event) {
 	dev := ev.Device()
 	command := ev.Command()
-	pids := services.Config.LookupDeviceProtocol(dev)
-	if pids["tasmota"] == "" {
+	ident, ok := services.Config.LookupDeviceProtocol(dev, "tasmota")
+	if !ok {
 		return // command not for us
 	}
 	if command != "off" && command != "on" {
@@ -29,7 +29,7 @@ func handleCommand(ev *pubsub.Event) {
 		return
 	}
 	log.Printf("Setting device %s to %s\n", dev, command)
-	topic := fmt.Sprintf("tasmota/cmnd/%s/power", pids["tasmota"])
+	topic := fmt.Sprintf("tasmota/cmnd/%s/power", ident)
 	token := mqtt.Client.Publish(topic, 1, false, command)
 	if token.Wait() && token.Error() != nil {
 		log.Println("Failed to publish message:", token.Error())
