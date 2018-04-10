@@ -597,8 +597,14 @@ func (self *Service) Run() error {
 				pubsub.Fields{"device": "earth", "command": tev.Event})
 			services.Publisher.Emit(ev)
 		case tick := <-clock.C:
-			ev := pubsub.NewEvent("clock",
-				pubsub.Fields{"device": "clock", "time": tick.Format("1504")})
+			fields := pubsub.Fields{
+				"device":  "clock",
+				"time":    tick.Format("1504"),
+				"hour":    tick.Hour(),
+				"minute":  tick.Minute(),
+				"weekday": tick.Weekday(),
+			}
+			ev := pubsub.NewEvent("clock", fields)
 			services.Publisher.Emit(ev)
 		}
 	}
