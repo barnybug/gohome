@@ -53,6 +53,11 @@ func (event *Event) String() string {
 	return string(event.Bytes())
 }
 
+func (event *Event) IsSet(name string) bool {
+	_, ok := event.Fields[name]
+	return ok
+}
+
 func (event *Event) StringField(name string) string {
 	ret, _ := event.Fields[name].(string)
 	return ret
