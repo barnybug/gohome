@@ -87,64 +87,6 @@ irrigation:
 jabber:
   jid: myjabberid@gmail.com/gohome
   pass: password
-protocols:
-  arduino:
-    A: lock.front
-    C: alarm.bell
-  chime:
-    byronsx.0001: bell.front
-  earth:
-    home: earth
-  energenie:
-    00097f: trv.living
-    00098b: trv.spareroom
-  heating:
-    ch: heating.ch
-  homeeasy:
-    07393AFA: door.front
-    0393BDEA: letterbox.front
-    00123451: light.bedside
-    00123452: light.hallway
-    00123453: light.glowworm
-    00123454: heater.blanket
-    00123455: heater.boiler
-    00123456: amp.living
-    00123458: pump.garden
-    00234561: light.bedside
-    00234564: heater.blanket
-    0493BD1A: pir.kitchen
-    09FD62BA: pir.living
-  power:
-    cc01: power.power
-  pressure:
-    wmr100: pressure.pressure
-  rain:
-    wmr100.0: rain.outside
-  rfid:
-    "0000000001": rfid.person1
-    "0000000002": rfid.person2
-  temp:
-    thn132n.12: temp.outside
-    thn132n.34: temp.living
-    wmr100.0: temp.office
-    wmr100.1: temp.garden
-    wmr100.2: temp.hallway
-  wind:
-    wmr100: wind.outside
-  x10:
-    b01: light.bedside
-    b02: heater.blanket
-    b03: light.glowworm
-    b04: pump.garden
-    b06: light.kitchen
-    b07: pir.upstairs
-    m01: pir.front
-    m02: pir.side
-    m03: pir.back
-    m08: pir.garage
-  xpl:
-    slimdev-slimserv.FrontroomTouch: hifi.living
-    slimdev-slimserv.KitchenRadio: hifi.kitchen
 sms:
   telephone: '+441234567890'
 twitter:
