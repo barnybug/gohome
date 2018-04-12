@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v2"
 )
 
 type Automata struct {

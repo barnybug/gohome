@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v2"
 
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/util"
@@ -101,15 +101,18 @@ type Duration struct {
 	Duration time.Duration
 }
 
-func (self *Duration) SetYAML(tag string, value interface{}) bool {
-	if value, ok := value.(string); ok {
-		val, err := time.ParseDuration(value)
-		if err == nil {
-			self.Duration = val
-			return true
-		}
+func (self *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var value string
+	if err := unmarshal(&value); err != nil {
+		return err
 	}
-	return false
+
+	val, err := time.ParseDuration(value)
+	if err != nil {
+		return err
+	}
+	self.Duration = val
+	return nil
 }
 
 type GraphiteConf struct {

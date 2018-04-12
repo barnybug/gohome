@@ -75,11 +75,11 @@ heating:
   minimum: 10
   slop: 0.3
 irrigation:
-  // at: 6h
+  at: 6h
   device: pump.garden
   enabled: true
   factor: 1.5
-  // interval: 12h
+  interval: 12h
   max_temp: 25
   max_time: 60
   min_temp: 13

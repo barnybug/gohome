@@ -131,10 +131,6 @@
   name = "github.com/nlopes/slack"
 
 [[constraint]]
-  name = "github.com/stianeikeland/go-rpio"
-  version = "3.0.0"
-
-[[constraint]]
   branch = "master"
   name = "github.com/stretchr/testify"
 
@@ -155,8 +151,8 @@
   version = "4.6.0"
 
 [[constraint]]
-  branch = "v1"
-  name = "gopkg.in/yaml.v1"
+  branch = "v2"
+  name = "gopkg.in/yaml.v2"
 
 [[constraint]]
   branch = "master"

@@ -23,7 +23,7 @@
   branch = "master"
   name = "github.com/barnybug/gofsm"
   packages = ["."]
-  revision = "ad853eda72c5b5305f7b98c2f5ef96b0db9b07d4"
+  revision = "ee0d773817cc0830ec4f34de608dae6dacce692b"
 
 [[projects]]
   branch = "master"
@@ -138,12 +138,6 @@
   revision = "f243c7602fdf906248fc1f165284daa4e4d2d09e"
 
 [[projects]]
-  name = "github.com/stianeikeland/go-rpio"
-  packages = ["."]
-  revision = "896db2ee1c7f95240dd6a09e56edf9cece107a34"
-  version = "v3.0.0"
-
-[[projects]]
   branch = "master"
   name = "github.com/stretchr/testify"
   packages = ["assert","require"]
@@ -180,14 +174,14 @@
   version = "v4.6"
 
 [[projects]]
-  branch = "v1"
-  name = "gopkg.in/yaml.v1"
+  name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "9f9df34309c04878acc86042b16630b0f696e1de"
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f7dd5c7222a94265765b1323750448f64a60c56f4804037d91b6356c297a9ee3"
+  inputs-digest = "5f4dfbc876424e120887ce04b657a8384080e5c06cdb8c39a0f1f7886296c45d"
   solver-name = "gps-cdcl"
   solver-version = 1
