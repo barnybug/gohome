@@ -219,7 +219,7 @@ func (self *Service) QueryHandlers() services.QueryHandlers {
 			"switch device on|off: switch device\n" +
 			"logs: get recent event logs\n" +
 			"script: run a script\n" +
-			"state: manually update automaton state"),
+			"state: get or set automaton state"),
 	}
 }
 
@@ -264,19 +264,28 @@ func (d DummyEvent) Match(s string) bool {
 
 func (self *Service) queryState(q services.Question) string {
 	args := strings.Split(q.Args, " ")
-	if len(args) != 2 {
-		return "usage: state automata state"
+	if len(args) < 1 || len(args) > 2 {
+		return "usage: state automata [state]"
 	}
+
 	aut, ok := automata.Automaton[args[0]]
 	if !ok {
 		return fmt.Sprintf("automata: '%s' not found", args[0])
 	}
-	_, ok = aut.States[args[1]]
-	if !ok {
-		return fmt.Sprintf("automata state: '%s' not found", args[1])
+	if len(args) == 1 {
+		// getting state
+		now := time.Now()
+		du := util.ShortDuration(now.Sub(aut.Since))
+		return fmt.Sprintf("%s: %s for %s\n", args[0], aut.State.Name, du)
+	} else {
+		// setting state
+		_, ok = aut.States[args[1]]
+		if !ok {
+			return fmt.Sprintf("automata state: '%s' not found", args[1])
+		}
+		aut.ChangeState(args[1], DummyEvent{})
+		return fmt.Sprintf("Change %s state to %s", args[0], args[1])
 	}
-	aut.ChangeState(args[1], DummyEvent{})
-	return fmt.Sprintf("Change %s state to %s", args[0], args[1])
 }
 
 func isSwitchable(dev config.DeviceConf) bool {
