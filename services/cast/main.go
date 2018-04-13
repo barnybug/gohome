@@ -120,7 +120,7 @@ func (service *Service) listener(discover *discovery.Service) {
 	log.Println("Listener finished")
 }
 
-func sendAlert(client *cast.Client, message string) error {
+func sendAlert(client *cast.Client, message string, volume float64) error {
 	// open a fresh client - more reliable
 	client = cast.NewClient(client.IP(), client.Port())
 	ctx := context.Background()
@@ -151,7 +151,6 @@ func sendAlert(client *cast.Client, message string) error {
 
 	// remember volume
 	var previousVolume *controllers.Volume
-	receiver := client.Receiver()
 	status, err := client.Receiver().GetStatus(ctx)
 	if err == nil {
 		previousVolume = status.Volume
@@ -159,14 +158,10 @@ func sendAlert(client *cast.Client, message string) error {
 		defer client.Close()
 	}
 
-	// set volume
-	level := 0.2
-	muted := false
-	newVolume := controllers.Volume{Level: &level, Muted: &muted}
-	_, err = receiver.SetVolume(ctx, &newVolume)
-	if err != nil {
-		log.Println("Error setting volume:", err)
+	if volume == 0 {
+		volume = 0.3 // default
 	}
+	setVolume(client, volume)
 
 	log.Printf("Playing url: %s", u.String())
 	// play media
@@ -175,10 +170,7 @@ func sendAlert(client *cast.Client, message string) error {
 	// restore volume after media has had a chance to play
 	if previousVolume != nil {
 		time.AfterFunc(time.Second*10, func() {
-			_, err = receiver.SetVolume(ctx, previousVolume)
-			if err != nil {
-				log.Println("Error setting volume:", err)
-			}
+			setVolume(client, *previousVolume.Level)
 			client.Close()
 		})
 	}
@@ -198,7 +190,7 @@ func (service *Service) handleAlert(ev *pubsub.Event) {
 
 	if client, ok := connected[ident]; ok {
 		log.Printf("Casting to %s message: %s", ident, message)
-		err := sendAlert(client, message)
+		err := sendAlert(client, message, ev.FloatField("volume"))
 		if err != nil {
 			log.Printf("Error casting media: %s", err)
 		}
@@ -236,21 +228,26 @@ func (service *Service) handleCommand(ev *pubsub.Event) {
 	case "on":
 		level := ev.FloatField("volume")
 		if level != 0 {
-			receiver := client.Receiver()
-			muted := false
-			volume := controllers.Volume{Level: &level, Muted: &muted}
-			_, err := receiver.SetVolume(ctx, &volume)
-			if err == nil {
-				log.Printf("Set %s volume to %.2f", ident, level)
-			} else {
-				log.Println(err)
-			}
+			setVolume(client, level)
 		}
 	default:
 		log.Println("Command not recognised:", command)
 		return
 	}
 
+}
+
+func setVolume(client *cast.Client, level float64) {
+	ctx := context.Background()
+	receiver := client.Receiver()
+	muted := false
+	volume := controllers.Volume{Level: &level, Muted: &muted}
+	_, err := receiver.SetVolume(ctx, &volume)
+	if err == nil {
+		log.Printf("Set %s volume to %.2f", client.Name(), level)
+	} else {
+		log.Println(err)
+	}
 }
 
 // Writer to use for logging that filters out noise
