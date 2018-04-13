@@ -167,7 +167,6 @@ func deviceEntry(dev config.DeviceConf, events map[string]*pubsub.Event) map[str
 	value["id"] = dev.Id
 	value["name"] = dev.Name
 	value["caps"] = dev.Caps
-	value["type"] = dev.Type
 	value["group"] = dev.Group
 	value["aliases"] = dev.Aliases
 	if dev.Location != "" {

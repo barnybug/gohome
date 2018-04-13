@@ -289,7 +289,6 @@ func OpenRaw(data []byte) (*Config, error) {
 			major := strings.Split(id, ".")[0]
 			device.Caps = []string{major}
 		}
-		device.Type = device.Caps[0]
 		device.Cap = map[string]bool{}
 		for _, c := range device.Caps {
 			device.Cap[c] = true
