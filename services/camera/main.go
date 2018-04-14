@@ -222,6 +222,7 @@ func notifyActivity(device string, filename string) {
 		"filename": filename,
 	}
 	ev := pubsub.NewEvent("camera", fields)
+	ev.SetRetained(true)
 	services.Publisher.Emit(ev)
 }
 
