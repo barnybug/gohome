@@ -7,6 +7,17 @@ general:
   email:
     admin:
       test@example.com
+
+caps:
+  light: [switch]
+devices:
+  alarm.house:
+    name: House alarm
+  light.kitchen:
+    name: Kitchen light
+  light.glowworm:
+    name: Glowworm
+    caps: [dimmer]
 `
 
 func ExampleOpenRaw() {
@@ -14,6 +25,23 @@ func ExampleOpenRaw() {
 	fmt.Println(config.General.Email.Admin)
 	// Output:
 	// test@example.com
+}
+
+func ExampleCaps() {
+	config, _ := OpenRaw([]byte(yml))
+	fmt.Println(config.Devices["alarm.house"].Id)
+	fmt.Println(config.Devices["alarm.house"].Caps)
+	fmt.Println(config.Devices["light.kitchen"].Id)
+	fmt.Println(config.Devices["light.kitchen"].Caps)
+	fmt.Println(config.Devices["light.glowworm"].Id)
+	fmt.Println(config.Devices["light.glowworm"].Caps)
+	// Output:
+	// alarm.house
+	// [alarm]
+	// light.kitchen
+	// [switch]
+	// light.glowworm
+	// [switch dimmer]
 }
 
 func ExampleDeviceSourceId() {

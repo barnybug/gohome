@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -28,6 +29,8 @@ type CameraNodeConf struct {
 	Url      string
 	User     string
 	Password string
+	Watch    string
+	Match    Regexp
 }
 
 type CameraConf struct {
@@ -37,6 +40,8 @@ type CameraConf struct {
 	Cameras map[string]CameraNodeConf
 }
 
+type CapsConf map[string][]string
+
 type CurrentcostConf struct {
 	Device string
 }
@@ -44,7 +49,6 @@ type CurrentcostConf struct {
 type DeviceConf struct {
 	Id       string   `json:"id"`
 	Name     string   `json:"name"`
-	Type     string   `json:"type"`
 	Group    string   `json:"group"`
 	Location string   `json:"location"`
 	Caps     []string `json:"caps"`
@@ -55,6 +59,11 @@ type DeviceConf struct {
 
 func (d DeviceConf) IsSwitchable() bool {
 	return d.Cap["switch"]
+}
+
+func (d DeviceConf) Prefix() string {
+	ps := strings.SplitN(d.Id, ".", 2)
+	return ps[0]
 }
 
 func (d DeviceConf) SourceId() string {
@@ -95,24 +104,6 @@ type GeneralEmailConf struct {
 type GeneralConf struct {
 	Email   GeneralEmailConf
 	Scripts string
-}
-
-type Duration struct {
-	Duration time.Duration
-}
-
-func (self *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var value string
-	if err := unmarshal(&value); err != nil {
-		return err
-	}
-
-	val, err := time.ParseDuration(value)
-	if err != nil {
-		return err
-	}
-	self.Duration = val
-	return nil
 }
 
 type GraphiteConf struct {
@@ -212,7 +203,7 @@ type WeatherConf struct {
 
 type WatchdogConf struct {
 	Alert     string
-	Devices   map[string]string
+	Devices   map[string]Duration
 	Processes []string
 	Pings     []string
 }
@@ -230,6 +221,7 @@ type Config struct {
 	Endpoints    EndpointsConf
 	Bill         BillConf
 	Camera       CameraConf
+	Caps         CapsConf
 	Currentcost  CurrentcostConf
 	Datalogger   DataloggerConf
 	Earth        EarthConf
@@ -253,6 +245,44 @@ type Config struct {
 	Wunderground WundergroundConf
 
 	Sources map[string]string // source -> device id
+}
+
+// Custom types
+
+type Duration struct {
+	time.Duration
+}
+
+func (self *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var value string
+	if err := unmarshal(&value); err != nil {
+		return err
+	}
+
+	val, err := time.ParseDuration(value)
+	if err != nil {
+		return err
+	}
+	self.Duration = val
+	return nil
+}
+
+type Regexp struct {
+	*regexp.Regexp
+}
+
+func (self *Regexp) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var expr string
+	if err := unmarshal(&expr); err != nil {
+		return err
+	}
+
+	r, err := regexp.Compile(expr)
+	if err != nil {
+		return err
+	}
+	self.Regexp = r
+	return nil
 }
 
 // Open configuration from disk.
@@ -285,10 +315,15 @@ func OpenRaw(data []byte) (*Config, error) {
 
 	for id, device := range config.Devices {
 		device.Id = id
-		if len(device.Caps) == 0 {
-			major := strings.Split(id, ".")[0]
-			device.Caps = []string{major}
+		// prepend 'inherited' caps by type prefix
+		if cs, ok := config.Caps[device.Prefix()]; ok {
+			device.Caps = append(cs, device.Caps...)
 		}
+		if len(device.Caps) == 0 {
+			// default to having a cap of device prefix
+			device.Caps = []string{device.Prefix()}
+		}
+
 		device.Cap = map[string]bool{}
 		for _, c := range device.Caps {
 			device.Cap[c] = true

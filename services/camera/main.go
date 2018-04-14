@@ -8,11 +8,15 @@
 package camera
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -212,6 +216,62 @@ func startWebserver() {
 	}
 }
 
+func notifyActivity(device string, filename string) {
+	fields := pubsub.Fields{
+		"device":   device,
+		"filename": filename,
+	}
+	ev := pubsub.NewEvent("camera", fields)
+	services.Publisher.Emit(ev)
+}
+
+func watchDirectories() {
+	args := []string{"-r", "-m", "-e", "create"}
+	for _, conf := range services.Config.Camera.Cameras {
+		if conf.Watch != "" {
+			args = append(args, conf.Watch)
+		}
+	}
+
+	// start inotifywait
+	cmd := exec.Command("inotifywait", args...)
+	stdout, err := cmd.StdoutPipe()
+	if err == nil {
+		err = cmd.Start()
+	}
+	if err != nil {
+		log.Fatal("Failed to establish watches:", err)
+	}
+	// tail
+	log.Println("Watch running...")
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		ps := strings.Split(scanner.Text(), " ")
+		if len(ps) < 3 {
+			continue
+		}
+		filepath := ps[0]
+		filename := ps[2]
+		fullpath := path.Join(filepath, filename)
+		// figure out which device
+		for device, conf := range services.Config.Camera.Cameras {
+			if conf.Watch != "" && strings.HasPrefix(filepath, conf.Watch+"/") {
+				if conf.Match.Regexp == nil || conf.Match.MatchString(fullpath) {
+					log.Println("Notify: ", fullpath)
+					notifyActivity(device, fullpath)
+				}
+				break
+			}
+		}
+	}
+
+	// cleanup
+	if err := cmd.Wait(); err != nil {
+		log.Println("Error running watch", err)
+	}
+	log.Println("Watch finished")
+}
+
 // Service camera
 type Service struct {
 }
@@ -228,6 +288,7 @@ func (self *Service) ConfigUpdated(path string) {
 // Run the service
 func (self *Service) Run() error {
 	setupCameras()
+	go watchDirectories()
 	go startWebserver()
 
 	for ev := range services.Subscriber.FilteredChannel("command") {

@@ -266,16 +266,12 @@ func (self *Service) setup() {
 
 func (self *Service) setupDevices() {
 	for device, timeout := range services.Config.Watchdog.Devices {
-		duration, err := time.ParseDuration(timeout)
-		if err != nil {
-			fmt.Println("Failed to parse:", timeout)
-		}
 		// give devices grace period for first event
 		d := services.Config.Devices[device]
 		watches[device] = &Watch{
 			Id:        device,
 			Name:      d.Name,
-			Timeout:   duration,
+			Timeout:   timeout.Duration,
 			LastEvent: time.Time{},
 		}
 	}
