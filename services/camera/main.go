@@ -220,6 +220,7 @@ func notifyActivity(device string, filename string) {
 	fields := pubsub.Fields{
 		"device":   device,
 		"filename": filename,
+		"command":  "on",
 	}
 	ev := pubsub.NewEvent("camera", fields)
 	ev.SetRetained(true)
