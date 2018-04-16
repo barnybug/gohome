@@ -131,6 +131,7 @@ func (self *Service) defineFunctions() {
 		"State":       State,
 		"Alert":       self.Alert,
 		"Command":     self.Command,
+		"Delay":       self.Delay,
 		"Log":         self.Log,
 		"Query":       self.Query,
 		"Script":      self.Script,
@@ -334,10 +335,9 @@ func (self *Service) querySwitch(q services.Question) string {
 	}
 
 	dev := services.Config.Devices[matches[0]]
-	// rest of key=value arguments
-	command, fields := parseArgs(args[1:])
-	sendCommand(matches[0], command, fields)
-	return fmt.Sprintf("Switched %s %s", dev.Name, command)
+	args[0] = matches[0]
+	sendCommand(args)
+	return fmt.Sprintf("Switched %s %s", dev.Name, args[1])
 }
 
 func parseArgs(args []string) (string, pubsub.Fields) {
@@ -348,10 +348,16 @@ func parseArgs(args []string) (string, pubsub.Fields) {
 	return command, fields
 }
 
-func sendCommand(name string, command string, params pubsub.Fields) {
-	ev := pubsub.NewEvent("command", params)
+func createCommand(args []string) *pubsub.Event {
+	command, fields := parseArgs(args[1:])
+	ev := pubsub.NewEvent("command", fields)
 	ev.SetField("command", command)
-	ev.SetField("device", name)
+	ev.SetField("device", args[0])
+	return ev
+}
+
+func sendCommand(args []string) {
+	ev := createCommand(args)
 	services.Publisher.Emit(ev)
 }
 
@@ -782,11 +788,25 @@ func (self *Service) Command(args ...interface{}) (interface{}, error) {
 	context := args[0].(ChangeContext)
 	text := args[1].(string)
 	text = context.Format(text)
-	// log.Printf("Sending %s", text)
 	argv := strings.Split(text, " ")
-	device := argv[0]
-	command, fields := parseArgs(argv[1:])
-	sendCommand(device, command, fields)
+	sendCommand(argv)
+	return nil, nil
+}
+
+func (self *Service) Delay(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string", "string", "float64"); err != nil {
+		return nil, err
+	}
+	context := args[0].(ChangeContext)
+	text := args[1].(string)
+	timer := args[2].(string)
+	duration := args[3].(float64)
+
+	text = context.Format(text)
+	argv := strings.Split(text, " ")
+	command := createCommand(argv)
+	// emit command when timer goes off
+	self.startTimerEvent(timer, duration, command)
 	return nil, nil
 }
 
@@ -806,7 +826,7 @@ func (self *Service) Snapshot(args ...interface{}) (interface{}, error) {
 	return nil, nil
 }
 
-func (self *Service) startTimer(name string, d float64) {
+func (self *Service) startTimerEvent(name string, d float64, ev *pubsub.Event) {
 	log.Printf("Starting timer: %s for %.1fs", name, d)
 	duration := time.Duration(d) * time.Second
 	if timer, ok := self.timers[name]; ok {
@@ -815,16 +835,19 @@ func (self *Service) startTimer(name string, d float64) {
 	}
 
 	timer := time.AfterFunc(duration, func() {
-		// emit timer event
-		fields := pubsub.Fields{
-			"device":  "timer." + name,
-			"command": "on",
-		}
-		ev := pubsub.NewEvent("timer", fields)
-
 		services.Publisher.Emit(ev)
 	})
 	self.timers[name] = timer
+}
+
+func (self *Service) startTimer(name string, d float64) {
+	// emit timer event timer goes off
+	fields := pubsub.Fields{
+		"device":  "timer." + name,
+		"command": "on",
+	}
+	ev := pubsub.NewEvent("timer", fields)
+	self.startTimerEvent(name, d, ev)
 }
 
 func (self *Service) StartTimer(args ...interface{}) (interface{}, error) {
