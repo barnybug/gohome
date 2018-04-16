@@ -4,14 +4,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/motain/gocheck"
+	"github.com/stretchr/testify/assert"
 )
-
-func Test(t *testing.T) {
-	TestingT(t)
-}
-
-type S struct{}
 
 type StringEvent string
 
@@ -19,174 +13,200 @@ func (s StringEvent) Match(when string) bool {
 	return string(s) == when
 }
 
-var _ = Suite(&S{})
-
-func (s *S) TestEvents(c *C) {
+func TestEvents(t *testing.T) {
+	assert := assert.New(t)
 	aut, err := LoadFile("examples/simple.yaml")
-	c.Assert(err, Equals, nil)
+	assert.NoError(err)
 	dog, ok := aut.Automaton["simple"]
-	c.Assert(ok, Equals, true)
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.True(ok)
+	assert.Equal(dog.State.Name, "Hungry")
 
 	// event
 	dog.Process(StringEvent("food"))
-	c.Assert(dog.State.Name, Equals, "Eating")
-	c.Assert((<-aut.Actions).Name, Equals, "woof()")
-	c.Assert((<-aut.Actions).Name, Equals, "eat('apple')")
+	assert.Equal(dog.State.Name, "Eating")
+	assert.Equal((<-aut.Actions).Name, "woof()")
+	assert.Equal((<-aut.Actions).Name, "eat('apple')")
 	ch := <-aut.Changes
-	c.Assert(ch.Old, Equals, "Hungry")
-	c.Assert(ch.New, Equals, "Eating")
-	c.Assert(ch.Duration < time.Millisecond, Equals, true)
+	assert.Equal(ch.Old, "Hungry")
+	assert.Equal(ch.New, "Eating")
+	assert.Equal(ch.Duration < time.Millisecond, true)
 
 	// event
 	dog.Process(StringEvent("food"))
-	c.Assert(dog.State.Name, Equals, "Full")
-	c.Assert((<-aut.Actions).Name, Equals, "groan()")
-	c.Assert((<-aut.Actions).Name, Equals, "digest()")
+	assert.Equal(dog.State.Name, "Full")
+	assert.Equal((<-aut.Actions).Name, "groan()")
+	assert.Equal((<-aut.Actions).Name, "digest()")
 	ch = <-aut.Changes
-	c.Assert(ch.Old, Equals, "Eating")
-	c.Assert(ch.New, Equals, "Full")
-	c.Assert(ch.Duration < time.Millisecond, Equals, true)
+	assert.Equal(ch.Old, "Eating")
+	assert.Equal(ch.New, "Full")
+	assert.Equal(ch.Duration < time.Millisecond, true)
 
 	time.Sleep(time.Millisecond)
 
 	// event
 	dog.Process(StringEvent("run"))
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.Equal(dog.State.Name, "Hungry")
 	ch = <-aut.Changes
-	c.Assert(ch.Old, Equals, "Full")
-	c.Assert(ch.New, Equals, "Hungry")
-	c.Assert(ch.Duration > time.Millisecond, Equals, true)
+	assert.Equal(ch.Old, "Full")
+	assert.Equal(ch.New, "Hungry")
+	assert.Equal(ch.Duration > time.Millisecond, true)
 }
 
-func (s *S) TestChangeState(c *C) {
+func TestChangeState(t *testing.T) {
+	assert := assert.New(t)
+
 	aut, err := LoadFile("examples/simple.yaml")
-	c.Assert(err, Equals, nil)
+	assert.NoError(err)
 	dog := aut.Automaton["simple"]
 
 	dog.ChangeState("Eating", StringEvent("dummy"))
-	c.Assert(dog.State.Name, Equals, "Eating")
+	assert.Equal(dog.State.Name, "Eating")
 
 	dog.ChangeState("Full", StringEvent("dummy"))
-	c.Assert(dog.State.Name, Equals, "Full")
-	c.Assert((<-aut.Actions).Name, Equals, "groan()")
+	assert.Equal(dog.State.Name, "Full")
+	assert.Equal((<-aut.Actions).Name, "groan()")
 }
 
-func (s *S) TestString(c *C) {
+func TestString(t *testing.T) {
+	assert := assert.New(t)
+
 	aut, _ := LoadFile("examples/simple.yaml")
-	c.Assert(aut.String(), Matches, "simple: Hungry for .*")
+	assert.Regexp("simple: Hungry for .*", aut.String())
 
 	aut.Process(StringEvent("food"))
-	c.Assert(aut.String(), Matches, "simple: Eating for .*")
+	assert.Regexp("simple: Eating for .*", aut.String())
 }
 
-func (s *S) TestIgnoredEvent(c *C) {
+func TestIgnoredEvent(t *testing.T) {
+	assert := assert.New(t)
+
 	aut, err := LoadFile("examples/simple.yaml")
-	c.Assert(err, Equals, nil)
+	assert.NoError(err)
 	dog, ok := aut.Automaton["simple"]
-	c.Assert(ok, Equals, true)
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.True(ok)
+	assert.Equal(dog.State.Name, "Hungry")
 
 	// non-event
 	dog.Process(StringEvent("blob"))
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.Equal(dog.State.Name, "Hungry")
 }
 
-func (s *S) TestWildcardEvent(c *C) {
+func TestWildcardEvent(t *testing.T) {
+	assert := assert.New(t)
+
 	aut, err := LoadFile("examples/simple.yaml")
-	c.Assert(err, Equals, nil)
+	assert.NoError(err)
 	dog, ok := aut.Automaton["simple"]
-	c.Assert(ok, Equals, true)
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.True(ok)
+	assert.Equal(dog.State.Name, "Hungry")
 
 	// event caught by wildcard
 	dog.Process(StringEvent("scratch"))
-	c.Assert(dog.State.Name, Equals, "Hungry")
-	c.Assert((<-aut.Actions).String(), Equals, "scratch()")
+	assert.Equal(dog.State.Name, "Hungry")
+	assert.Equal((<-aut.Actions).String(), "scratch()")
 
 	// event caught by wildcard
 	dog.Process(StringEvent("sniff"))
-	c.Assert(dog.State.Name, Equals, "Hungry")
-	c.Assert((<-aut.Actions).Name, Equals, "sniff()")
+	assert.Equal(dog.State.Name, "Hungry")
+	assert.Equal((<-aut.Actions).Name, "sniff()")
 }
 
-func (s *S) TestEvent(c *C) {
+func TestEvent(t *testing.T) {
+	assert := assert.New(t)
+
 	aut, err := LoadFile("examples/simple.yaml")
-	c.Assert(err, Equals, nil)
+	assert.NoError(err)
 	dog, ok := aut.Automaton["simple"]
-	c.Assert(ok, Equals, true)
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.True(ok)
+	assert.Equal(dog.State.Name, "Hungry")
 
 	// non-event
 	dog.Process(StringEvent("blob"))
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.Equal(dog.State.Name, "Hungry")
 }
 
 // Check reentering the same state does not run leaving/entering actions.
-func (s *S) TestReenter(c *C) {
+func TestReenter(t *testing.T) {
+	assert := assert.New(t)
+
 	aut, _ := LoadFile("examples/simple.yaml")
 
 	// event
 	aut.Process(StringEvent("food"))
-	c.Assert((<-aut.Actions).Name, Equals, "woof()")
-	c.Assert((<-aut.Actions).Name, Equals, "eat('apple')")
+	assert.Equal((<-aut.Actions).Name, "woof()")
+	assert.Equal((<-aut.Actions).Name, "eat('apple')")
 	ch := <-aut.Changes
-	c.Assert(ch.Old, Equals, "Hungry")
-	c.Assert(ch.New, Equals, "Eating")
+	assert.Equal(ch.Old, "Hungry")
+	assert.Equal(ch.New, "Eating")
 
 	// reenter
 	aut.Process(StringEvent("sniff"))
-	c.Assert((<-aut.Actions).Name, Equals, "sniff()")
+	assert.Equal((<-aut.Actions).Name, "sniff()")
 
 	// reenter again
 	aut.Process(StringEvent("sniff"))
-	c.Assert((<-aut.Actions).Name, Equals, "sniff()")
+	assert.Equal((<-aut.Actions).Name, "sniff()")
 
 	// migrate
 	aut.Process(StringEvent("food"))
-	c.Assert((<-aut.Actions).Name, Equals, "groan()")
-	c.Assert((<-aut.Actions).Name, Equals, "digest()")
+	assert.Equal((<-aut.Actions).Name, "groan()")
+	assert.Equal((<-aut.Actions).Name, "digest()")
 
 	// reenter
 	aut.Process(StringEvent("sniff"))
-	c.Assert((<-aut.Actions).Name, Equals, "sniff()")
+	assert.Equal((<-aut.Actions).Name, "sniff()")
 }
 
-func (s *S) TestPersistRestore(c *C) {
+func TestPersistRestore(t *testing.T) {
+	assert := assert.New(t)
+
 	aut, err := LoadFile("examples/simple.yaml")
-	c.Assert(err, Equals, nil)
+	assert.NoError(err)
 	dog, _ := aut.Automaton["simple"]
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.Equal(dog.State.Name, "Hungry")
 
 	p := aut.Persist()
 
 	aut, err = LoadFile("examples/simple.yaml")
 	aut.Restore(p)
 	dog, _ = aut.Automaton["simple"]
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.Equal(dog.State.Name, "Hungry")
 }
 
-func (s *S) TestRestore(c *C) {
+func TestRestore(t *testing.T) {
+	assert := assert.New(t)
+
 	ps := AutomataState{"simple": AutomatonState{State: "Eating", Since: time.Now()}}
 
 	aut, _ := LoadFile("examples/simple.yaml")
 	aut.Restore(ps)
 	dog, _ := aut.Automaton["simple"]
-	c.Assert(dog.State.Name, Equals, "Eating")
+	assert.Equal(dog.State.Name, "Eating")
 }
 
-func (s *S) TestRestoreInvalid(c *C) {
+func TestRestoreInvalid(t *testing.T) {
+	assert := assert.New(t)
+
 	// restoring bad state should be ignored
 	ps := AutomataState{"simple": AutomatonState{State: "Invalid", Since: time.Now()}}
 
 	aut, _ := LoadFile("examples/simple.yaml")
 	aut.Restore(ps)
 	dog, _ := aut.Automaton["simple"]
-	c.Assert(dog.State.Name, Equals, "Hungry")
+	assert.Equal(dog.State.Name, "Hungry")
 }
 
-func (s *S) TestInvalid(c *C) {
+func TestInvalid(t *testing.T) {
+	assert := assert.New(t)
+
 	conf := "invalid: {}"
 	_, err := Load([]byte(conf))
-	c.Assert(err, NotNil)
+	assert.Error(err)
+}
+
+func TestAmbiguous(t *testing.T) {
+	assert := assert.New(t)
+
+	_, err := LoadFile("examples/ambiguous.yaml")
+	assert.Error(err)
 }

@@ -1,0 +1,10 @@
+ambiguous:
+  start: One
+  states:
+    One: {}
+    Two: {}
+  transitions:
+    One->Two:
+    - when: x
+    '*':
+    - when: x
