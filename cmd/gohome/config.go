@@ -11,6 +11,8 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
+var NL = []byte{'\n'}
+
 func config(path string, filenames []string) {
 	if path != "config" && !strings.HasPrefix(path, "config/") {
 		fmt.Println("Path must begin with 'config'")
@@ -31,9 +33,9 @@ func config(path string, filenames []string) {
 			fmt.Printf("Error reading %s: %s\n", filename, err)
 			return
 		}
-
-		data.WriteString("\n")
-		data.WriteByte('\n')
+		if !bytes.HasSuffix(data.Bytes(), NL) {
+			data.WriteByte('\n')
+		}
 	}
 
 	// emit event
