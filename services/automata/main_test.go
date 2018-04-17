@@ -161,13 +161,16 @@ func TestStartTimer(t *testing.T) {
 }
 
 func TestCheckArguments(t *testing.T) {
-	assert.NoError(t, checkArguments([]interface{}{}))
-	assert.NoError(t, checkArguments([]interface{}{"expected"}, "string"))
-	assert.NoError(t, checkArguments([]interface{}{"expected", 1.0}, "string", "float64"))
+	assert := assert.New(t)
+	assert.NoError(checkArguments([]interface{}{}))
+	assert.NoError(checkArguments([]interface{}{"expected"}, "string"))
+	assert.NoError(checkArguments([]interface{}{"expected", 1.0}, "string", "float64"))
+	assert.NoError(checkArguments([]interface{}{"expected", 1.0}, "string", "int"))
 
-	assert.Error(t, checkArguments([]interface{}{}, "string"))
-	assert.Error(t, checkArguments([]interface{}{"unexpected"}))
-	assert.Error(t, checkArguments([]interface{}{1}, "string"))
-	assert.Error(t, checkArguments([]interface{}{"a"}, "float64"))
-	assert.Error(t, checkArguments([]interface{}{"a", "a"}, "string", "float64"))
+	assert.Error(checkArguments([]interface{}{}, "string"))
+	assert.Error(checkArguments([]interface{}{"unexpected"}))
+	assert.Error(checkArguments([]interface{}{1}, "string"))
+	assert.Error(checkArguments([]interface{}{"a"}, "float64"))
+	assert.Error(checkArguments([]interface{}{"a", "a"}, "string", "float64"))
+	assert.Error(checkArguments([]interface{}{"x"}, "int"))
 }

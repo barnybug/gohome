@@ -132,12 +132,13 @@ func (self *Service) defineFunctions() {
 		"Alert":       self.Alert,
 		"Command":     self.Command,
 		"Delay":       self.Delay,
+		"Flux":        self.Flux,
 		"Log":         self.Log,
 		"Query":       self.Query,
+		"RandomTimer": self.RandomTimer,
 		"Script":      self.Script,
 		"Snapshot":    self.Snapshot,
 		"StartTimer":  self.StartTimer,
-		"RandomTimer": self.RandomTimer,
 	}
 }
 
@@ -704,6 +705,14 @@ func checkArguments(args []interface{}, types ...string) error {
 			} else if _, ok := arg.(float64); !ok {
 				return fmt.Errorf("Expected %s for argument %d, but got %v", types[i], i, arg)
 			}
+		case "int":
+			if n, ok := arg.(int64); ok {
+				args[i] = int(n) // convert int64->int
+			} else if n, ok := arg.(float64); ok {
+				args[i] = int(n) // convert float64->int
+			} else if _, ok := arg.(int); !ok {
+				return fmt.Errorf("Expected %s for argument %d, but got %v", types[i], i, arg)
+			}
 		}
 	}
 
@@ -872,5 +881,28 @@ func (self *Service) RandomTimer(args ...interface{}) (interface{}, error) {
 	}
 	d := self.rand.Float64()*(max-min) + min
 	self.startTimer(name, d)
+	return nil, nil
+}
+
+func (self *Service) Flux(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string", "string", "string", "int", "int"); err != nil {
+		return nil, err
+	}
+	device := args[1].(string)
+	tStart := args[2].(string)
+	tEnd := args[3].(string)
+	kStart := args[4].(int)
+	kEnd := args[5].(int)
+
+	k := tinterpolate(tStart, tEnd, kStart, kEnd)
+	log.Printf("Fluxing %s: %dK", device, k)
+	fields := pubsub.Fields{
+		"command": "on",
+		"device":  device,
+		"temp":    k,
+	}
+	ev := pubsub.NewEvent("command", fields)
+	services.Publisher.Emit(ev)
+
 	return nil, nil
 }
