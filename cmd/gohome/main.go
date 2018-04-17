@@ -101,7 +101,7 @@ func usage() {
 	fmt.Println("version", version)
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Println("   config  path filename   Update config")
+	fmt.Println("   config  path filenames  Update config")
 	fmt.Println("   logs                    Tail logs")
 	fmt.Println("   restart [service]       Restart a service")
 	fmt.Println("   run     [service]       Run a service")
@@ -146,7 +146,7 @@ func main() {
 			usage()
 			return
 		}
-		config(ps[0], ps[1])
+		config(ps[0], ps[1:])
 	case "start":
 		query("start", ps, emptyParams)
 	case "stop":
