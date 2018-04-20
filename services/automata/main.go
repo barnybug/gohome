@@ -688,11 +688,19 @@ func (c ChangeContext) Format(msg string) string {
 }
 
 func checkArguments(args []interface{}, types ...string) error {
-	if len(args) != len(types) {
+	if len(types) > 0 && types[len(types)-1] == "..." {
+		// at least
+		if len(args) < len(types)-1 {
+			return fmt.Errorf("Expected at least %d arguments, but got %d", len(types)-1, len(args))
+		}
+	} else if len(args) != len(types) {
 		return fmt.Errorf("Expected %d arguments, but got %d", len(types), len(args))
 	}
+L:
 	for i, arg := range args {
 		switch types[i] {
+		case "...":
+			break L
 		case "string":
 			if _, ok := arg.(string); !ok {
 				return fmt.Errorf("Expected %s for argument %d, but got %v", types[i], i, arg)
@@ -885,24 +893,18 @@ func (self *Service) RandomTimer(args ...interface{}) (interface{}, error) {
 }
 
 func (self *Service) Flux(args ...interface{}) (interface{}, error) {
-	if err := checkArguments(args, "", "string", "string", "string", "int", "int"); err != nil {
+	if err := checkArguments(args, "", "string", "..."); err != nil {
 		return nil, err
 	}
-	device := args[1].(string)
-	tStart := args[2].(string)
-	tEnd := args[3].(string)
-	kStart := args[4].(int)
-	kEnd := args[5].(int)
 
-	k := tinterpolate(tStart, tEnd, kStart, kEnd)
-	log.Printf("Fluxing %s: %dK", device, k)
-	fields := pubsub.Fields{
-		"command": "on",
-		"device":  device,
-		"temp":    k,
+	device := args[1].(string)
+	p, err := fluxParse(args[2:])
+	if err != nil {
+		log.Println("Flux command error:", err)
+		return false, nil
 	}
-	ev := pubsub.NewEvent("command", fields)
+	ev := fluxCommand(p, device)
 	services.Publisher.Emit(ev)
 
-	return nil, nil
+	return true, nil
 }

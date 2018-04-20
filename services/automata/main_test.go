@@ -166,6 +166,9 @@ func TestCheckArguments(t *testing.T) {
 	assert.NoError(checkArguments([]interface{}{"expected"}, "string"))
 	assert.NoError(checkArguments([]interface{}{"expected", 1.0}, "string", "float64"))
 	assert.NoError(checkArguments([]interface{}{"expected", 1.0}, "string", "int"))
+	assert.NoError(checkArguments([]interface{}{"a"}, "string", "..."))
+	assert.NoError(checkArguments([]interface{}{"a", "b"}, "string", "..."))
+	assert.NoError(checkArguments([]interface{}{"a", "b", 1}, "string", "..."))
 
 	assert.Error(checkArguments([]interface{}{}, "string"))
 	assert.Error(checkArguments([]interface{}{"unexpected"}))
@@ -173,4 +176,5 @@ func TestCheckArguments(t *testing.T) {
 	assert.Error(checkArguments([]interface{}{"a"}, "float64"))
 	assert.Error(checkArguments([]interface{}{"a", "a"}, "string", "float64"))
 	assert.Error(checkArguments([]interface{}{"x"}, "int"))
+	assert.Error(checkArguments([]interface{}{}, "string", "..."))
 }
