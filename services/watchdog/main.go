@@ -72,7 +72,7 @@ func sendRecoveries() {
 		message := fmt.Sprintf("%s RECOVERED", listOfLots(names, 10))
 		sendAlert(message)
 		// delay multiple recovered messages
-		alerts.Reset(30 * time.Second)
+		alerts.Reset(120 * time.Second)
 	} else {
 		alerts.Reset(5 * time.Second)
 	}
