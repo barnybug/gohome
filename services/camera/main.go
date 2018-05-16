@@ -41,7 +41,7 @@ type Moveable interface {
 	Detect(bool) error
 }
 
-func notifySnapshot(url, filename, target, message string) {
+func alertSnapshot(url, filename, target, message string) {
 	fields := pubsub.Fields{
 		"url":      url,
 		"filename": filename,
@@ -110,8 +110,9 @@ func eventCommand(ev *pubsub.Event) {
 				log.Println("Snapshot:", filename)
 				notify := ev.StringField("notify")
 				message := ev.StringField("message")
+				notifyActivity("snapshot", ev.Device(), filename)
 				if notify != "" {
-					notifySnapshot(url, filename, notify, message)
+					alertSnapshot(url, filename, notify, message)
 				}
 			}
 		}()
@@ -216,11 +217,11 @@ func startWebserver() {
 	}
 }
 
-func notifyActivity(device string, filename string) {
+func notifyActivity(command, device, filename string) {
 	fields := pubsub.Fields{
 		"device":   device,
 		"filename": filename,
-		"command":  "on",
+		"command":  command,
 	}
 	ev := pubsub.NewEvent("camera", fields)
 	ev.SetRetained(true)
@@ -260,7 +261,7 @@ func watchDirectories() {
 			if conf.Watch != "" && strings.HasPrefix(filepath, conf.Watch+"/") {
 				if conf.Match.Regexp == nil || conf.Match.MatchString(fullpath) {
 					log.Println("Notify: ", fullpath)
-					notifyActivity(device, fullpath)
+					notifyActivity("on", device, fullpath)
 				}
 				break
 			}
