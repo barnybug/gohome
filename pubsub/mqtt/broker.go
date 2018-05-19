@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"time"
 
 	"github.com/barnybug/gohome/pubsub"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -22,6 +23,7 @@ func createClientOpts(broker string) *MQTT.ClientOptions {
 	// generate a client id
 	hostname, _ := os.Hostname()
 	pid := os.Getpid()
+	rand.Seed(time.Now().UnixNano())
 	r := rand.Int()
 	clientId := fmt.Sprintf("gohome/%s-%d-%d", hostname, pid, r)
 	opts := MQTT.NewClientOptions()
