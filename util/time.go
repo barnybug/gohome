@@ -32,10 +32,6 @@ func NewScheduler(offset time.Duration, d time.Duration) *Scheduler {
 		panic(errors.New("non-positive interval for NewScheduler"))
 	}
 
-	now := time.Now()
-	next := NextSchedule(now, offset, d)
-	dnext := next.Sub(now)
-
 	// Give the channel a 1-element time buffer.
 	// If the client falls behind while reading, we drop ticks
 	// on the floor until the client catches up.
@@ -44,14 +40,16 @@ func NewScheduler(offset time.Duration, d time.Duration) *Scheduler {
 		C: c,
 	}
 
-	time.AfterFunc(dnext, func() {
+	go func() {
 		for {
-			c <- time.Now()
-			next = next.Add(d)
-			dnext = next.Sub(time.Now())
+			now := time.Now()
+			next := NextSchedule(now, offset, d)
+			dnext := next.Sub(now)
 			time.Sleep(dnext)
+			c <- time.Now()
 		}
-	})
+
+	}()
 
 	return t
 }
