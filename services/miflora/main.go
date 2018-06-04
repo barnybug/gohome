@@ -66,6 +66,9 @@ func checkEvent(sensors miflora.Sensors) bool {
 	if sensors.Conductivity > 1000 {
 		return false
 	}
+	if sensors.Light == 0 {
+		return false
+	}
 	return true
 }
 
