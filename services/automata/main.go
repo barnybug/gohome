@@ -290,24 +290,6 @@ func (self *Service) queryState(q services.Question) string {
 	}
 }
 
-func isSwitchable(dev config.DeviceConf) bool {
-	return dev.Cap["switch"]
-}
-
-func matchDevices(n string) []string {
-	if _, ok := services.Config.Devices[n]; ok {
-		return []string{n}
-	}
-
-	matches := []string{}
-	for name, dev := range services.Config.Devices {
-		if strings.Contains(name, n) && isSwitchable(dev) {
-			matches = append(matches, name)
-		}
-	}
-	return matches
-}
-
 func parseInt(str string, def int) int {
 	if num, err := strconv.Atoi(str); err == nil {
 		return num
@@ -327,7 +309,7 @@ func (self *Service) querySwitch(q services.Question) string {
 	}
 	args := strings.Split(q.Args, " ")
 	name := args[0]
-	matches := matchDevices(name)
+	matches := services.MatchDevices(name)
 	if len(matches) == 0 {
 		return fmt.Sprintf("device %s not found", name)
 	}

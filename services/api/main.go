@@ -196,20 +196,6 @@ func apiDevicesSingle(w http.ResponseWriter, r *http.Request, params map[string]
 	}
 }
 
-func matchDevices(n string) []string {
-	if _, ok := services.Config.Devices[n]; ok {
-		return []string{n}
-	}
-
-	matches := []string{}
-	for name, dev := range services.Config.Devices {
-		if strings.Contains(name, n) && dev.IsSwitchable() {
-			matches = append(matches, name)
-		}
-	}
-	return matches
-}
-
 func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	device := q.Get("id")
@@ -223,7 +209,7 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	matches := matchDevices(device)
+	matches := services.MatchDevices(device)
 	if len(matches) == 0 {
 		badRequest(w, errors.New("device not found"))
 		return

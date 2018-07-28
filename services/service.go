@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/barnybug/gohome/config"
@@ -199,4 +200,18 @@ func Register(service Service) {
 		log.Fatalf("Duplicate service registered: %s", service.ID())
 	}
 	serviceMap[service.ID()] = service
+}
+
+func MatchDevices(n string) []string {
+	if _, ok := Config.Devices[n]; ok {
+		return []string{n}
+	}
+
+	matches := []string{}
+	for name, dev := range Config.Devices {
+		if strings.Contains(name, n) && dev.IsSwitchable() {
+			matches = append(matches, name)
+		}
+	}
+	return matches
 }
