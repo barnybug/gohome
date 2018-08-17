@@ -325,6 +325,7 @@ func (w *Watchdog) watcher() {
 
 	home := false
 	active := false
+	flag := false
 	timeout := time.NewTimer(interval)
 	for {
 		select {
@@ -332,6 +333,8 @@ func (w *Watchdog) watcher() {
 			if !home {
 				home = true
 				emit(w.device, home, trigger)
+			} else {
+				flag = alert
 			}
 			// make next time period use passive checks
 			active = false
@@ -350,8 +353,9 @@ func (w *Watchdog) watcher() {
 				active = true
 			} else {
 				// passive and active checkers exhausted
-				if home && alert {
+				if home && flag {
 					home = false
+					flag = false
 					emit(w.device, home, "timeout")
 				}
 			}
