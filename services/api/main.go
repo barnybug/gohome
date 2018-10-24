@@ -199,16 +199,6 @@ func apiDevicesSingle(w http.ResponseWriter, r *http.Request, params map[string]
 func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	device := q.Get("id")
-	command := q.Get("command")
-	control := q.Get("control")
-	if control != "" { // compatibility
-		if control == "1" {
-			command = "on"
-		} else {
-			command = "off"
-		}
-	}
-
 	matches := services.MatchDevices(device)
 	if len(matches) == 0 {
 		badRequest(w, errors.New("device not found"))
@@ -221,7 +211,11 @@ func apiDevicesControl(w http.ResponseWriter, r *http.Request) {
 	device = matches[0]
 
 	// send command
-	ev := pubsub.NewCommand(device, command)
+	fields := pubsub.Fields{
+		"topic":  "command",
+		"device": device,
+	}
+	ev := pubsub.NewEvent("command", fields)
 	for key, values := range q {
 		ev.SetField(key, util.ParseArg(values[0]))
 	}

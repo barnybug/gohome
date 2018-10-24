@@ -244,6 +244,18 @@ func (self *Service) Event(ev *pubsub.Event) {
 			}
 			self.Check(false)
 		}
+	case "command":
+		// set target command
+		device := ev.Device()
+		z := strings.Replace(device, "thermostat.", "", 1)
+		if zone, ok := self.Zones[z]; ok {
+			temp, _ := ev.Fields["temp"].(float64)
+			now := Clock()
+			duration := time.Duration(30) * time.Minute
+			zone.setParty(temp, duration, now)
+			log.Printf("Set %s to %v°C for %s", z, temp, util.FriendlyDuration(duration))
+			self.Check(true)
+		}
 	}
 }
 
