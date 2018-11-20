@@ -300,6 +300,7 @@ func (self *Service) Check(emitEvents bool) {
 				"device": zone.Thermostat,
 				"source": "ch",
 				"target": target,
+				"temp":   zone.Temp,
 				"trv":    trv,
 			}
 			ev := pubsub.NewEvent("thermostat", fields)
