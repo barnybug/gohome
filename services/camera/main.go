@@ -110,7 +110,7 @@ func eventCommand(ev *pubsub.Event) {
 				log.Println("Snapshot:", filename)
 				notify := ev.StringField("notify")
 				message := ev.StringField("message")
-				notifyActivity("snapshot", ev.Device(), filename)
+				notifyActivity("snapshot", ev.Device(), filename, url)
 				if notify != "" {
 					alertSnapshot(url, filename, notify, message)
 				}
@@ -217,11 +217,12 @@ func startWebserver() {
 	}
 }
 
-func notifyActivity(command, device, filename string) {
+func notifyActivity(command, device, filename, url string) {
 	fields := pubsub.Fields{
 		"device":   device,
 		"filename": filename,
 		"command":  command,
+		"url":      url,
 	}
 	ev := pubsub.NewEvent("camera", fields)
 	ev.SetRetained(true)
@@ -261,7 +262,7 @@ func watchDirectories() {
 			if conf.Watch != "" && strings.HasPrefix(filepath, conf.Watch+"/") {
 				if conf.Match.Regexp == nil || conf.Match.MatchString(fullpath) {
 					log.Println("Notify: ", fullpath)
-					notifyActivity("on", device, fullpath)
+					notifyActivity("on", device, fullpath, "")
 				}
 				break
 			}
