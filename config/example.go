@@ -14,8 +14,13 @@ devices:
     group: downstairs
     name: Glowworm
     type: light
-    caps: [switch]
+    caps: [light, dimmer]
     source: homeeasy.00123453
+    aliases: [glow worm]
+  thermostat.living:
+    name: Living room thermostat
+    group: heating
+    location: Living Room
   trv.living:
     name: Living room thermostat
     source: energenie.00097f

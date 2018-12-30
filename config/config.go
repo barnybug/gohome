@@ -106,6 +106,12 @@ type GeneralConf struct {
 	Scripts string
 }
 
+type GooglehomeConf struct {
+	Id           string
+	Secret       string
+	Redirect_uri string
+}
+
 type GraphiteConf struct {
 	Url string
 	Tcp string
@@ -227,6 +233,7 @@ type Config struct {
 	Earth        EarthConf
 	Espeak       EspeakConf
 	General      GeneralConf
+	Googlehome   GooglehomeConf
 	Graphite     GraphiteConf
 	Heating      HeatingConf
 	Irrigation   IrrigationConf
