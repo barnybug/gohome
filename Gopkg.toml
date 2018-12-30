@@ -99,14 +99,6 @@
   version = "1.0.0"
 
 [[constraint]]
-  name = "github.com/garyburd/redigo"
-  version = "1.1.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/hashicorp/mdns"
-
-[[constraint]]
   branch = "master"
   name = "github.com/kurrik/oauth1a"
 
@@ -151,8 +143,8 @@
   version = "4.6.0"
 
 [[constraint]]
-  branch = "v2"
   name = "gopkg.in/yaml.v2"
+  version = "^2.2.1"
 
 [[constraint]]
   branch = "master"

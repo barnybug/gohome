@@ -2,186 +2,336 @@
 
 
 [[projects]]
+  digest = "1:8ec1618fc3ee146af104d6c13be250f25e5976e34557d4afbfe4b28035ce6c05"
   name = "github.com/Knetic/govaluate"
   packages = ["."]
+  pruneopts = ""
   revision = "d216395917cc49052c7c7094cf57f09657ca08a8"
   version = "v3.0.0"
 
 [[projects]]
+  digest = "1:fd7b5197ee54b40879b8adaccf480e7207e197a4f4491c12290e0575773367f7"
+  name = "github.com/RangelReale/osin"
+  packages = ["."]
+  pruneopts = ""
+  revision = "0f3357bb07e801ea62327872d19913969001dd7a"
+  version = "v1.0.1"
+
+[[projects]]
   branch = "master"
+  digest = "1:d81a964eaf87512d61cbca805edab0f27efdfd57c27760622de2e6cba4d9cdc2"
   name = "github.com/barnybug/ener314"
-  packages = [".","rpio","spi"]
+  packages = [
+    ".",
+    "rpio",
+    "spi",
+  ]
+  pruneopts = ""
   revision = "64f8fd2e5639e302c3193adfd64b03cdc3c5ee0c"
 
 [[projects]]
   branch = "master"
+  digest = "1:2270720a551bcf9fb9563ab3ec8462fbd693ccdabb2904751f06825a84301f66"
   name = "github.com/barnybug/go-cast"
-  packages = [".","api","controllers","discovery","events","log","net"]
+  packages = [
+    ".",
+    "api",
+    "controllers",
+    "discovery",
+    "events",
+    "log",
+    "net",
+  ]
+  pruneopts = ""
   revision = "3896d2c05eb1917a4d0356a014b8823ea0244d8b"
 
 [[projects]]
   branch = "master"
+  digest = "1:b7fa8c32e8d4db9b76e34ee792861a56c9c8b15b34b86ef06d5cfef93ed274f6"
   name = "github.com/barnybug/gofsm"
   packages = ["."]
+  pruneopts = ""
   revision = "037635228e60f6d6c912494734c6e783f26de6e1"
 
 [[projects]]
   branch = "master"
+  digest = "1:72a8c507dc083301005857e7dddced173b149ce28e2e82fe57110991eb5a44b8"
   name = "github.com/barnybug/gogsmmodem"
   packages = ["."]
+  pruneopts = ""
   revision = "a49dbc25a14698dd427cf328fb4a1b9117f20387"
 
 [[projects]]
   branch = "master"
+  digest = "1:e9c7eaf902e8e131f7fb2ba5abddf78bbf38363d9e925985f0d77bbf720ad465"
   name = "github.com/barnybug/gorfxtrx"
   packages = ["."]
+  pruneopts = ""
   revision = "7fd52fdc43a0498a7735c44b46ac67fbafb02041"
 
 [[projects]]
   branch = "master"
+  digest = "1:fbef56f827f819b9c3892ed50d0bad3911944edac3bfd6936d5ef89bd398f920"
   name = "github.com/barnybug/miflora"
   packages = ["."]
+  pruneopts = ""
   revision = "3af98775a409c403edd63a0208e1758dca02e450"
 
 [[projects]]
   branch = "master"
+  digest = "1:63e44b593237175683a1dc4c8aeb119f233e0eb510a4d345d9ecf11aa41fe279"
   name = "github.com/chbmuc/lirc"
   packages = ["."]
+  pruneopts = ""
   revision = "f5796a80dd2b16ffa1cbc5317b3d420af1547de8"
 
 [[projects]]
+  digest = "1:47713a785cbb83e52ba6553f569aafca1dbfc4618f75f97c5d280bf9c7fb280a"
   name = "github.com/eclipse/paho.mqtt.golang"
-  packages = [".","packets"]
+  packages = [
+    ".",
+    "packets",
+  ]
+  pruneopts = ""
   revision = "45f9b18f4864c81d49c3ed01e5faec9eeb05de31"
   version = "v1.0.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:15644ccc28f23231e712b30445427f51e34a682cbf82b76f551cb3361f23a8da"
   name = "github.com/edgard/yeelight"
   packages = ["."]
+  pruneopts = ""
   revision = "c32a2f3eb57cf9482fbcca1a2223391237886100"
 
 [[projects]]
   branch = "master"
+  digest = "1:29d6efb20b4d5a5c992542378ab1dd84de4102fc862b8b26c267b6b8a5297938"
   name = "github.com/gogo/protobuf"
   packages = ["proto"]
+  pruneopts = ""
   revision = "f4cc07910fc38f5b6b8d6e75d7457cf504157b6c"
 
 [[projects]]
+  digest = "1:a25a2c5ae694b01713fb6cd03c3b1ac1ccc1902b9f0a922680a88ec254f968e1"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = ""
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
+
+[[projects]]
+  digest = "1:a8b064c6340e3762e095e61ee1255d81d28cf5199310782666ac2b6d2a5e8f0f"
   name = "github.com/gorilla/context"
   packages = ["."]
+  pruneopts = ""
   revision = "1f3e8a46c5bb4c29971d9867ede6e198ca5eddce"
 
 [[projects]]
+  digest = "1:7b7ff62f54632b9ad1a3b770f27d556787422e0aa40c5a236ac50405bc326af9"
   name = "github.com/gorilla/mux"
   packages = ["."]
+  pruneopts = ""
   revision = "0ef595e787efa95d68151570ead5c85dc2e05f91"
 
 [[projects]]
   branch = "master"
+  digest = "1:ba9f8741cfe4bdbd3924e391fd0115423ceea0053a6ed7c7df3bf5d244e203c6"
   name = "github.com/hashicorp/go.net"
-  packages = ["internal/iana","ipv4","ipv6"]
+  packages = [
+    "internal/iana",
+    "ipv4",
+    "ipv6",
+  ]
+  pruneopts = ""
   revision = "104dcad90073cd8d1e6828b2af19185b60cf3e29"
 
 [[projects]]
   branch = "master"
+  digest = "1:c0c5aefb6fb15894b4f102489b165ccb9c0761a3f40e480ab19f8c266c705ddc"
   name = "github.com/hashicorp/mdns"
   packages = ["."]
+  pruneopts = ""
   revision = "4e527d9d808175f132f949523e640c699e4253bb"
 
 [[projects]]
   branch = "master"
+  digest = "1:eddcc15705b28b62f4428b5615bd771dd7fb672151070010963aca7d3bf9e6da"
   name = "github.com/kurrik/json"
   packages = ["."]
+  pruneopts = ""
   revision = "f63ef626c5ffbfcd5dd5430c18c8b2eb14593c38"
 
 [[projects]]
   branch = "master"
+  digest = "1:5483492cb9716c078a4b2fc2ba6dec8ba908a24a1fd3e0eac4507fdd85aa506a"
   name = "github.com/kurrik/oauth1a"
   packages = ["."]
+  pruneopts = ""
   revision = "cb1b80e32dd4385099f8d09312e4bcf6bdc993ec"
 
 [[projects]]
   branch = "master"
+  digest = "1:ccbad9395dfd1d1b9a8062a3e4e1fd7e12c7799b65078117625fa66b8dcd441b"
   name = "github.com/kurrik/twittergo"
   packages = ["."]
+  pruneopts = ""
   revision = "c62b9397a6285e5792f91389f063940bb25031f8"
 
 [[projects]]
   branch = "master"
+  digest = "1:fdea706e507511c18a18391880bbae9379413c5dcffacd2211cbaaec2a4a1541"
   name = "github.com/mattn/go-xmpp"
   packages = ["."]
+  pruneopts = ""
   revision = "906d9d747d2b4c59e60104678b62e464dd1623cf"
 
 [[projects]]
   branch = "master"
+  digest = "1:6f49fb03bf81d7d70be7c0b5a1b368301e180d9d389b2b444d61e7dcacd878ff"
   name = "github.com/mdlayher/apcupsd"
   packages = ["."]
+  pruneopts = ""
   revision = "888a66ab0fe0e6366797886a163ca8fc9b7f4154"
 
 [[projects]]
   branch = "master"
+  digest = "1:41803af751309e5a4a290a3530e7e0886d655b6501510d43c54428287ea19c66"
   name = "github.com/miekg/dns"
   packages = ["."]
+  pruneopts = ""
   revision = "0c23f842c83e407f164c4dedae10077fef3612fe"
 
 [[projects]]
   branch = "master"
+  digest = "1:2551e038141ea0ccdd5b447c277db35b5ac068563e7d10c324377011a529a0e4"
   name = "github.com/mitsuse/pushbullet-go"
-  packages = [".","requests","responses"]
+  packages = [
+    ".",
+    "requests",
+    "responses",
+  ]
+  pruneopts = ""
   revision = "5a1d8dd906e1c219bc93570340a0c76239a99dba"
 
 [[projects]]
   branch = "master"
+  digest = "1:a52e6788022ede52706a9607f2a53331cf7ef2cf846377bc3ded8d523c2bc1af"
   name = "github.com/nlopes/slack"
   packages = ["."]
+  pruneopts = ""
   revision = "f243c7602fdf906248fc1f165284daa4e4d2d09e"
 
 [[projects]]
+  digest = "1:a5484d4fa43127138ae6e7b2299a6a52ae006c7f803d98d717f60abf3e97192e"
+  name = "github.com/pborman/uuid"
+  packages = ["."]
+  pruneopts = ""
+  revision = "adf5a7427709b9deb95d29d3fa8a2bf9cfd388f1"
+  version = "v1.2"
+
+[[projects]]
   branch = "master"
+  digest = "1:15358d09f96aba69e1a133161e44c34107ffbc80abc989e56bb4fb216f8d1497"
   name = "github.com/stretchr/testify"
-  packages = ["assert","require"]
+  packages = [
+    "assert",
+    "require",
+  ]
+  pruneopts = ""
   revision = "f3960ab1f9664ecc4e27c78af27cc9063d745a43"
 
 [[projects]]
   branch = "master"
+  digest = "1:f2f5c1583bbbbbf118e2b6445e69e36ec2f6ecef6d4170390af130b28c052476"
   name = "github.com/tarm/serial"
   packages = ["."]
+  pruneopts = ""
   revision = "37be519d49878d0098e34fb614136b81e6c87861"
 
 [[projects]]
   branch = "master"
+  digest = "1:0c7fc040198ab623aa073d218dc64a78bcd70f0697044cb397cf38a3b9465032"
   name = "github.com/tatsushid/go-fastping"
   packages = ["."]
+  pruneopts = ""
   revision = "d7bb493dee3e090e2ffb6914adddf17c1e7c026c"
 
 [[projects]]
+  digest = "1:3bfdafac43ceb125f775eb79b8ee8f1e976e227464434ffad40f956ac029e760"
   name = "github.com/technoweenie/multipartstreamer"
   packages = ["."]
+  pruneopts = ""
   revision = "a90a01d73ae432e2611d178c18367fbaa13e0154"
   version = "v1.0.1"
 
 [[projects]]
   branch = "master"
+  digest = "1:048740d09592ad3656d4cdd6a9919faa2718e58559b7ae372e0646d1d13af1aa"
   name = "golang.org/x/net"
-  packages = ["bpf","context","icmp","internal/iana","internal/netreflect","ipv4","ipv6","websocket"]
+  packages = [
+    "bpf",
+    "context",
+    "icmp",
+    "internal/iana",
+    "internal/netreflect",
+    "ipv4",
+    "ipv6",
+    "websocket",
+  ]
+  pruneopts = ""
   revision = "a6577fac2d73be281a500b310739095313165611"
 
 [[projects]]
+  digest = "1:1d0f46b03aebd2d27451dfdd352dd5c395f7b1f4d7262fb2d39bbd32af24f3d3"
   name = "gopkg.in/telegram-bot-api.v4"
   packages = ["."]
+  pruneopts = ""
   revision = "0a57807db79efce7f6719fbb2c0e0f83fda79aec"
   version = "v4.6"
 
 [[projects]]
+  digest = "1:f0620375dd1f6251d9973b5f2596228cc8042e887cd7f827e4220bc1ce8c30e2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
+  pruneopts = ""
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
   version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5f4dfbc876424e120887ce04b657a8384080e5c06cdb8c39a0f1f7886296c45d"
+  input-imports = [
+    "github.com/Knetic/govaluate",
+    "github.com/RangelReale/osin",
+    "github.com/barnybug/ener314",
+    "github.com/barnybug/ener314/rpio",
+    "github.com/barnybug/go-cast",
+    "github.com/barnybug/go-cast/controllers",
+    "github.com/barnybug/go-cast/discovery",
+    "github.com/barnybug/go-cast/events",
+    "github.com/barnybug/gofsm",
+    "github.com/barnybug/gogsmmodem",
+    "github.com/barnybug/gorfxtrx",
+    "github.com/barnybug/miflora",
+    "github.com/chbmuc/lirc",
+    "github.com/eclipse/paho.mqtt.golang",
+    "github.com/edgard/yeelight",
+    "github.com/gorilla/mux",
+    "github.com/kurrik/oauth1a",
+    "github.com/kurrik/twittergo",
+    "github.com/mattn/go-xmpp",
+    "github.com/mdlayher/apcupsd",
+    "github.com/mitsuse/pushbullet-go",
+    "github.com/mitsuse/pushbullet-go/requests",
+    "github.com/nlopes/slack",
+    "github.com/stretchr/testify/assert",
+    "github.com/stretchr/testify/require",
+    "github.com/tarm/serial",
+    "github.com/tatsushid/go-fastping",
+    "golang.org/x/net/context",
+    "gopkg.in/telegram-bot-api.v4",
+    "gopkg.in/yaml.v2",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
