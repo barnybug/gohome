@@ -63,11 +63,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e9c7eaf902e8e131f7fb2ba5abddf78bbf38363d9e925985f0d77bbf720ad465"
+  digest = "1:9acb727605f6a8bb81e30c6b854d7c9109d3cd3e94e6a3f18cf590f246abd042"
   name = "github.com/barnybug/gorfxtrx"
   packages = ["."]
   pruneopts = ""
-  revision = "7fd52fdc43a0498a7735c44b46ac67fbafb02041"
+  revision = "fab70020949d94b49779ae91ef18c56ff8febc4f"
 
 [[projects]]
   branch = "master"

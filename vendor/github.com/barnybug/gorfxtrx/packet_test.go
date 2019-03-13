@@ -164,6 +164,16 @@ func ExampleRain() {
 	// PCR800
 }
 
+func ExampleOwl113() {
+	data, _ := hex.DecodeString("0D59010C8900070000001A000079")
+	pkt, err := Parse(data)
+	fmt.Printf("%v\n", pkt)
+	fmt.Println(err)
+	//Output:
+	// Current id: 8900 current1: 0.0A current2: 2.6A current3: 0.0A signal: 7 battery: 90
+	// <nil>
+}
+
 func ExampleOwl180() {
 	data, _ := hex.DecodeString("115a02028782000000010100000000849069") // 257 W 151 Wh
 	pkt, err := Parse(data)

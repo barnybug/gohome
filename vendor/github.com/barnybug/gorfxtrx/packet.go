@@ -2,7 +2,6 @@ package gorfxtrx
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 )
 
@@ -33,8 +32,9 @@ var PacketTypes = map[byte]PacketType{
 	0x50: PacketType{8, "Temp", func() Packet { return &Temp{} }},
 	0x52: PacketType{10, "TempHumid", func() Packet { return &TempHumid{} }},
 	0x55: PacketType{11, "Rain", func() Packet { return &Rain{} }},
+	0x59: PacketType{13, "Elec1", func() Packet { return &Elec1{} }},
 	0x56: PacketType{16, "Wind", func() Packet { return &Wind{} }},
-	0x5a: PacketType{17, "Power", func() Packet { return &Power{} }},
+	0x5a: PacketType{17, "Elec3", func() Packet { return &Elec3{} }},
 }
 
 // Parse a packet from a byte array.
@@ -45,7 +45,7 @@ func Parse(data []byte) (Packet, error) {
 	}
 	dlen := len(data) - 1
 	if int(data[0]) != dlen {
-		return nil, errors.New(fmt.Sprintf("Packet unexpected length: %d != %d", dlen, int(data[0])))
+		return nil, fmt.Errorf("Packet unexpected length: %d != %d", dlen, int(data[0]))
 	}
 
 	var pkt Packet

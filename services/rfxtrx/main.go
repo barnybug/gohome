@@ -60,6 +60,11 @@ var tempHumidTypes = map[byte]string{
 	0x09: "viking",
 }
 
+func va(current float64) float64 {
+	// approximation
+	return current * 247 // Volts
+}
+
 func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 	var ev *pubsub.Event
 	switch p := packet.(type) {
@@ -139,7 +144,24 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 		}
 		ev = pubsub.NewEvent("chime", fields)
 
-	case *gorfxtrx.Power:
+	case *gorfxtrx.Elec1:
+		// current sensor
+		source := fmt.Sprintf("owl.%04x", p.SensorId)
+		fields := map[string]interface{}{
+			"source":   source,
+			"current1": p.Current1,
+			"current2": p.Current2,
+			"current3": p.Current3,
+			"power1":   va(p.Current1),
+			"power2":   va(p.Current2),
+			"power3":   va(p.Current3),
+			"battery":  p.Battery,
+			"signal":   p.Signal,
+		}
+		ev = pubsub.NewEvent("power", fields)
+
+	case *gorfxtrx.Elec3:
+		// power sensor
 		if p.Power > 14400 {
 			log.Printf("Ignoring bad power value: %s", p)
 			return nil
