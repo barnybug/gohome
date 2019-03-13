@@ -152,7 +152,7 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 			"current1": p.Current1,
 			"current2": p.Current2,
 			"current3": p.Current3,
-			"power1":   va(p.Current1),
+			"power":    va(p.Current1),
 			"power2":   va(p.Current2),
 			"power3":   va(p.Current3),
 			"battery":  p.Battery,
