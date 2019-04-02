@@ -51,6 +51,14 @@ func sendToGraphite(ev *pubsub.Event) {
 			}
 		case uint8, uint16, uint32, uint64, int8, int16, int32, int64, float32, float64:
 			floatValue = value.(float64)
+		case string:
+			if value == "off" {
+				floatValue = 0
+			} else if value == "on" {
+				floatValue = 1
+			} else {
+				continue
+			}
 		default:
 			// ignore non-numeric values
 			continue
