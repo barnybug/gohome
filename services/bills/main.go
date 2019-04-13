@@ -4,8 +4,10 @@ package bills
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
@@ -19,8 +21,15 @@ func tweet(message string, subtopic string, interval int64) {
 func daily(t time.Time) {
 	// send daily stats
 	g := graphite.NewQuerier(services.Config.Graphite.Url)
-	msg := electricityBill(g)
-	if msg != "" {
+	var parts []string
+	for _, device := range services.Config.DevicesByCap("power") {
+		s := electricityBill(g, device)
+		if s != "" {
+			parts = append(parts, s)
+		}
+	}
+	if len(parts) > 0 {
+		msg := strings.Join(parts, ". ")
 		tweet(msg, "bill", 0)
 	}
 }
@@ -37,9 +46,10 @@ func getHourlyTotals(g graphite.Querier, metric string) []graphite.Datapoint {
 	return dps[1:]
 }
 
-func electricityBill(g graphite.Querier) string {
+func electricityBill(g graphite.Querier, device config.DeviceConf) string {
 	vat := services.Config.Bill.Vat/100 + 1
-	dps := getHourlyTotals(g, "sensor.power.power.total.avg")
+	series := fmt.Sprintf("sensor.%s.total.avg", device.Id)
+	dps := getHourlyTotals(g, series)
 	var max, total, day, night float64
 	var peak time.Time
 	for _, dp := range dps {
@@ -58,8 +68,8 @@ func electricityBill(g graphite.Querier) string {
 	units := total / 1000 // kwh
 	cost := ((units * services.Config.Bill.Electricity.Primary_Rate) + services.Config.Bill.Electricity.Standing_Charge) * vat
 
-	msg := fmt.Sprintf("Electricity: yesterday I used %.2f kwh (%.2f day / %.2f night), costing %s%.2f. Peak was around %s.",
-		units, day/1000, night/1000, services.Config.Bill.Currency, cost/100,
+	msg := fmt.Sprintf("%s: yesterday I used %.2f kwh (%.2f day / %.2f night), costing %s%.2f. Peak was around %s.",
+		device.Name, units, day/1000, night/1000, services.Config.Bill.Currency, cost/100,
 		peak.Format(time.Kitchen))
 	return msg
 }

@@ -378,6 +378,16 @@ func (self *Config) DevicesByProtocol(protocol string) []DeviceConf {
 	return ret
 }
 
+func (self *Config) DevicesByCap(cap string) []DeviceConf {
+	var ret []DeviceConf
+	for _, d := range self.Devices {
+		if d.Cap[cap] {
+			ret = append(ret, d)
+		}
+	}
+	return ret
+}
+
 // helpers
 
 // Resolve a configuration file under .config/gohome
