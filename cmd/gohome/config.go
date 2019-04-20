@@ -45,7 +45,7 @@ func config(path string, filenames []string) {
 
 	ev := pubsub.NewEvent(path, fields)
 	ev.SetRetained(true) // config messages are retained
-	services.SetupBroker()
+	services.SetupBroker("cmd")
 	services.Publisher.Emit(ev)
 	fmt.Printf("Updated %s (%d bytes)\n", path, data.Len())
 }

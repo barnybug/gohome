@@ -205,7 +205,7 @@ func commandSwitch(ps []string) {
 
 // Start builtin services
 func service(ss []string) {
-	services.Setup()
+	services.Setup(ss[0])
 	registerServices()
 	services.Launch(ss)
 }

@@ -119,7 +119,7 @@ func SetupFlags() {
 	flag.Parse()
 }
 
-func SetupBroker() {
+func SetupBroker(name string) {
 	// create Publisher
 	url := os.Getenv("GOHOME_MQTT")
 	if url == "" {
@@ -127,7 +127,7 @@ func SetupBroker() {
 	}
 
 	var broker *mqtt.Broker
-	broker = mqtt.NewBroker(url)
+	broker = mqtt.NewBroker(url, name)
 	Publisher = broker.Publisher()
 	if Publisher == nil {
 		log.Fatalln("Failed to initialise pub endpoint")
@@ -139,8 +139,8 @@ func SetupBroker() {
 
 }
 
-func Setup() {
-	SetupBroker()
+func Setup(name string) {
+	SetupBroker(name)
 	// listen for config changes
 	go ConfigWatcher()
 	// wait for initial config

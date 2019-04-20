@@ -3,9 +3,7 @@ package mqtt
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/barnybug/gohome/pubsub"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -19,23 +17,20 @@ type Broker struct {
 
 var Client MQTT.Client
 
-func createClientOpts(broker string) *MQTT.ClientOptions {
+func createClientOpts(broker, name string) *MQTT.ClientOptions {
 	// generate a client id
 	hostname, _ := os.Hostname()
-	pid := os.Getpid()
-	rand.Seed(time.Now().UnixNano())
-	r := rand.Int()
-	clientId := fmt.Sprintf("gohome/%s-%d-%d", hostname, pid, r)
+	clientID := fmt.Sprintf("gohome/%s-%s", hostname, name)
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(broker)
-	opts.SetClientID(clientId)
+	opts.SetClientID(clientID)
 	// ensure subscriptions survive across disconnections
 	opts.SetCleanSession(false)
 	return opts
 }
 
-func NewBroker(broker string) *Broker {
-	opts := createClientOpts(broker)
+func NewBroker(broker, name string) *Broker {
+	opts := createClientOpts(broker, name)
 	ret := &Broker{broker: broker}
 	ret.subscriber = NewSubscriber(ret)
 	opts.SetDefaultPublishHandler(ret.subscriber.publishHandler)
