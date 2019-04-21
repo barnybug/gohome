@@ -15,7 +15,7 @@ var (
 	gr *graphite.GraphiteWriter
 )
 
-var GraphiteAggs = []string{"avg", "max", "min"}
+var graphiteAggs = []string{"avg", "max", "min"}
 
 var ignoredFields = map[string]bool{
 	"topic":     true,
@@ -64,14 +64,14 @@ func sendToGraphite(ev *pubsub.Event) {
 			continue
 		}
 
-		for _, x := range GraphiteAggs {
+		for _, x := range graphiteAggs {
 			path := fmt.Sprintf("sensor.%s.%s.%s", device, metric, x)
 			gr.Add(path, timestamp, floatValue)
 		}
 
 		// total events counter
 		path := fmt.Sprintf("sensor.%s.%s.%s", device, metric, "total")
-		eventsTotal[path] += 1
+		eventsTotal[path]++
 		total := eventsTotal[path]
 		gr.Add(path, timestamp, float64(total))
 	}
