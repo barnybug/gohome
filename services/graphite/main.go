@@ -4,7 +4,6 @@ package graphite
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/pubsub"
@@ -35,7 +34,7 @@ func sendToGraphite(ev *pubsub.Event) {
 		return
 	}
 
-	timestamp := time.Now().UTC().Unix()
+	timestamp := ev.Timestamp.UTC().Unix()
 	for metric, value := range ev.Fields {
 		if ignoredFields[metric] {
 			continue
