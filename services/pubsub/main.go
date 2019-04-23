@@ -34,7 +34,7 @@ func (self *Service) Run() error {
 	var subscribers []pubsub.Subscriber
 	var publishers []pubsub.Publisher
 	if ep.Mqtt.Broker != "" {
-		broker := mqtt.NewBroker(ep.Mqtt.Broker)
+		broker := mqtt.NewBroker(ep.Mqtt.Broker, "pubsub")
 		pub := broker.Publisher()
 		publishers = append(publishers, pub)
 		for _, sub := range subscribers {
