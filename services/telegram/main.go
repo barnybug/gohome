@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
@@ -40,6 +41,16 @@ func (self *Service) sendMessage(ev *pubsub.Event, remote int) {
 	}
 }
 
+func rewriteTelegramCommands(s string) string {
+	// Rewrite "/telegram_command ..." -> "telegram/command ..."
+	s = strings.TrimLeft(s, "/")
+	i := strings.Index(s, " ")
+	if i == -1 {
+		i = len(s)
+	}
+	return strings.Replace(s[:i], "_", "/", -1) + s[i:]
+}
+
 func (self *Service) Run() error {
 	bot, err := tgbotapi.NewBotAPI(services.Config.Telegram.Token)
 	if err != nil {
@@ -66,7 +77,8 @@ func (self *Service) Run() error {
 
 			if services.Config.Telegram.Chat_id == update.Message.Chat.ID {
 				remote := fmt.Sprint(update.Message.MessageID)
-				services.SendQuery(update.Message.Text, "telegram", remote, "alert")
+				text := rewriteTelegramCommands(update.Message.Text)
+				services.SendQuery(text, "telegram", remote, "alert")
 			} else {
 				text := fmt.Sprintf("This is chat %d, configure this in gohome telgram->chat_id.", update.Message.Chat.ID)
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
