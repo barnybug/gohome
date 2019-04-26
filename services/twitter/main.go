@@ -30,20 +30,20 @@ func createClient() *twittergo.Client {
 	return twittergo.NewClient(config, user)
 }
 
-func sendTweet(client *twittergo.Client, message string) {
+func sendTweet(client *twittergo.Client, message string) error {
 	data := url.Values{}
 	data.Set("status", message)
 	body := strings.NewReader(data.Encode())
 	req, err := http.NewRequest("POST", "/1.1/statuses/update.json", body)
 	if err != nil {
 		log.Printf("Could not parse request: %v", err)
-		return
+		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := client.SendRequest(req)
 	if err != nil {
 		log.Printf("Could not send request: %v", err)
-		return
+		return err
 	}
 	tweet := &twittergo.Tweet{}
 	err = resp.Parse(tweet)
@@ -56,10 +56,12 @@ func sendTweet(client *twittergo.Client, message string) {
 				log.Printf("Code: %v ", val.Code())
 				log.Printf("Msg: %v\n", val.Message())
 			}
+			err = nil // not retryable
 		} else {
 			log.Printf("Problem parsing response: %v\n", err)
 		}
 	}
+	return err
 }
 
 func tweet(client *twittergo.Client, ev *pubsub.Event) {
@@ -78,7 +80,13 @@ func tweet(client *twittergo.Client, ev *pubsub.Event) {
 	}
 
 	log.Printf("Sending tweet: %s", msg)
-	sendTweet(client, msg)
+	for retry := 0; retry < 3; retry++ {
+		err := sendTweet(client, msg)
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Second)
+	}
 }
 
 // Service twitter
