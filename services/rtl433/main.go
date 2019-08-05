@@ -4,6 +4,7 @@ package rtl433
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/barnybug/gohome/pubsub/mqtt"
 
@@ -62,10 +63,11 @@ func translateEvent(data map[string]interface{}) *pubsub.Event {
 		}
 	}
 	ev := pubsub.NewEvent(topic, fields)
-	// timezones
-	// if timestamp, err := time.Parse("2006-01-02 15:04:05", data["time"].(string)); err == nil {
-	// 	ev.Timestamp = timestamp
-	// }
+	if t, err := time.Parse("2006-01-02 15:04:05", data["time"].(string)); err == nil {
+		// correct timezone
+		timestamp := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, time.Now().Location())
+		ev.Timestamp = timestamp.UTC()
+	}
 	services.Config.AddDeviceToEvent(ev)
 	return ev
 }
