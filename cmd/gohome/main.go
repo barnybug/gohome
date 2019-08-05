@@ -35,6 +35,7 @@ import (
 	"github.com/barnybug/gohome/services/raspi"
 	"github.com/barnybug/gohome/services/rfid"
 	"github.com/barnybug/gohome/services/rfxtrx"
+	"github.com/barnybug/gohome/services/rtl433"
 	"github.com/barnybug/gohome/services/script"
 	"github.com/barnybug/gohome/services/sender"
 	"github.com/barnybug/gohome/services/slack"
@@ -82,6 +83,7 @@ func registerServices() {
 	services.Register(&raspi.Service{})
 	services.Register(&rfid.Service{})
 	services.Register(&rfxtrx.Service{})
+	services.Register(&rtl433.Service{})
 	services.Register(&script.Service{})
 	services.Register(&sender.Service{})
 	services.Register(&slack.Service{})
