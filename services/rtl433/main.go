@@ -39,6 +39,15 @@ var fieldMap = map[string]string{
 	"temperature_C": "temp",
 	"humidity":      "humidity",
 }
+var skipFields = map[string]bool{
+	"brand":  true,
+	"model":  true,
+	"id":     true,
+	"time":   true,
+	"mic":    true,
+	"power1": true,
+	"power2": true,
+}
 
 func translateEvent(data map[string]interface{}) *pubsub.Event {
 	model, _ := data["model"].(string)
@@ -51,7 +60,7 @@ func translateEvent(data map[string]interface{}) *pubsub.Event {
 		"source": source,
 	}
 	for key, value := range data {
-		if key == "brand" || key == "model" || key == "id" || key == "time" {
+		if skipFields[key] {
 			continue
 		}
 		if value, ok := value.(float64); key == "humidity" && model == "TFA-TwinPlus" && ok {
