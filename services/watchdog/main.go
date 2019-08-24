@@ -307,7 +307,7 @@ func (self *Service) setupPings() {
 		watches[id] = &Watch{
 			Id:        id,
 			Name:      host,
-			Timeout:   time.Second * 301,
+			Timeout:   time.Second * 601,
 			LastEvent: time.Time{},
 		}
 	}
