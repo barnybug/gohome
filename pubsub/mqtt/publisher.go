@@ -27,8 +27,10 @@ func (pub *Publisher) Emit(ev *pubsub.Event) {
 	if ev.Device() != "" {
 		topic += "/" + ev.Device()
 	}
+	// log.Println("Publishing:", topic, string(ev.Bytes()))
 	token := pub.client.Publish(topic, 1, ev.Retained, ev.Bytes())
 	if token.Wait() && token.Error() != nil {
 		log.Println("Failed to publish message:", token.Error())
 	}
+	// log.Println("Published", topic)
 }

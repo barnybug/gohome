@@ -25,10 +25,11 @@ type Subscriber struct {
 	channels     []eventChannel
 	channelsLock sync.Mutex
 	topicCount   map[string]int
+	persist      bool
 }
 
-func NewSubscriber(broker *Broker) *Subscriber {
-	return &Subscriber{broker: broker, topicCount: map[string]int{}}
+func NewSubscriber(broker *Broker, persist bool) *Subscriber {
+	return &Subscriber{broker: broker, topicCount: map[string]int{}, persist: persist}
 }
 
 func (self *Subscriber) ID() string {
@@ -53,14 +54,33 @@ func (self *Subscriber) publishHandler(client MQTT.Client, msg MQTT.Message) {
 	self.channelsLock.Unlock()
 }
 
+func (self *Subscriber) connectHandler(client MQTT.Client) {
+	if self.persist {
+		return // unnecessary on persistent connections
+	}
+	// (re)subscribe when (re)connected
+	subs := map[string]byte{}
+	for topic, _ := range self.topicCount {
+		subs[topicName(topic)] = 1 // QOS
+	}
+
+	if len(subs) > 0 {
+		// nil = all messages go to the default handler
+		log.Println("Connected, subscribing:", subs)
+		if token := self.broker.client.SubscribeMultiple(subs, nil); token.Wait() && token.Error() != nil {
+			log.Println("Error subscribing:", token.Error())
+		}
+	}
+}
+
 func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventChannel {
 	// subscribe topics not yet subscribed to
 	subs := map[string]byte{}
 	for _, topic := range topics {
 		_, exists := self.topicCount[topic]
 		if !exists {
-			// fmt.Println("Subscribe", topicName(topic))
-			subs[topicName(topic)] = 1
+			// log.Println("Subscribe", topicName(topic))
+			subs[topicName(topic)] = 1 // QOS
 		}
 		self.topicCount[topic] += 1
 	}

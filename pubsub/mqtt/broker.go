@@ -17,23 +17,30 @@ type Broker struct {
 
 var Client MQTT.Client
 
-func createClientOpts(broker, name string) *MQTT.ClientOptions {
+func createClientOpts(broker, name string, persist bool) *MQTT.ClientOptions {
 	// generate a client id
 	hostname, _ := os.Hostname()
 	clientID := fmt.Sprintf("gohome/%s-%s", hostname, name)
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(broker)
 	opts.SetClientID(clientID)
-	// ensure subscriptions survive across disconnections
-	opts.SetCleanSession(false)
+	opts.SetAutoReconnect(true)
+	if persist {
+		opts.SetCleanSession(true)
+	} else {
+		// ensure subscriptions survive across disconnections
+		opts.SetCleanSession(false)
+	}
 	return opts
 }
 
 func NewBroker(broker, name string) *Broker {
-	opts := createClientOpts(broker, name)
+	persist := false
+	opts := createClientOpts(broker, name, persist)
 	ret := &Broker{broker: broker}
-	ret.subscriber = NewSubscriber(ret)
+	ret.subscriber = NewSubscriber(ret, persist)
 	opts.SetDefaultPublishHandler(ret.subscriber.publishHandler)
+	opts.SetOnConnectHandler(ret.subscriber.connectHandler)
 
 	client := MQTT.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
