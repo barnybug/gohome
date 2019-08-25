@@ -160,6 +160,9 @@ func earthChannel() chan TimeEvent {
 	}
 	ch := make(chan TimeEvent)
 	go func() {
+		// wait a second before sending initial state, to avoid
+		// restored state overriding it
+		time.Sleep(time.Second)
 		// send initial state
 		at, event := previousEvent(loc, time.Now())
 		ch <- TimeEvent{at, event}
