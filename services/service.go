@@ -182,6 +182,9 @@ func Heartbeat(id string) {
 		"started": started.Format(time.RFC3339),
 	}
 
+	// notify systemd ready
+	util.SdNotify(false, util.SdNotifyReady)
+
 	// wait 5 seconds before heartbeating - if the process dies very soon
 	time.Sleep(time.Second * 5)
 
@@ -192,6 +195,8 @@ func Heartbeat(id string) {
 		ev.SetRetained(true)
 		Publisher.Emit(ev)
 		time.Sleep(time.Second * 60)
+		// notify systemd watchdog
+		util.SdNotify(false, util.SdNotifyWatchdog)
 	}
 }
 
