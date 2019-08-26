@@ -34,13 +34,13 @@ func (self *Service) ID() string {
 }
 
 func emit(device string, state bool, trigger string) {
-	d := "away"
+	message := "away"
 	command := "off"
 	if state {
-		d = "home"
+		message = "home"
 		command = "on"
 	}
-	log.Printf("%s %s (%s)", device, d, trigger)
+	log.Printf("%s %s (%s)", device, message, trigger)
 	fields := pubsub.Fields{
 		"device":  device,
 		"command": command,
@@ -325,7 +325,6 @@ func (w *Watchdog) watcher() {
 
 	home := false
 	active := false
-	flag := false
 	timeout := time.NewTimer(interval)
 	for {
 		select {
@@ -333,8 +332,6 @@ func (w *Watchdog) watcher() {
 			if !home {
 				home = true
 				emit(w.device, home, trigger)
-			} else {
-				flag = alert
 			}
 			// make next time period use passive checks
 			active = false
@@ -353,9 +350,8 @@ func (w *Watchdog) watcher() {
 				active = true
 			} else {
 				// passive and active checkers exhausted
-				if home && flag {
+				if home {
 					home = false
-					flag = false
 					emit(w.device, home, "timeout")
 				}
 			}
