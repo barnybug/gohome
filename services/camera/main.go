@@ -62,6 +62,9 @@ func cameraPath(name, ext string) (filename string, url string) {
 
 func saveSnapshot(cam Camera, filename string) error {
 	r, err := cam.Snapshot()
+	if err != nil {
+		return err
+	}
 	defer r.Close()
 	fout, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
