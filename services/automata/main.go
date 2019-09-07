@@ -748,10 +748,11 @@ func asyncScript(command string) {
 	// run non-blocking
 	go func() {
 		output, err := script(command)
-		if err != nil {
-			log.Printf("Script '%s' failed: %s", command, err)
-		}
 		output = strings.TrimSpace(output)
+		if err != nil {
+			log.Printf("Script '%s' failed: %s\n%s", command, err, output)
+			return
+		}
 		log.Printf("Script '%s' successful: %s", command, output)
 	}()
 }
