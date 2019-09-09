@@ -51,7 +51,7 @@ func writeToLogFile(ev *pubsub.Event) {
 }
 
 func event(ev *pubsub.Event) {
-	if strings.HasPrefix(ev.Topic, "_") {
+	if strings.HasPrefix(ev.Topic, "_") || strings.HasPrefix(ev.Topic, "config") {
 		return
 	}
 	writeToLogFile(ev)
