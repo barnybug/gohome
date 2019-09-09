@@ -95,8 +95,8 @@ func ConfigWatcher() {
 			Config = conf
 			RawConfig = []byte(value)
 		}
-		c := Configured[path]
-		if c.Set(value) {
+
+		if c, ok := Configured[path]; ok && c.Set(value) {
 			log.Printf("%s updated", path)
 		}
 
