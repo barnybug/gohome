@@ -46,7 +46,7 @@ func (c *ConfigEntry) Wait() {
 	c.event.Wait()
 }
 
-func (c *ConfigEntry) Get() []byte  {
+func (c *ConfigEntry) Get() []byte {
 	c.event.Wait()
 	return c.value
 }
@@ -77,7 +77,7 @@ func ConfigWatcher() {
 
 	for ev := range Subscriber.FilteredChannel("config") {
 		path := ev.Topic
-		value := ev.Data
+		value := ev.Bytes()
 		hashValue := hash(value)
 		previous := seen[path]
 		if previous == hashValue {
