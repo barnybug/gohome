@@ -37,8 +37,9 @@ func (self *Subscriber) ID() string {
 }
 
 func (self *Subscriber) publishHandler(client MQTT.Client, msg MQTT.Message) {
+	topic := msg.Topic()[7:] // skip "gohome/"
 	body := string(msg.Payload())
-	event := pubsub.Parse(body)
+	event := pubsub.Parse(body, topic)
 	if event == nil {
 		return
 	}

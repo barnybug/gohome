@@ -30,7 +30,7 @@ func stream(path string, params url.Values) {
 
 	n := 0
 	for scanner.Scan() {
-		ev := pubsub.Parse(scanner.Text())
+		ev := pubsub.Parse(scanner.Text(), "")
 		if ev == nil {
 			continue
 		}

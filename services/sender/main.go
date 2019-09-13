@@ -21,7 +21,7 @@ func (self *Service) ID() string {
 func (self *Service) Run() error {
 	b := bufio.NewScanner(os.Stdin)
 	for b.Scan() {
-		ev := pubsub.Parse(b.Text())
+		ev := pubsub.Parse(b.Text(), "")
 		if ev != nil {
 			fmt.Println(ev)
 			services.Publisher.Emit(ev)

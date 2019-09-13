@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -111,7 +112,14 @@ func (event *Event) State() string {
 	return event.StringField("state")
 }
 
-func Parse(msg string) *Event {
+func Parse(msg, topic string) *Event {
+	if !strings.HasPrefix(msg, "{") && topic != "" {
+		// raw event
+		fields := Fields{
+			"message": msg,
+		}
+		return NewEvent(topic, fields)
+	}
 	// extract json
 	var fields map[string]interface{}
 	err := json.Unmarshal([]byte(msg), &fields)

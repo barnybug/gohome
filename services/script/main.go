@@ -5,13 +5,14 @@ package script
 
 import (
 	"bufio"
-	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/services"
-	"github.com/barnybug/gohome/util"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+
+	"github.com/barnybug/gohome/pubsub"
+	"github.com/barnybug/gohome/services"
+	"github.com/barnybug/gohome/util"
 )
 
 var espeakStdin io.WriteCloser
@@ -49,7 +50,7 @@ func (self *Service) Run() error {
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		line := scanner.Text()
-		ev := pubsub.Parse(line)
+		ev := pubsub.Parse(line, "")
 		if ev == nil {
 			log.Printf("Ignored: '%s'\n", line)
 			continue

@@ -40,7 +40,7 @@ func config(path string, filenames []string) {
 
 	// emit event
 	fields := pubsub.Fields{
-		"config": string(data.Bytes()),
+		"message": string(data.Bytes()),
 	}
 
 	ev := pubsub.NewEvent(path, fields)

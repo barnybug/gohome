@@ -12,7 +12,7 @@ import (
 )
 
 func ExampleTranslateCommand() {
-	ev := pubsub.Parse(`{"device": "light.glowworm", "timestamp": "2014-03-13 19:40:58.368", "command": "on", "topic": "command"}`)
+	ev := pubsub.Parse(`{"device": "light.glowworm", "timestamp": "2014-03-13 19:40:58.368", "command": "on", "topic": "command"}`, "")
 	services.Config = config.ExampleConfig
 	pkt, err := translateCommands(ev)
 	fmt.Println(err)

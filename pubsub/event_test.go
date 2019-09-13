@@ -14,7 +14,7 @@ func ExampleString() {
 }
 
 func ExampleParseWithTimestamp() {
-	ev := Parse(`{"timestamp":"2014-01-02 03:04:05.987","topic":"test","field":"value"}`)
+	ev := Parse(`{"timestamp":"2014-01-02 03:04:05.987","topic":"test","field":"value"}`, "")
 	fmt.Println(ev.Topic)
 	fmt.Println(ev.Timestamp)
 	fmt.Println(ev.Fields)
@@ -25,7 +25,7 @@ func ExampleParseWithTimestamp() {
 }
 
 func ExampleParseWithoutTimestamp() {
-	ev := Parse(`{"topic":"test","field":"value"}`)
+	ev := Parse(`{"topic":"test","field":"value"}`, "")
 	fmt.Println(ev.Topic)
 	fmt.Println(ev.Fields)
 	// Output:
@@ -34,7 +34,7 @@ func ExampleParseWithoutTimestamp() {
 }
 
 func ExampleParseBad() {
-	ev := Parse(`{`)
+	ev := Parse(`{`, "")
 	fmt.Println(ev)
 	// Output:
 	// <nil>

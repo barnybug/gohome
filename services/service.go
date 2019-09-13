@@ -77,7 +77,11 @@ func ConfigWatcher() {
 
 	for ev := range Subscriber.FilteredChannel("config") {
 		path := ev.Topic
-		value := ev.StringField("config")
+		value := ev.StringField("message")
+		if value == "" {
+			// temporary
+			value = ev.StringField("config")
+		}
 		hashValue := hash(value)
 		previous := seen[path]
 		if previous == hashValue {
