@@ -38,7 +38,7 @@ var Publisher pubsub.Publisher
 var Subscriber pubsub.Subscriber
 
 type ConfigEntry struct {
-	value string
+	value []byte
 	event *util.Event
 }
 
@@ -46,19 +46,19 @@ func (c *ConfigEntry) Wait() {
 	c.event.Wait()
 }
 
-func (c *ConfigEntry) Get() string {
+func (c *ConfigEntry) Get() []byte  {
 	c.event.Wait()
 	return c.value
 }
 
-func (c *ConfigEntry) Set(s string) bool {
+func (c *ConfigEntry) Set(s []byte) bool {
 	c.value = s
 	return c.event.Set()
 }
 
 var Configured = map[string]*ConfigEntry{
-	"config":          &ConfigEntry{"", util.NewEvent()},
-	"config/automata": &ConfigEntry{"", util.NewEvent()},
+	"config":          &ConfigEntry{nil, util.NewEvent()},
+	"config/automata": &ConfigEntry{nil, util.NewEvent()},
 }
 
 func SetupLogging() {
@@ -66,9 +66,9 @@ func SetupLogging() {
 	log.SetOutput(os.Stdout)
 }
 
-func hash(s string) uint32 {
+func hash(s []byte) uint32 {
 	h := fnv.New32a()
-	h.Write([]byte(s))
+	h.Write(s)
 	return h.Sum32()
 }
 
@@ -77,11 +77,7 @@ func ConfigWatcher() {
 
 	for ev := range Subscriber.FilteredChannel("config") {
 		path := ev.Topic
-		value := ev.StringField("message")
-		if value == "" {
-			// temporary
-			value = ev.StringField("config")
-		}
+		value := ev.Data
 		hashValue := hash(value)
 		previous := seen[path]
 		if previous == hashValue {

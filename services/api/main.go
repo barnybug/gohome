@@ -310,14 +310,14 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 
 	// get existing value
 	c := services.Configured[path]
-	var value string
+	var value []byte
 	if c != nil {
 		value = c.Get()
 	}
 
 	if r.Method == "GET" {
 		w.Header().Add("Content-Type", "application/yaml; charset=utf-8")
-		w.Write([]byte(value))
+		w.Write(value)
 	} else if r.Method == "POST" {
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -325,8 +325,8 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		sout := string(data)
-		if sout != value {
+		sout := data
+		if string(sout) != string(value) {
 			// emit event
 			fields := pubsub.Fields{
 				"config": sout,

@@ -381,7 +381,7 @@ func (m MultiError) Error() string {
 func (self *Service) loadAutomata() error {
 	c := services.Configured["config/automata"]
 	tmpl := template.New("Automata")
-	tmpl, err := tmpl.Parse(c.Get())
+	tmpl, err := tmpl.Parse(string(c.Get()))
 	if err != nil {
 		return err
 	}

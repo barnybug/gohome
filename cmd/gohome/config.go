@@ -39,11 +39,7 @@ func config(path string, filenames []string) {
 	}
 
 	// emit event
-	fields := pubsub.Fields{
-		"message": string(data.Bytes()),
-	}
-
-	ev := pubsub.NewEvent(path, fields)
+	ev := pubsub.NewRawEvent(path, data.Bytes())
 	ev.SetRetained(true) // config messages are retained
 	services.SetupBroker("cmd")
 	services.Publisher.Emit(ev)

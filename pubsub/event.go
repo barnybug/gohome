@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Fields map[string]interface{}
@@ -13,6 +15,8 @@ type Event struct {
 	Timestamp time.Time
 	Fields    Fields
 	Retained  bool
+	Format    string
+	Raw       []byte
 }
 
 func NewEvent(topic string, fields Fields) *Event {
@@ -21,7 +25,12 @@ func NewEvent(topic string, fields Fields) *Event {
 		delete(fields, "timestamp")
 		timestamp, _ = time.Parse(TimeFormat, ts)
 	}
-	return &Event{Topic: topic, Timestamp: timestamp, Fields: fields}
+	return &Event{Topic: topic, Timestamp: timestamp, Fields: fields, Format: "json"}
+}
+
+func NewRawEvent(topic string, raw []byte) *Event {
+	timestamp := time.Now().UTC()
+	return &Event{Topic: topic, Timestamp: timestamp, Fields: nil, Format: "raw", Raw: raw}
 }
 
 func NewCommand(device string, command string) *Event {
@@ -46,8 +55,16 @@ func (event *Event) Map() map[string]interface{} {
 }
 
 func (event *Event) Bytes() []byte {
-	v, _ := json.Marshal(event.Map())
-	return v
+	if event.Format == "json" {
+		v, _ := json.Marshal(event.Map())
+		return v
+	} else if event.Format == "raw" {
+		return event.Raw
+	} else if event.Format == "yaml" {
+		v, _ := yaml.Marshal(event.Map())
+		return v
+	}
+	return nil
 }
 
 func (event *Event) String() string {
@@ -113,23 +130,32 @@ func (event *Event) State() string {
 }
 
 func Parse(msg, topic string) *Event {
-	if !strings.HasPrefix(msg, "{") && topic != "" {
-		// raw event
-		fields := Fields{
-			"message": msg,
-		}
-		return NewEvent(topic, fields)
-	}
-	// extract json
+	var format string
 	var fields map[string]interface{}
-	err := json.Unmarshal([]byte(msg), &fields)
-	if err != nil {
-		return nil
+	if strings.HasPrefix(msg, "---") {
+		// yaml
+		err := yaml.Unmarshal([]byte(msg), &fields)
+		if err != nil {
+			return nil
+		}
+		format = "yaml"
+	} else if strings.HasPrefix(msg, "{") {
+		// json
+		err := json.Unmarshal([]byte(msg), &fields)
+		if err != nil {
+			return nil
+		}
+		format = "json"
+	} else {
+		// raw
+		return NewRawEvent(topic, []byte(msg))
 	}
 	topic, ok := fields["topic"].(string)
 	if !ok {
 		return nil
 	}
 	delete(fields, "topic")
-	return NewEvent(topic, fields)
+	ev := NewEvent(topic, fields)
+	ev.Format = format
+	return ev
 }
