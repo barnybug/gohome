@@ -9,7 +9,7 @@ require (
 	github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1
 	github.com/barnybug/gofsm v0.0.0-20180416160415-037635228e60
 	github.com/barnybug/gogsmmodem v0.0.0-20170503201841-a49dbc25a146
-	github.com/barnybug/gorfxtrx v0.0.0-20190313200345-fab70020949d
+	github.com/barnybug/gorfxtrx v0.0.0-20190905200316-0c4514bd3ca7
 	github.com/barnybug/miflora v0.0.0-20190206202408-36c55fde159f
 	github.com/chbmuc/lirc v0.0.0-20150702183631-f5796a80dd2b
 	github.com/eclipse/paho.mqtt.golang v1.0.0
@@ -31,7 +31,7 @@ require (
 	github.com/nlopes/slack v0.0.0-20170604215958-f243c7602fdf
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/stretchr/testify v0.0.0-20151008005503-f3960ab1f966
-	github.com/tarm/serial v0.0.0-20160508044007-37be519d4987
+	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	golang.org/x/net v0.0.0-20170308210134-a6577fac2d73
