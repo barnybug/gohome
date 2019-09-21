@@ -66,6 +66,11 @@ func (d DeviceConf) Prefix() string {
 	return ps[0]
 }
 
+func (d DeviceConf) Minor() string {
+	ps := strings.SplitN(d.Id, ".", 2)
+	return ps[1]
+}
+
 func (d DeviceConf) SourceId() string {
 	i := strings.Index(d.Source, ".")
 	if i != -1 {
