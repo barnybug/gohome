@@ -54,6 +54,7 @@ type DeviceConf struct {
 	Caps     []string `json:"caps"`
 	Aliases  []string `json:"aliases"`
 	Source   string   `json:"source"`
+	Watchdog Duration `json:"watchdog"`
 	Cap      map[string]bool
 }
 
@@ -214,7 +215,6 @@ type WeatherConf struct {
 
 type WatchdogConf struct {
 	Alert     string
-	Devices   map[string]Duration
 	Processes []string
 	Pings     []string
 }
@@ -263,6 +263,10 @@ type Config struct {
 
 type Duration struct {
 	time.Duration
+}
+
+func (d Duration) IsZero() bool {
+	return d.Duration.Seconds() == 0
 }
 
 func (self *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {

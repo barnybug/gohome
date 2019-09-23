@@ -265,18 +265,20 @@ func (self *Service) setup() {
 }
 
 func (self *Service) setupDevices() {
-	for device, timeout := range services.Config.Watchdog.Devices {
+	for _, d := range services.Config.Devices {
+		if d.Watchdog.IsZero() {
+			continue
+		}
 		// give devices grace period for first event
-		d := services.Config.Devices[device]
 		name := d.Name
 		if name == "" {
 			// attempt a reasonable device name if missing from config
-			name = strings.Title(strings.Replace(device, ".", " ", -1))
+			name = strings.Title(strings.Replace(d.Id, ".", " ", -1))
 		}
-		watches[device] = &Watch{
-			Id:        device,
+		watches[d.Id] = &Watch{
+			Id:        d.Id,
 			Name:      name,
-			Timeout:   timeout.Duration,
+			Timeout:   d.Watchdog.Duration,
 			LastEvent: time.Time{},
 		}
 	}

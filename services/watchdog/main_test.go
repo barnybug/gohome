@@ -15,9 +15,9 @@ func ExampleInterfaces() {
 
 func TestBadConfig(t *testing.T) {
 	yml := `
-watchdog:
-  devices:
-    one: xyz
+devices:
+  one:
+    watchdog: xyz
 `
 	_, err := config.OpenRaw([]byte(yml))
 	assert.Error(t, err)
