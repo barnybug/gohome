@@ -60,6 +60,8 @@ func (self *Broker) Subscriber() pubsub.Subscriber {
 }
 
 func (self *Broker) Publisher() *Publisher {
-	ch := make(chan *pubsub.Event)
-	return &Publisher{broker: self.broker, channel: ch, client: self.client}
+	ch := make(chan *pubsub.Event, 1000)
+	publisher := &Publisher{broker: self.broker, channel: ch, client: self.client}
+	go publisher.loop()
+	return publisher
 }
