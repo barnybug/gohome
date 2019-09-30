@@ -14,3 +14,5 @@ func (self *Publisher) ID() string {
 func (self *Publisher) Emit(ev *pubsub.Event) {
 	self.Events = append(self.Events, ev)
 }
+
+func (self *Publisher) Close() {}

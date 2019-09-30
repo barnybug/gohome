@@ -96,7 +96,8 @@ func ConfigWatcher() {
 			RawConfig = []byte(value)
 		}
 
-		if c, ok := Configured[path]; ok && c.Set(value) {
+		if c, ok := Configured[path]; ok {
+			c.Set(value)
 			log.Printf("%s updated", path)
 		}
 
@@ -219,4 +220,10 @@ func MatchDevices(n string) []string {
 		}
 	}
 	return matches
+}
+
+func Shutdown() {
+	if Publisher != nil {
+		Publisher.Close()
+	}
 }

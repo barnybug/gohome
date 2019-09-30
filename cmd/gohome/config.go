@@ -44,4 +44,5 @@ func config(path string, filenames []string) {
 	services.SetupBroker("cmd")
 	services.Publisher.Emit(ev)
 	fmt.Printf("Updated %s (%d bytes)\n", path, data.Len())
+	services.Shutdown()
 }

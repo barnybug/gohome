@@ -4,6 +4,7 @@ package pubsub
 type Publisher interface {
 	ID() string
 	Emit(ev *Event)
+	Close()
 }
 
 // Subscriber interface
