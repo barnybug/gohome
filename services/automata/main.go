@@ -827,7 +827,7 @@ func (self *Service) Snapshot(args ...interface{}) (interface{}, error) {
 }
 
 func (self *Service) startTimerEvent(name string, d float64, ev *pubsub.Event) {
-	log.Printf("Starting timer: %s for %.1fs", name, d)
+	// log.Printf("Starting timer: %s for %.1fs", name, d)
 	duration := time.Duration(d) * time.Second
 	if timer, ok := self.timers[name]; ok {
 		// cancel any existing
