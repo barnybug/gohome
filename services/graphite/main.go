@@ -30,6 +30,10 @@ var eventsTotal = map[string]int{}
 
 func sendToGraphite(ev *pubsub.Event) {
 	device := ev.Device()
+	if device == "" {
+		services.Config.AddDeviceToEvent(ev)
+		device = ev.Device()
+	}
 	if _, ok := services.Config.Devices[device]; !ok {
 		return
 	}
