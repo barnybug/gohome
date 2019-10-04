@@ -13,8 +13,10 @@ caps:
 devices:
   alarm.house:
     name: House alarm
+    watchdog: 12h
   light.kitchen:
     name: Kitchen light
+    watchdog: 7d
   light.glowworm:
     name: Glowworm
     caps: [dimmer]

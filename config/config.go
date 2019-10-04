@@ -275,11 +275,18 @@ func (self *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
+	// add in days
+	multiply := 1
+	if match, _ := regexp.MatchString(`\dd$`, value); match {
+		value = value[0:len(value)-1] + "h"
+		multiply = 24
+	}
+
 	val, err := time.ParseDuration(value)
 	if err != nil {
 		return err
 	}
-	self.Duration = val
+	self.Duration = val * time.Duration(multiply)
 	return nil
 }
 
