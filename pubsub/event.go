@@ -3,6 +3,7 @@ package pubsub
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -17,6 +18,7 @@ type Event struct {
 	Retained  bool
 	Format    string
 	Raw       []byte
+	Published sync.WaitGroup
 }
 
 func NewEvent(topic string, fields Fields) *Event {

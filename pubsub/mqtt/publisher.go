@@ -45,13 +45,16 @@ func (pub *Publisher) loop() {
 		token := pub.client.Publish(topic, 1, ev.Retained, ev.Bytes())
 		if token.Wait() && token.Error() != nil {
 			log.Println("Failed to publish message:", token.Error())
+			continue
 		}
 		// log.Println("Published", topic)
+		ev.Published.Done()
 	}
 }
 
 // Emit an event
 func (pub *Publisher) Emit(ev *pubsub.Event) {
+	ev.Published.Add(1)
 	// Publishing inside a Subscribe callback can deadlock the MQTT client
 	// so we hand off to a channel.
 	select {

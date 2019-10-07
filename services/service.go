@@ -195,6 +195,7 @@ func Heartbeat(id string) {
 		ev := pubsub.NewEvent("heartbeat", fields)
 		ev.SetRetained(true)
 		Publisher.Emit(ev)
+		ev.Published.Wait() // block on actually publishing
 		time.Sleep(time.Second * 60)
 		// notify systemd watchdog
 		util.SdNotify(false, util.SdNotifyWatchdog)
