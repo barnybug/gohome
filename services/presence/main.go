@@ -131,13 +131,19 @@ func NewArpinger(host string) Checker {
 	return &Arpinger{host: host, control: sync.NewCond(&sync.Mutex{})}
 }
 
-func (a *Arpinger) run(alive chan string) {
-	addr, err := net.ResolveIPAddr("ip4:icmp", a.host)
-	if err != nil {
-		log.Printf("Failed to resolve host, not pinging: %s", err)
-		return
+func (a *Arpinger) resolve() *net.IPAddr {
+	for {
+		addr, err := net.ResolveIPAddr("ip4:icmp", a.host)
+		if err == nil {
+			return addr
+		}
+		log.Printf("Failed to resolve host, retrying in 15s: %s", err)
+		time.Sleep(15 * time.Second)
 	}
+}
 
+func (a *Arpinger) run(alive chan string) {
+	addr := a.resolve()
 	for {
 		for {
 			// wait for Ping
@@ -147,13 +153,15 @@ func (a *Arpinger) run(alive chan string) {
 
 			// log.Printf("Arpinging %s on %s", a.host, addr)
 			cmd := exec.Command("sudo", "arping", "-f", addr.String())
-			err = cmd.Run()
-			if err != nil {
-				log.Printf("arping %s failed: %s", addr.String(), err)
-				return
+			output, err := cmd.CombinedOutput()
+			retcode := cmd.ProcessState.ExitCode()
+			if retcode == 0 || retcode == 1 {
+				// 0 = success, 1 = eventual success
+				alive <- "arping"
+			} else {
+				log.Printf("arping %s (%s) failed: %s\n%s", a.host, addr.String(), err, string(output))
 			}
 
-			alive <- "arping"
 		}
 	}
 
