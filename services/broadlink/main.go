@@ -17,6 +17,7 @@ import (
 // Service broadlink
 type Service struct {
 	discovered map[string]*broadlink.Device
+	state      map[string]*broadlink.BGState
 	deviceMap  map[string]*broadlink.Device
 }
 
@@ -60,13 +61,19 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		log.Printf("Failure setting state: %s", err)
 	} else {
 		log.Printf("Set state to: %s", state)
-		fields := pubsub.Fields{
-			"device":  ev.Device(),
-			"command": ev.Command(),
-		}
-		ack := pubsub.NewEvent("ack", fields)
-		services.Publisher.Emit(ack)
+		self.checkState(device, state)
 	}
+}
+
+func ack(device, command string) {
+	log.Printf("State %s: %s", device, command)
+	fields := pubsub.Fields{
+		"device":  device,
+		"command": command,
+	}
+	ack := pubsub.NewEvent("ack", fields)
+	services.Publisher.Emit(ack)
+
 }
 
 func deviceId(device *broadlink.Device) string {
@@ -88,9 +95,32 @@ func announce(source, name string) {
 	services.Publisher.Emit(ev)
 }
 
+func command(i uint8) string {
+	if i > 0 {
+		return "on"
+	}
+	return "off"
+}
+
+func (self *Service) checkState(device *broadlink.Device, state *broadlink.BGState) {
+	did := deviceId(device)
+	previous := self.state[did]
+	if previous == nil || *previous.Pwr1 != *state.Pwr1 {
+		if id, ok := services.Config.LookupSource(socketSource(device, 1)); ok {
+			ack(id, command(*state.Pwr1))
+		}
+	}
+	if previous == nil || *previous.Pwr2 != *state.Pwr2 {
+		if id, ok := services.Config.LookupSource(socketSource(device, 2)); ok {
+			ack(id, command(*state.Pwr2))
+		}
+	}
+	self.state[did] = state
+}
+
 func (self *Service) handleDiscovery(device *broadlink.Device) {
 	id := deviceId(device)
-	if _, exists := self.discovered[id]; !exists {
+	if dev, exists := self.discovered[id]; !exists {
 		log.Printf("Discovered %s", id)
 		self.discovered[id] = device
 		if err := device.Auth(); err != nil {
@@ -106,11 +136,21 @@ func (self *Service) handleDiscovery(device *broadlink.Device) {
 			}
 			announce(source, deviceName(device, i))
 		}
+	} else {
+		device = dev
+	}
+
+	state, err := device.GetState()
+	if err != nil {
+		log.Printf("Getting state failed: %s", err)
+	} else {
+		self.checkState(device, state)
 	}
 }
 
 func (self *Service) Run() error {
 	self.discovered = map[string]*broadlink.Device{}
+	self.state = map[string]*broadlink.BGState{}
 	self.deviceMap = map[string]*broadlink.Device{}
 	manager := broadlink.NewManager(false)
 	commandChannel := services.Subscriber.FilteredChannel("command")
