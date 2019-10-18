@@ -6,6 +6,7 @@ require (
 	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/RangelReale/osin v1.0.1
 	github.com/barnybug/ener314 v0.0.0-20170310204508-64f8fd2e5639
+	github.com/barnybug/go-broadlink v0.0.0-20191017075455-9262f4fc8488
 	github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1
 	github.com/barnybug/gofsm v0.0.0-20180416160415-037635228e60
 	github.com/barnybug/gogsmmodem v0.0.0-20170503201841-a49dbc25a146
@@ -30,11 +31,11 @@ require (
 	github.com/mitsuse/pushbullet-go v0.1.0
 	github.com/nlopes/slack v0.0.0-20170604215958-f243c7602fdf
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
-	github.com/stretchr/testify v0.0.0-20151008005503-f3960ab1f966
+	github.com/stretchr/testify v1.4.0
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	golang.org/x/net v0.0.0-20170308210134-a6577fac2d73
 	gopkg.in/telegram-bot-api.v4 v4.0.0-20161125055035-0a57807db79e
-	gopkg.in/yaml.v2 v2.2.1
+	gopkg.in/yaml.v2 v2.2.2
 )
