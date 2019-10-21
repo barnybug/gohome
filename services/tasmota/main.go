@@ -37,35 +37,47 @@ func handleCommand(ev *pubsub.Event) {
 }
 
 type Energy struct {
-	Total     float64
-	Yesterday float64
-	Today     float64
-	Period    float64
-	Power     float64
-	Factor    float64
-	Voltage   float64
-	Current   float64
+	TotalStartTime string
+	Total          float64
+	Yesterday      float64
+	Today          float64
+	Period         float64
+	Power          float64
+	ApparentPower  float64
+	ReactivePower  float64
+	Factor         float64
+	Voltage        float64
+	Current        float64
 }
 
-func handleEnergy(message MQTT.Message) {
-	var dst Energy
-	err := json.Unmarshal(message.Payload(), &dst)
+type Sensor struct {
+	Time   string
+	ENERGY *Energy
+}
+
+func handleSensor(message MQTT.Message) {
+	var sensor Sensor
+	err := json.Unmarshal(message.Payload(), &sensor)
 	if err != nil {
-		log.Printf("Failed to decode Energy message: %s", err)
+		log.Printf("Failed to decode SENSOR message: %s", err)
 		return
 	}
+	if sensor.ENERGY == nil {
+		return
+	}
+	en := sensor.ENERGY
 	ps := strings.Split(message.Topic(), "/")
-	// tasmota/tele/<name>/ENERGY
+	// tasmota/tele/<name>/SENSOR
 	name := ps[len(ps)-2]
 	fields := pubsub.Fields{
 		"source":    fmt.Sprintf("tasmota.%s", name),
-		"yesterday": dst.Yesterday,
-		"today":     dst.Today,
-		"period":    dst.Period,
-		"power":     dst.Power,
-		"factor":    dst.Factor,
-		"voltage":   dst.Voltage,
-		"current":   dst.Current,
+		"yesterday": en.Yesterday,
+		"today":     en.Today,
+		"period":    en.Period,
+		"power":     en.Power,
+		"factor":    en.Factor,
+		"voltage":   en.Voltage,
+		"current":   en.Current,
 	}
 	ev := pubsub.NewEvent("power", fields)
 	services.Config.AddDeviceToEvent(ev)
@@ -105,10 +117,14 @@ func (self *Service) Run() error {
 		case command := <-commandChannel:
 			handleCommand(command)
 		case message := <-messageChannel:
-			if strings.HasSuffix(message.Topic(), "/ENERGY") {
-				handleEnergy(message)
-			}
-			if strings.HasSuffix(message.Topic(), "/POWER") {
+			ps := strings.Split(message.Topic(), "/")
+			// tasmota/tele/<name>/SENSOR
+			// tasmota/stat/<name>/POWER
+			t1 := ps[1]
+			t2 := ps[len(ps)-1]
+			if t1 == "tele" && t2 == "SENSOR" {
+				handleSensor(message)
+			} else if t1 == "stat" && t2 == "POWER" {
 				handlePower(message)
 			}
 		}
