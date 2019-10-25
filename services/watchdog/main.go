@@ -235,7 +235,6 @@ func listOfLots(ss []string, limit int) string {
 
 // Service watchdog
 type Service struct {
-	pings  chan string
 	pinger *fastping.Pinger
 }
 
@@ -304,32 +303,30 @@ func (self *Service) setupPings() {
 		self.pinger.Stop()
 	}
 
-	for _, host := range services.Config.Watchdog.Pings {
-		id := fmt.Sprintf("ping.%s", host)
-		watches[id] = &Watch{
-			Id:        id,
-			Name:      host,
-			Timeout:   time.Second * 601,
-			LastEvent: time.Time{},
-		}
-	}
-
 	// create and run pinger
 	p := fastping.NewPinger()
 	p.Network("udp") // use unprivileged
 	p.MaxRTT = 20 * time.Second
 	lookup := map[string]string{}
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
-		host := lookup[addr.String()]
-		self.pings <- host
+		device := lookup[addr.String()]
+		fields := pubsub.Fields{
+			"device":  device,
+			"rtt":     int64(rtt.Nanoseconds() / 1e6), // ms
+			"command": "on",
+		}
+		ev := pubsub.NewEvent("ping", fields)
+		services.Publisher.Emit(ev)
+		fmt.Println(ev)
 	}
-	for _, host := range services.Config.Watchdog.Pings {
+	for _, dev := range services.Config.DevicesByProtocol("ping") {
+		host := dev.SourceId()
 		addr, err := net.ResolveIPAddr("ip4:icmp", host)
 		if err != nil {
 			log.Printf("Failed to resolve host - delaying ping: %s", err)
 		} else {
 			log.Printf("Resolved %s to %s", host, addr)
-			lookup[addr.String()] = host
+			lookup[addr.String()] = dev.Id
 			p.AddIPAddr(addr)
 		}
 	}
@@ -383,7 +380,6 @@ func (self *Service) queryDiscovered(q services.Question) string {
 }
 
 func (self *Service) Run() error {
-	self.pings = make(chan string, 10)
 	self.setup()
 	ticker := time.NewTicker(time.Minute)
 	events := services.Subscriber.Channel()
@@ -393,8 +389,6 @@ func (self *Service) Run() error {
 			checkEvent(ev)
 		case <-ticker.C:
 			checkTimeouts()
-		case ping := <-self.pings:
-			processPing(ping)
 		case <-alerts.C:
 			sendRecoveries()
 		}

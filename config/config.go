@@ -216,7 +216,6 @@ type WeatherConf struct {
 type WatchdogConf struct {
 	Alert     string
 	Processes []string
-	Pings     []string
 }
 
 type WundergroundConf struct {
