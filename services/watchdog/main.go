@@ -312,12 +312,10 @@ func (self *Service) setupPings() {
 		device := lookup[addr.String()]
 		fields := pubsub.Fields{
 			"device":  device,
-			"rtt":     int64(rtt.Nanoseconds() / 1e6), // ms
 			"command": "on",
 		}
 		ev := pubsub.NewEvent("ping", fields)
 		services.Publisher.Emit(ev)
-		fmt.Println(ev)
 	}
 	for _, dev := range services.Config.DevicesByProtocol("ping") {
 		host := dev.SourceId()
