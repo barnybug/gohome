@@ -101,6 +101,14 @@ func (c EventContext) Get(name string) (interface{}, error) {
 		return c.event.Topic, nil
 	case "timestamp":
 		return c.event.Timestamp, nil
+	case "time":
+		return c.event.Timestamp.Format("1504"), nil
+	case "hour":
+		return c.event.Timestamp.Hour(), nil
+	case "minute":
+		return c.event.Timestamp.Minute(), nil
+	case "weekday":
+		return c.event.Timestamp.Weekday(), nil
 	default:
 		return c.event.Fields[name], nil
 	}
@@ -588,11 +596,8 @@ func (self *Service) Run() error {
 			services.Publisher.Emit(ev)
 		case tick := <-clock.C:
 			fields := pubsub.Fields{
-				"device":  "clock",
-				"time":    tick.Format("1504"),
-				"hour":    tick.Hour(),
-				"minute":  tick.Minute(),
-				"weekday": tick.Weekday(),
+				"device":    "clock",
+				"timestamp": tick,
 			}
 			ev := pubsub.NewEvent("clock", fields)
 			services.Publisher.Emit(ev)
@@ -640,6 +645,14 @@ func (c ChangeContext) Get(name string) (interface{}, bool) {
 		return now.Format(time.Kitchen), true
 	case "datetime":
 		return now.Format(time.StampMilli), true
+	case "time":
+		return now.Format("1504"), true
+	case "hour":
+		return now.Hour(), true
+	case "minute":
+		return now.Minute(), true
+	case "weekday":
+		return now.Weekday(), true
 	default:
 		if value, ok := c.event.Fields[name]; ok {
 			return value, true
