@@ -254,16 +254,6 @@ func (self *Service) queryStatus(q services.Question) string {
 	return out
 }
 
-type DummyEvent struct{}
-
-func (d DummyEvent) String() string {
-	return "user"
-}
-
-func (d DummyEvent) Match(s string) bool {
-	return false
-}
-
 func (self *Service) queryState(q services.Question) string {
 	args := strings.Split(q.Args, " ")
 	if len(args) < 1 || len(args) > 2 {
@@ -285,7 +275,9 @@ func (self *Service) queryState(q services.Question) string {
 		if !ok {
 			return fmt.Sprintf("automata state: '%s' not found", args[1])
 		}
-		aut.ChangeState(args[1], DummyEvent{})
+		dummy := pubsub.NewEvent("user", pubsub.Fields{})
+		event := NewEventContext(self, dummy)
+		aut.ChangeState(args[1], event)
 		return fmt.Sprintf("Change %s state to %s", args[0], args[1])
 	}
 }
