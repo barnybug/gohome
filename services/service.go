@@ -21,6 +21,12 @@ type Service interface {
 	Run() error
 }
 
+// ServiceInit interface
+type ServiceInit interface {
+	Service
+	Init() error
+}
+
 type Flags interface {
 	Flags()
 }
@@ -165,6 +171,13 @@ func Launch(ss []string) {
 
 	for _, service := range enabled {
 		log.Printf("Starting %s\n", service.ID())
+		if service, ok := service.(ServiceInit); ok {
+			err := service.Init()
+			if err != nil {
+				log.Fatalf("Error init service %s: %s", service.ID(), err.Error())
+			}
+			log.Printf("Initialized %s\n", service.ID())
+		}
 		// run heartbeater
 		go Heartbeat(service.ID())
 		err := service.Run()
