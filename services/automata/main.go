@@ -595,11 +595,9 @@ func (self *Service) Run() error {
 				pubsub.Fields{"device": "earth", "command": tev.Event})
 			services.Publisher.Emit(ev)
 		case tick := <-clock.C:
-			fields := pubsub.Fields{
-				"device":    "clock",
-				"timestamp": tick,
-			}
+			fields := pubsub.Fields{"device": "clock"}
 			ev := pubsub.NewEvent("clock", fields)
+			ev.Timestamp = tick
 			services.Publisher.Emit(ev)
 		}
 	}
