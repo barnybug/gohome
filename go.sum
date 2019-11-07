@@ -14,6 +14,8 @@ github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1 h1:0AtHf6gP2F4HCJ
 github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1/go.mod h1:a0BMCP1cILkrVyN1md3tv0IH3NMelzmBKHHPSDNLyFs=
 github.com/barnybug/gofsm v0.0.0-20180416160415-037635228e60 h1:FbbGvuodILQ3/U7wDxK9me9gu3uayeVaDV3XUdRdpSE=
 github.com/barnybug/gofsm v0.0.0-20180416160415-037635228e60/go.mod h1:8KKdMUUTRm+CRiweB0iuY8voj2R8WrO9kRxaY/wlpQ4=
+github.com/barnybug/gofsm v0.0.0-20191107182434-63b866209683 h1:Hhrhc21Bsfw4FThZAJ/0iTW97k4scmxFeP1XAlX4x7w=
+github.com/barnybug/gofsm v0.0.0-20191107182434-63b866209683/go.mod h1:8KKdMUUTRm+CRiweB0iuY8voj2R8WrO9kRxaY/wlpQ4=
 github.com/barnybug/gogsmmodem v0.0.0-20170503201841-a49dbc25a146 h1:4SVrcBtZf8xaAAnVLTDrNi6g2T/Ikq6zS8Jy7CaknPo=
 github.com/barnybug/gogsmmodem v0.0.0-20170503201841-a49dbc25a146/go.mod h1:ygRhdpuzn1CUOOUnMbhXQ4UfHKeEEPTvpNcIj4SO+WA=
 github.com/barnybug/gorfxtrx v0.0.0-20190313200345-fab70020949d h1:aevgnoqhJgelJaOLUqwTDzXVAZNEQ84skTeI29Fyq9o=

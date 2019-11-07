@@ -8,7 +8,7 @@ require (
 	github.com/barnybug/ener314 v0.0.0-20170310204508-64f8fd2e5639
 	github.com/barnybug/go-broadlink v0.0.0-20191017075455-9262f4fc8488
 	github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1
-	github.com/barnybug/gofsm v0.0.0-20180416160415-037635228e60
+	github.com/barnybug/gofsm v0.0.0-20191107182434-63b866209683
 	github.com/barnybug/gogsmmodem v0.0.0-20170503201841-a49dbc25a146
 	github.com/barnybug/gorfxtrx v0.0.0-20190905200316-0c4514bd3ca7
 	github.com/barnybug/miflora v0.0.0-20190206202408-36c55fde159f
