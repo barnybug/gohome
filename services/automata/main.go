@@ -838,6 +838,7 @@ func (self *Service) startTimerEvent(name string, d float64, ev *pubsub.Event) {
 	}
 
 	timer := time.AfterFunc(duration, func() {
+		ev.Timestamp = time.Now().UTC()
 		services.Publisher.Emit(ev)
 	})
 	self.timers[name] = timer
