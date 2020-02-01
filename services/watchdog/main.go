@@ -79,15 +79,18 @@ func sendRecoveries() {
 }
 
 func ignoreTopics(topic string) bool {
-	return topic == "log" || topic == "rpc" || topic == "query" || topic == "alert" || strings.HasPrefix(topic, "_")
+	return topic == "log" || topic == "rpc" || topic == "query" || topic == "alert" || topic == "command" || strings.HasPrefix(topic, "_")
 }
 
 func checkEvent(ev *pubsub.Event) {
+	if ignoreTopics(ev.Topic) {
+		return
+	}
 	device := ev.Device()
 	if device != "" {
 		mappedDevice(ev)
 		touch(device, ev.Timestamp)
-	} else if ev.Source() != "" && !ignoreTopics(ev.Topic) {
+	} else if ev.Source() != "" {
 		unmappedDevice(ev)
 	}
 }
