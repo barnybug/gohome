@@ -380,8 +380,12 @@ func (self *Service) queryDiscovered(q services.Question) string {
 	return out
 }
 
-func (self *Service) Run() error {
+func (self *Service) Init() error {
 	self.setup()
+	return nil
+}
+
+func (self *Service) Run() error {
 	ticker := time.NewTicker(time.Minute)
 	events := services.Subscriber.Channel()
 	for {

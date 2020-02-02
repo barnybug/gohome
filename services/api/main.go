@@ -309,11 +309,7 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get existing value
-	c := services.Configured[path]
-	var value []byte
-	if c != nil {
-		value = c.Get()
-	}
+	value := services.Configurations.Get(path)
 
 	if r.Method == "GET" {
 		w.Header().Add("Content-Type", "application/yaml; charset=utf-8")

@@ -379,9 +379,9 @@ func (m MultiError) Error() string {
 }
 
 func (self *Service) loadAutomata() error {
-	c := services.Configured["config/automata"]
+	value := services.Configurations.Get("config/automata")
 	tmpl := template.New("Automata")
-	tmpl, err := tmpl.Parse(string(c.Get()))
+	tmpl, err := tmpl.Parse(string(value))
 	if err != nil {
 		return err
 	}
@@ -524,6 +524,11 @@ func publishState(device, state, trigger string) {
 	ev := pubsub.NewEvent("state", fields)
 	ev.SetRetained(true)
 	services.Publisher.Emit(ev)
+}
+
+func (self *Service) Init() error {
+	services.Configurations.WaitForConfig("config/automata")
+	return nil
 }
 
 // Run the service

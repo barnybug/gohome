@@ -43,29 +43,13 @@ var RawConfig []byte
 var Publisher pubsub.Publisher
 var Subscriber pubsub.Subscriber
 
-type ConfigEntry struct {
-	value []byte
-	event *util.Event
+type ConfigStorage struct {
+	config  map[string][]byte
+	hashes  map[string]uint32
+	channel <-chan *pubsub.Event
 }
 
-func (c *ConfigEntry) Wait() {
-	c.event.Wait()
-}
-
-func (c *ConfigEntry) Get() []byte {
-	c.event.Wait()
-	return c.value
-}
-
-func (c *ConfigEntry) Set(s []byte) bool {
-	c.value = s
-	return c.event.Set()
-}
-
-var Configured = map[string]*ConfigEntry{
-	"config":          &ConfigEntry{nil, util.NewEvent()},
-	"config/automata": &ConfigEntry{nil, util.NewEvent()},
-}
+var Configurations *ConfigStorage
 
 func SetupLogging() {
 	log.SetFlags(log.Ltime | log.Lmicroseconds)
@@ -78,42 +62,66 @@ func hash(s []byte) uint32 {
 	return h.Sum32()
 }
 
-func ConfigWatcher() {
-	seen := map[string]uint32{}
+func CreateConfigStorage() *ConfigStorage {
+	return &ConfigStorage{
+		config:  map[string][]byte{},
+		hashes:  map[string]uint32{},
+		channel: Subscriber.FilteredChannel("config"),
+	}
+}
 
-	for ev := range Subscriber.FilteredChannel("config") {
-		path := ev.Topic
-		value := ev.Bytes()
-		hashValue := hash(value)
-		previous := seen[path]
-		if previous == hashValue {
-			// ignore duplicate events - from services subscribing to gohome/#.
-			continue
+func (c *ConfigStorage) loopOnce() {
+	ev := <-c.channel
+	path := ev.Topic
+	value := ev.Bytes()
+	hashValue := hash(value)
+	previous := c.hashes[path]
+	if previous == hashValue {
+		// ignore duplicate events - from services subscribing to gohome/#.
+		return
+	}
+	c.hashes[path] = hashValue
+	if path == "config" {
+		// (re)load config
+		conf, err := config.OpenRaw([]byte(value))
+		if err != nil {
+			log.Println("Error reloading config:", err)
+			return
 		}
-		seen[path] = hashValue
-		if path == "config" {
-			// (re)load config
-			conf, err := config.OpenRaw([]byte(value))
-			if err != nil {
-				log.Println("Error reloading config:", err)
-				continue
-			}
-			Config = conf
-			RawConfig = []byte(value)
-		}
+		Config = conf
+		RawConfig = []byte(value)
+	}
 
-		if c, ok := Configured[path]; ok {
-			c.Set(value)
-			log.Printf("%s updated", path)
-		}
+	c.config[path] = value
+	if previous != 0 {
+		log.Printf("%s updated", path)
+	}
 
-		// notify any interested services
-		for _, service := range enabled {
-			if f, ok := service.(ConfigSubscriber); ok {
-				f.ConfigUpdated(path)
-			}
+	// notify any interested services
+	for _, service := range enabled {
+		if f, ok := service.(ConfigSubscriber); ok {
+			f.ConfigUpdated(path)
 		}
 	}
+}
+
+func (c *ConfigStorage) WaitForConfig(path string) {
+	for {
+		if _, ok := c.config[path]; ok {
+			return
+		}
+		c.loopOnce()
+	}
+}
+
+func (c *ConfigStorage) Watch() {
+	for {
+		c.loopOnce()
+	}
+}
+
+func (c *ConfigStorage) Get(path string) []byte {
+	return c.config[path]
 }
 
 func SetupFlags() {
@@ -148,10 +156,9 @@ func SetupBroker(name string) {
 
 func Setup(name string) {
 	SetupBroker(name)
-	// listen for config changes
-	go ConfigWatcher()
+	Configurations = CreateConfigStorage()
 	// wait for initial config
-	Configured["config"].Wait()
+	Configurations.WaitForConfig("config")
 }
 
 func Launch(ss []string) {
@@ -178,6 +185,12 @@ func Launch(ss []string) {
 			}
 			log.Printf("Initialized %s\n", service.ID())
 		}
+	}
+
+	// listen for config changes
+	go Configurations.Watch()
+
+	for _, service := range enabled {
 		// run heartbeater
 		go Heartbeat(service.ID())
 		err := service.Run()
