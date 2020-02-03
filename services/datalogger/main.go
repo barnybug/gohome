@@ -69,8 +69,12 @@ func (self *Service) ConfigUpdated(path string) {
 	logDir = util.ExpandUser(services.Config.Datalogger.Path)
 }
 
-func (self *Service) Run() error {
+func (self *Service) Init() error {
 	self.ConfigUpdated("config")
+	return nil
+}
+
+func (self *Service) Run() error {
 	for ev := range services.Subscriber.Channel() {
 		if ev.Retained {
 			// ignore retained events from reconnecting

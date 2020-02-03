@@ -63,8 +63,10 @@ func SetupTests() {
 	yaml.Unmarshal([]byte(configYaml), &testConfig)
 	services.Config.Heating = testConfig
 	em = &dummy.Publisher{}
-	service = &Service{}
-	service.Initialize(em)
+	service = &Service{
+		Publisher: em,
+	}
+	service.Init()
 	fire(evFull) // retained state
 }
 

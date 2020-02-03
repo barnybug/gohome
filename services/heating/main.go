@@ -406,17 +406,18 @@ func (self *Service) ID() string {
 	return "heating"
 }
 
-func (self *Service) Initialize(em pubsub.Publisher) {
+func (self *Service) Init() error {
 	self.State = false
 	self.Occupied = false // updated by retained state topic
-	self.Publisher = em
+	if self.Publisher == nil {
+		self.Publisher = services.Publisher
+	}
 	self.ConfigUpdated("config")
+	return nil
 }
 
 // Run the service
 func (self *Service) Run() error {
-	self.Initialize(services.Publisher)
-
 	ticker := util.NewScheduler(time.Duration(0), time.Minute)
 	events := services.Subscriber.FilteredChannel("temp", "state", "command")
 	for {
