@@ -232,7 +232,22 @@ func notifyActivity(command, device, filename, url string) {
 	services.Publisher.Emit(ev)
 }
 
-func watchDirectories() {
+type Watcher struct {
+	process *os.Process
+}
+
+func (w *Watcher) Restart() {
+	if w.process != nil {
+		w.process.Kill()
+	}
+}
+
+func (w *Watcher) Run() {
+	for w.watch() {
+	}
+}
+
+func (w *Watcher) watch() bool {
 	args := []string{"-r", "-m", "-e", "create"}
 	for _, conf := range services.Config.Camera.Cameras {
 		if conf.Watch != "" {
@@ -249,6 +264,7 @@ func watchDirectories() {
 	if err != nil {
 		log.Fatal("Failed to establish watches:", err)
 	}
+	w.process = cmd.Process
 	// tail
 	log.Println("Watch running...")
 	scanner := bufio.NewScanner(stdout)
@@ -274,13 +290,22 @@ func watchDirectories() {
 
 	// cleanup
 	if err := cmd.Wait(); err != nil {
-		log.Println("Error running watch", err)
+		if cmd.ProcessState.ExitCode() == -1 {
+			log.Println("Process terminated by signal, restarting...", err)
+			return true
+		} else {
+			log.Println("Error running watch", err)
+			return false
+		}
 	}
-	log.Println("Watch finished")
+
+	log.Println("Watch finished, restarting...")
+	return true
 }
 
 // Service camera
 type Service struct {
+	watcher *Watcher
 }
 
 // ID of the service
@@ -290,12 +315,18 @@ func (self *Service) ID() string {
 
 func (self *Service) ConfigUpdated(path string) {
 	setupCameras()
+	self.watcher.Restart()
+}
+
+func (self *Service) Init() error {
+	setupCameras()
+	self.watcher = &Watcher{}
+	return nil
 }
 
 // Run the service
 func (self *Service) Run() error {
-	setupCameras()
-	go watchDirectories()
+	go self.watcher.Run()
 	go startWebserver()
 
 	for ev := range services.Subscriber.FilteredChannel("command") {
