@@ -65,12 +65,19 @@ func (self *Service) ID() string {
 	return "datalogger"
 }
 
-func (self *Service) ConfigUpdated(path string) {
+func (self *Service) setup() {
+	if services.Config.Datalogger.Path == "" {
+		log.Fatal("datalogger path not defined")
+	}
 	logDir = util.ExpandUser(services.Config.Datalogger.Path)
 }
 
+func (self *Service) ConfigUpdated(path string) {
+	self.setup()
+}
+
 func (self *Service) Init() error {
-	self.ConfigUpdated("config")
+	self.setup()
 	return nil
 }
 
