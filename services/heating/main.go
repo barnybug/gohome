@@ -166,6 +166,7 @@ func (self *Schedule) Target(at time.Time, def float64) float64 {
 type Zone struct {
 	Thermostat string
 	Temp       float64
+	Delta      float64
 	At         time.Time
 	Schedule   *Schedule
 	PartyTemp  float64
@@ -174,6 +175,11 @@ type Zone struct {
 }
 
 func (self *Zone) Update(temp float64, at time.Time) {
+	if !self.At.IsZero() {
+		delta := temp - self.Temp
+		// weighted rolling average
+		self.Delta = delta*0.8 + self.Delta*0.2
+	}
 	self.Temp = temp
 	self.At = at
 }
@@ -365,7 +371,7 @@ func (self *Service) Status(now time.Time) string {
 			msg += fmt.Sprintf(f+" unknown [%.1f°C]", name, target)
 		} else {
 			// pad names to same length
-			msg += fmt.Sprintf(f+" %.1f°C at %s [%.1f°C]%s", name, zone.Temp, zone.At.Format(time.Stamp), target, star)
+			msg += fmt.Sprintf(f+" %.1f°C (%+.2f°C) at %s [%.1f°C]%s", name, zone.Temp, zone.Delta, zone.At.Format(time.Stamp), target, star)
 		}
 	}
 
@@ -393,6 +399,7 @@ func (self *Service) Json(now time.Time) interface{} {
 		} else {
 			devices[name] = map[string]interface{}{
 				"temp":   zone.Temp,
+				"delta":  zone.Delta,
 				"at":     zone.At.Format(time.RFC3339),
 				"target": target,
 			}
@@ -453,6 +460,7 @@ func (self *Service) ConfigUpdated(path string) {
 		if old, ok := self.Zones[zone]; ok {
 			// preserve temp/party when live reloading
 			z.Temp = old.Temp
+			z.Delta = old.Delta
 			z.At = old.At
 			z.PartyTemp = old.PartyTemp
 			z.PartyUntil = old.PartyUntil
