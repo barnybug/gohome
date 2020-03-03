@@ -132,23 +132,28 @@ func sensorLog(sensorId uint32, format string, a ...interface{}) {
 
 func (self *Service) sendRequest(sensorId uint32, request SensorRequest) {
 	sensorLog(sensorId, "Sending %s\n", request)
-	switch request.Action {
-	case TargetTemperature:
-		self.dev.TargetTemperature(sensorId, request.Temperature)
-	case Identify:
-		self.dev.Identify(sensorId)
-	case Diagnostics:
-		self.dev.Diagnostics(sensorId)
-	case Exercise:
-		self.dev.ExerciseValve(sensorId)
-	case Voltage:
-		self.dev.Voltage(sensorId)
-	case ValveState:
-		self.dev.SetValveState(sensorId, request.ValveState)
-	case PowerMode:
-		self.dev.SetPowerMode(sensorId, request.Mode)
+	// send 3 times
+	for i := 0; i < 3; i++ {
+		if i > 0 {
+			time.Sleep(10 * time.Millisecond)
+		}
+		switch request.Action {
+		case TargetTemperature:
+			self.dev.TargetTemperature(sensorId, request.Temperature)
+		case Identify:
+			self.dev.Identify(sensorId)
+		case Diagnostics:
+			self.dev.Diagnostics(sensorId)
+		case Exercise:
+			self.dev.ExerciseValve(sensorId)
+		case Voltage:
+			self.dev.Voltage(sensorId)
+		case ValveState:
+			self.dev.SetValveState(sensorId, request.ValveState)
+		case PowerMode:
+			self.dev.SetPowerMode(sensorId, request.Mode)
+		}
 	}
-
 }
 
 func (self *Service) sendQueuedRequests(sensorId uint32) {
@@ -191,9 +196,9 @@ func (self *Service) handleMessage(msg *ener314.Message) {
 	case ener314.Temperature:
 		sensorLog(msg.SensorId, "Temperature: %.1f°C\n", t.Value)
 		self.readings[msg.SensorId] = t.Value
-		emitTemp(msg, t)
 		// the eTRV is listening - this is the opportunity to send any queued requests
 		self.sendQueuedRequests(msg.SensorId)
+		emitTemp(msg, t)
 	case ener314.Voltage:
 		sensorLog(msg.SensorId, "Voltage: %.3fV\n", t.Value)
 		emitVoltage(msg, t)
