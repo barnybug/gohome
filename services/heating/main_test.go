@@ -230,7 +230,7 @@ func ExampleStatus() {
 	// Heating: false for unknown
 	// hallway unknown [18.0°C]
 	// Heating: true for 10m
-	// hallway 10.1°C at Jan  4 16:00:00 [18.0°C]*
+	// hallway 10.1°C +0.0°C/hr at Jan  4 16:00:00 [18.0°C]*
 }
 
 func ExampleQueryStatusText() {
@@ -241,7 +241,7 @@ func ExampleQueryStatusText() {
 	fmt.Println(service.queryStatus(q).Text)
 	// Output:
 	// Heating: true for 10m
-	// hallway 10.1°C at Jan  4 16:00:00 [18.0°C]*
+	// hallway 10.1°C +0.0°C/hr at Jan  4 16:00:00 [18.0°C]*
 }
 
 func ExampleQueryStatusJson() {
@@ -253,7 +253,7 @@ func ExampleQueryStatusJson() {
 	s, _ := json.Marshal(data)
 	fmt.Println(string(s))
 	// Output:
-	// {"changed":"2014-01-04T16:00:00Z","devices":{"hallway":{"at":"2014-01-04T16:00:00Z","target":18,"temp":10.1}},"heating":true}
+	// {"changed":"2014-01-04T16:00:00Z","devices":{"hallway":{"at":"2014-01-04T16:00:00Z","rate":0,"target":18,"temp":10.1}},"heating":true}
 }
 
 var testQueries = []struct {

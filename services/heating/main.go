@@ -166,7 +166,7 @@ func (self *Schedule) Target(at time.Time, def float64) float64 {
 type Zone struct {
 	Thermostat string
 	Temp       float64
-	Delta      float64
+	Rate       float64
 	At         time.Time
 	Schedule   *Schedule
 	PartyTemp  float64
@@ -175,10 +175,11 @@ type Zone struct {
 }
 
 func (self *Zone) Update(temp float64, at time.Time) {
-	if !self.At.IsZero() {
-		delta := temp - self.Temp
+	if !self.At.IsZero() && !self.At.Equal(at) {
+		gap := at.Sub(self.At).Seconds()
+		rate := (temp - self.Temp) / gap
 		// weighted rolling average
-		self.Delta = delta*0.8 + self.Delta*0.2
+		self.Rate = rate*0.8 + self.Rate*0.2
 	}
 	self.Temp = temp
 	self.At = at
@@ -301,13 +302,11 @@ func (self *Service) Check(emitEvents bool) {
 		}
 		if emitEvents {
 			// emit target event
-			trv := target + self.Slop // adjusted target for trvs
 			fields := pubsub.Fields{
 				"device": zone.Thermostat,
 				"source": "ch",
 				"target": target,
 				"temp":   zone.Temp,
-				"trv":    trv,
 			}
 			ev := pubsub.NewEvent("thermostat", fields)
 			self.Publisher.Emit(ev)
@@ -371,7 +370,7 @@ func (self *Service) Status(now time.Time) string {
 			msg += fmt.Sprintf(f+" unknown [%.1f°C]", name, target)
 		} else {
 			// pad names to same length
-			msg += fmt.Sprintf(f+" %.1f°C (%+.2f°C) at %s [%.1f°C]%s", name, zone.Temp, zone.Delta, zone.At.Format(time.Stamp), target, star)
+			msg += fmt.Sprintf(f+" %.1f°C %+.1f°C/hr at %s [%.1f°C]%s", name, zone.Temp, zone.Rate*3600, zone.At.Format(time.Stamp), target, star)
 		}
 	}
 
@@ -399,7 +398,7 @@ func (self *Service) Json(now time.Time) interface{} {
 		} else {
 			devices[name] = map[string]interface{}{
 				"temp":   zone.Temp,
-				"delta":  zone.Delta,
+				"rate":   zone.Rate,
 				"at":     zone.At.Format(time.RFC3339),
 				"target": target,
 			}
@@ -460,7 +459,7 @@ func (self *Service) ConfigUpdated(path string) {
 		if old, ok := self.Zones[zone]; ok {
 			// preserve temp/party when live reloading
 			z.Temp = old.Temp
-			z.Delta = old.Delta
+			z.Rate = old.Rate
 			z.At = old.At
 			z.PartyTemp = old.PartyTemp
 			z.PartyUntil = old.PartyUntil
