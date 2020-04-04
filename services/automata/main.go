@@ -94,21 +94,22 @@ type EventContext struct {
 }
 
 func (c EventContext) Get(name string) (interface{}, error) {
+	localTimestamp := c.event.Timestamp.Local()
 	switch name {
 	case "type":
 		return strings.SplitN(c.event.Device(), ".", 2)[0], nil
 	case "topic":
 		return c.event.Topic, nil
 	case "timestamp":
-		return c.event.Timestamp, nil
+		return localTimestamp, nil
 	case "time":
-		return c.event.Timestamp.Format("1504"), nil
+		return localTimestamp.Format("1504"), nil
 	case "hour":
-		return c.event.Timestamp.Hour(), nil
+		return localTimestamp.Hour(), nil
 	case "minute":
-		return c.event.Timestamp.Minute(), nil
+		return localTimestamp.Minute(), nil
 	case "weekday":
-		return c.event.Timestamp.Weekday(), nil
+		return localTimestamp.Weekday(), nil
 	default:
 		return c.event.Fields[name], nil
 	}
@@ -602,7 +603,7 @@ func (self *Service) Run() error {
 		case tick := <-clock.C:
 			fields := pubsub.Fields{"device": "clock"}
 			ev := pubsub.NewEvent("clock", fields)
-			ev.Timestamp = tick
+			ev.Timestamp = tick.UTC()
 			services.Publisher.Emit(ev)
 		}
 	}
