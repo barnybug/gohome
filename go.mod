@@ -6,7 +6,7 @@ require (
 	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/RangelReale/osin v1.0.1
 	github.com/barnybug/ener314 v0.0.0-20170310204508-64f8fd2e5639
-	github.com/barnybug/go-broadlink v0.0.0-20191017075455-9262f4fc8488
+	github.com/barnybug/go-broadlink v0.0.0-20200426075412-fb8b5c5ee90e
 	github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1
 	github.com/barnybug/gofsm v0.0.0-20191107182434-63b866209683
 	github.com/barnybug/gogsmmodem v0.0.0-20170503201841-a49dbc25a146

@@ -10,6 +10,12 @@ github.com/barnybug/go-broadlink v0.0.0-20191016204422-66ac56b4bf8e h1:3sLlHEBKJ
 github.com/barnybug/go-broadlink v0.0.0-20191016204422-66ac56b4bf8e/go.mod h1:s+R3fRJqOn5iJM0CQTman7cszrTxqaUKUow5uyLTXFQ=
 github.com/barnybug/go-broadlink v0.0.0-20191017075455-9262f4fc8488 h1:gzcvrzw3XxXxVpilpKFyClOMYDTnK/u6WZy7FQwAeFA=
 github.com/barnybug/go-broadlink v0.0.0-20191017075455-9262f4fc8488/go.mod h1:s+R3fRJqOn5iJM0CQTman7cszrTxqaUKUow5uyLTXFQ=
+github.com/barnybug/go-broadlink v0.0.0-20200425212238-aaecb95c791c h1:/i6XdlhlDp15unvwXEEJPAEICXuiDQwRkUGzZwSBU/s=
+github.com/barnybug/go-broadlink v0.0.0-20200425212238-aaecb95c791c/go.mod h1:Iit0ktp6YLMECWxQbIR0VEpsbAIbBJM9n6etoV/wmsU=
+github.com/barnybug/go-broadlink v0.0.0-20200426065427-3831b3d2c486 h1:6IEENzj3DcmOjtsF1O4YlqPxxvIc3Ho6XWExQdmSBrs=
+github.com/barnybug/go-broadlink v0.0.0-20200426065427-3831b3d2c486/go.mod h1:Iit0ktp6YLMECWxQbIR0VEpsbAIbBJM9n6etoV/wmsU=
+github.com/barnybug/go-broadlink v0.0.0-20200426075412-fb8b5c5ee90e h1:fJPuVTlmQ6KFFHghRXHqoODbwBGjIeLfJ76ffV/kxZI=
+github.com/barnybug/go-broadlink v0.0.0-20200426075412-fb8b5c5ee90e/go.mod h1:Iit0ktp6YLMECWxQbIR0VEpsbAIbBJM9n6etoV/wmsU=
 github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1 h1:0AtHf6gP2F4HCJu14JVygUagbD6BzUwY1N010hkOr/k=
 github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1/go.mod h1:a0BMCP1cILkrVyN1md3tv0IH3NMelzmBKHHPSDNLyFs=
 github.com/barnybug/gofsm v0.0.0-20180416160415-037635228e60 h1:FbbGvuodILQ3/U7wDxK9me9gu3uayeVaDV3XUdRdpSE=

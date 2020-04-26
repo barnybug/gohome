@@ -2,7 +2,6 @@
 package broadlink
 
 import (
-	"encoding/hex"
 	"fmt"
 	"log"
 	"strconv"
@@ -77,11 +76,11 @@ func ack(device, command string) {
 }
 
 func deviceId(device *broadlink.Device) string {
-	return hex.EncodeToString(device.Mac())
+	return device.MacString()
 }
 
 func socketSource(device *broadlink.Device, n int) string {
-	return fmt.Sprintf("broadlink.%s%d", hex.EncodeToString(device.Mac()), n)
+	return fmt.Sprintf("broadlink.%s%d", device.MacString(), n)
 }
 
 func deviceName(device *broadlink.Device, n int) string {
