@@ -198,8 +198,10 @@ func (self EventContext) String() string {
 }
 
 func (self *Service) ConfigUpdated(path string) {
-	// trigger reload in main loop
-	self.configUpdated <- true
+	if path == "config/automata" || path == "config" {
+		// trigger reload in main loop
+		self.configUpdated <- true
+	}
 }
 
 func (self *Service) RestoreFile(automata *gofsm.Automata) {
@@ -565,6 +567,10 @@ func (self *Service) Run() error {
 					self.restoreState(ev)
 				}
 				// ignore retained events from reconnecting
+				continue
+			}
+			if ev.Topic == "state" && ev.StringField("trigger") == "initial" {
+				// ignore initial state events
 				continue
 			}
 
