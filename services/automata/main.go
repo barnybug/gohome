@@ -458,7 +458,7 @@ func (self *Service) restoreState(ev *pubsub.Event) {
 	k := ev.Device()
 	if aut, ok := automata.Automaton[k]; ok {
 		state := gofsm.AutomataState{}
-		state[k] = gofsm.AutomatonState{ev.StringField("state"), ev.Timestamp}
+		state[k] = gofsm.AutomatonState{State: ev.StringField("state"), Since: ev.Timestamp}
 		automata.Restore(state)
 		log.Printf("Restored %s: %s at %s", k, aut.State.Name, aut.Since.Format(time.RFC3339))
 		self.restoredAutomaton[k] = true

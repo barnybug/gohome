@@ -54,7 +54,7 @@ func readEvents(dev *evdev.InputDevice) error {
 				emit(code)
 				code = ""
 			default:
-				code += string(ch)
+				code += string(rune(ch))
 			}
 		}
 	}
