@@ -574,6 +574,11 @@ func (self *Service) Run() error {
 				continue
 			}
 
+			if ev.Device() == "" {
+				// For dumb devices only emitting "source"
+				services.Config.AddDeviceToEvent(ev)
+			}
+
 			// send relevant events to the automata
 			event := NewEventContext(self, ev)
 			automata.Process(event)
