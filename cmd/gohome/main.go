@@ -51,6 +51,7 @@ import (
 	"github.com/barnybug/gohome/services/wunderground"
 	"github.com/barnybug/gohome/services/xpl"
 	"github.com/barnybug/gohome/services/yeelight"
+	"github.com/barnybug/gohome/services/zigbee"
 	"github.com/barnybug/gohome/util"
 )
 
@@ -100,6 +101,7 @@ func registerServices() {
 	services.Register(&wunderground.Service{})
 	services.Register(&xpl.Service{})
 	services.Register(&yeelight.Service{})
+	services.Register(&zigbee.Service{})
 }
 
 func usage() {
