@@ -49,9 +49,40 @@ func checkDup(message MQTT.Message) bool {
 	return false
 }
 
+type LogMessage struct {
+	Message string `json:"message"`
+	Meta    struct {
+		Description  string `json:"description"`
+		FriendlyName string `json:"friendly_name"`
+	} `json:"meta"`
+}
+
+func checkLogMessage(message MQTT.Message) {
+	// announce
+	var msg LogMessage
+	err := json.Unmarshal(message.Payload(), &msg)
+	if err != nil {
+		log.Printf("Failed to parse message %s: '%s'", message.Topic(), message.Payload())
+	}
+	if msg.Message != "interview_successful" {
+		return
+	}
+	// announce new devices
+	source := fmt.Sprintf("zigbee.%s", msg.Meta.FriendlyName)
+	log.Printf("Announcing %s: %s", source, msg.Meta.Description)
+	fields := pubsub.Fields{"source": source, "name": msg.Meta.Description}
+	ev := pubsub.NewEvent("announce", fields)
+	services.Config.AddDeviceToEvent(ev)
+	services.Publisher.Emit(ev)
+}
+
 func translate(message MQTT.Message) *pubsub.Event {
+	if message.Topic() == "zigbee2mqtt/bridge/log" {
+		checkLogMessage(message)
+		return nil
+	}
 	if strings.HasPrefix(message.Topic(), "zigbee2mqtt/bridge/") {
-		// ignore bridge messages
+		// ignore other bridge messages
 		return nil
 	}
 	if strings.HasSuffix(message.Topic(), "/set") {
