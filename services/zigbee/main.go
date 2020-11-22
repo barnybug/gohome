@@ -54,6 +54,9 @@ type LogMessage struct {
 	Meta    struct {
 		Description  string `json:"description"`
 		FriendlyName string `json:"friendly_name"`
+		Model        string `json:"model"`
+		Supported    bool   `json:"supported"`
+		Vendor       string `json:"vendor"`
 	} `json:"meta"`
 }
 
@@ -69,8 +72,22 @@ func checkLogMessage(message MQTT.Message) {
 	}
 	// announce new devices
 	source := fmt.Sprintf("zigbee.%s", msg.Meta.FriendlyName)
-	log.Printf("Announcing %s: %s", source, msg.Meta.Description)
-	fields := pubsub.Fields{"source": source, "name": msg.Meta.Description}
+	supported := "unsupported"
+	if msg.Meta.Supported {
+		supported = ""
+	}
+	name := ""
+	for _, s := range []string{msg.Meta.Vendor, msg.Meta.Model, msg.Meta.Description, supported} {
+		if s == "" {
+			continue
+		}
+		if name != "" {
+			name += " "
+		}
+		name += s
+	}
+	log.Printf("Announcing %s: %s", source, name)
+	fields := pubsub.Fields{"source": source, "name": name}
 	ev := pubsub.NewEvent("announce", fields)
 	services.Config.AddDeviceToEvent(ev)
 	services.Publisher.Emit(ev)
