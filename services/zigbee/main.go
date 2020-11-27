@@ -30,6 +30,9 @@ var topicMap = map[string]string{
 var fieldMap = map[string]string{
 	"temperature": "temp",
 }
+var ignoreMap = map[string]bool{
+	"update_available": true,
+}
 
 func getDevice(topic string) string {
 	ps := strings.Split(topic, "/")
@@ -139,6 +142,8 @@ func translate(message MQTT.Message) *pubsub.Event {
 			fields["level"] = DimToPercentage(int(value.(float64)))
 		} else if to, ok := fieldMap[key]; ok {
 			fields[to] = value
+		} else if ignoreMap[key] {
+			continue
 		} else {
 			fields[key] = value // map unknowns as is
 		}
