@@ -82,7 +82,7 @@ func sendRecoveries() {
 }
 
 func ignoreTopics(topic string) bool {
-	return topic == "log" || topic == "rpc" || topic == "query" || topic == "alert" || topic == "command" || topic == "watchdog" || strings.HasPrefix(topic, "_")
+	return topic == "log" || topic == "rpc" || topic == "query" || topic == "alert" || topic == "command" || topic == "watchdog" || topic == "state" || strings.HasPrefix(topic, "_")
 }
 
 func checkEvent(ev *pubsub.Event) {
@@ -210,13 +210,17 @@ func checkTimeouts() {
 		if w.Problem {
 			// check if should repeat
 			if time.Since(w.LastAlerted) > repeatInterval {
-				timeouts = append(timeouts, w.Name)
+				if !w.Silent {
+					timeouts = append(timeouts, w.Name)
+				}
 				lastEvent = w.LastEvent
 				w.LastAlerted = time.Now()
 			}
 		} else if time.Since(w.LastEvent) > w.Timeout {
 			// first alert
-			timeouts = append(timeouts, w.Name)
+			if !w.Silent {
+				timeouts = append(timeouts, w.Name)
+			}
 			lastEvent = w.LastEvent
 			w.Problem = true
 			w.LastAlerted = time.Now()
