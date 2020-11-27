@@ -466,9 +466,9 @@ func (self *Service) restoreState(ev *pubsub.Event) {
 }
 
 func handleCommand(ev *pubsub.Event) {
-	if strings.HasPrefix(ev.Device(), "scene.") {
-		// simply ack the scene. This allows automata to handle running scripts,
-		// and perform state changes as necessary to the ack event.
+	if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Cap["ack"] {
+		// auto ack'ing device. This allows the app to toggle these virtual devices, even
+		// though there's nothing to actually confirm the command.
 		fields := pubsub.Fields{
 			"device":  ev.Device(),
 			"command": ev.Command(),
