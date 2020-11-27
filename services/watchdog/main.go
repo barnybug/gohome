@@ -25,6 +25,7 @@ type Watch struct {
 	Recover     bool
 	LastAlerted time.Time
 	LastEvent   time.Time
+	Silent      bool
 }
 
 type Watches []*Watch
@@ -62,7 +63,9 @@ func sendRecoveries() {
 	names := []string{}
 	for _, w := range watches {
 		if w.Recover {
-			names = append(names, w.Name)
+			if !w.Silent {
+				names = append(names, w.Name)
+			}
 			w.Recover = false
 		}
 	}
@@ -79,7 +82,7 @@ func sendRecoveries() {
 }
 
 func ignoreTopics(topic string) bool {
-	return topic == "log" || topic == "rpc" || topic == "query" || topic == "alert" || topic == "command" || strings.HasPrefix(topic, "_")
+	return topic == "log" || topic == "rpc" || topic == "query" || topic == "alert" || topic == "command" || topic == "watchdog" || strings.HasPrefix(topic, "_")
 }
 
 func checkEvent(ev *pubsub.Event) {
@@ -188,14 +191,16 @@ func touch(device string, timestamp time.Time) {
 	// recovered?
 	if w.Problem {
 		w.Problem = false
-		w.Recover = true
-		// picked up by next sendRecoveries()
-	}
-}
+		w.Recover = true // picked up by next sendRecoveries()
 
-func processPing(host string) {
-	device := fmt.Sprintf("ping.%s", host)
-	touch(device, time.Now())
+		// send watchdog event
+		fields := pubsub.Fields{
+			"device":  device,
+			"command": "on",
+		}
+		ev := pubsub.NewEvent("watchdog", fields)
+		services.Publisher.Emit(ev)
+	}
 }
 
 func checkTimeouts() {
@@ -215,6 +220,14 @@ func checkTimeouts() {
 			lastEvent = w.LastEvent
 			w.Problem = true
 			w.LastAlerted = time.Now()
+
+			// send watchdog event
+			fields := pubsub.Fields{
+				"device":  w.Id,
+				"command": "off",
+			}
+			ev := pubsub.NewEvent("watchdog", fields)
+			services.Publisher.Emit(ev)
 		}
 	}
 
@@ -282,6 +295,7 @@ func (self *Service) setupDevices() {
 			Name:      name,
 			Timeout:   d.Watchdog.Duration,
 			LastEvent: time.Time{},
+			Silent:    d.Cap["silent"],
 		}
 	}
 }
@@ -398,5 +412,4 @@ func (self *Service) Run() error {
 			sendRecoveries()
 		}
 	}
-	return nil
 }
