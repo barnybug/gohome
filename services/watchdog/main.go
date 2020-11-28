@@ -279,6 +279,9 @@ func (self *Service) setup() {
 	for k, v := range watches {
 		if o, ok := previous[k]; ok {
 			v.LastEvent = o.LastEvent
+			v.LastAlerted = o.LastAlerted
+			v.Problem = o.Problem
+			v.Recover = o.Recover
 		}
 	}
 }
