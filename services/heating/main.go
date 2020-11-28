@@ -239,29 +239,16 @@ func (self *Service) Event(ev *pubsub.Event) {
 			zone.Update(temp, timestamp)
 			self.Check(false)
 		}
-	case "state":
-		device := ev.Device()
-		if device == "house.presence" {
-			// house state update
-			state := ev.Fields["state"]
-			self.Occupied = (state != "Empty")
+	case "command":
+		if ev.Device() == "house.heating" {
+			self.Occupied = ev.Command() == "on"
 			if self.Occupied && !self.Holiday.IsZero() {
 				// back from holiday - zero
 				self.Holiday = time.Time{}
 			}
+			// send command ack
+			self.Publisher.Emit(ev.Ack())
 			self.Check(false)
-		}
-	case "command":
-		// set target command
-		device := ev.Device()
-		z := strings.Replace(device, "thermostat.", "", 1)
-		if zone, ok := self.Zones[z]; ok {
-			temp, _ := ev.Fields["temp"].(float64)
-			now := Clock()
-			duration := time.Duration(30) * time.Minute
-			zone.setParty(temp, duration, now)
-			log.Printf("Set %s to %v°C for %s", z, temp, util.FriendlyDuration(duration))
-			self.Check(true)
 		}
 	}
 }
@@ -414,7 +401,7 @@ func (self *Service) ID() string {
 
 func (self *Service) Init() error {
 	self.State = false
-	self.Occupied = false // updated by retained state topic
+	self.Occupied = true // default to on
 	if self.Publisher == nil {
 		self.Publisher = services.Publisher
 	}
@@ -425,7 +412,7 @@ func (self *Service) Init() error {
 // Run the service
 func (self *Service) Run() error {
 	ticker := util.NewScheduler(time.Duration(0), time.Minute)
-	events := services.Subscriber.FilteredChannel("temp", "state", "command")
+	events := services.Subscriber.FilteredChannel("temp", "command")
 	for {
 		select {
 		case ev := <-events:
@@ -434,7 +421,6 @@ func (self *Service) Run() error {
 			self.Heartbeat()
 		}
 	}
-	return nil
 }
 
 func (self *Service) ConfigUpdated(path string) {

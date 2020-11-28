@@ -131,6 +131,14 @@ func (event *Event) State() string {
 	return event.StringField("state")
 }
 
+func (event *Event) Ack() *Event {
+	fields := Fields{
+		"device":  event.Device(),
+		"command": event.Command(),
+	}
+	return NewEvent("ack", fields)
+}
+
 func Parse(msg, topic string) *Event {
 	var format string
 	var fields map[string]interface{}

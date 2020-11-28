@@ -469,12 +469,7 @@ func handleCommand(ev *pubsub.Event) {
 	if dev, ok := services.Config.Devices[ev.Device()]; ok && dev.Cap["ack"] {
 		// auto ack'ing device. This allows the app to toggle these virtual devices, even
 		// though there's nothing to actually confirm the command.
-		fields := pubsub.Fields{
-			"device":  ev.Device(),
-			"command": ev.Command(),
-		}
-		ev := pubsub.NewEvent("ack", fields)
-		services.Publisher.Emit(ev)
+		services.Publisher.Emit(ev.Ack())
 	}
 }
 

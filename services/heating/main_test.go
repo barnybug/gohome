@@ -23,8 +23,8 @@ var (
 	evBorderline = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 14.2, "timestamp": "2014-01-04 16:10:00.000"})
 	evHot        = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 16:31:00.000"})
 
-	evEmpty = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Empty", "timestamp": "2014-01-04 16:00:00.000"})
-	evFull  = pubsub.NewEvent("state", pubsub.Fields{"device": "house.presence", "state": "Full", "timestamp": "2014-01-04 16:00:00.000"})
+	evEmpty = pubsub.NewEvent("command", pubsub.Fields{"device": "house.heating", "command": "off", "timestamp": "2014-01-04 16:00:00.000"})
+	evFull  = pubsub.NewEvent("command", pubsub.Fields{"device": "house.heating", "command": "on", "timestamp": "2014-01-04 16:00:00.000"})
 
 	evAfterParty    = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 19.0, "timestamp": "2014-01-04 17:10:00.000"})
 	evBeforeHoliday = pubsub.NewEvent("temp", pubsub.Fields{"device": "temp.hallway", "temp": 10.1, "timestamp": "2014-01-03 18:00:00.000"})
@@ -67,7 +67,6 @@ func SetupTests() {
 		Publisher: em,
 	}
 	service.Init()
-	fire(evFull) // retained state
 }
 
 func setClock(t time.Time) {
@@ -191,6 +190,7 @@ func TestHolidayMode(t *testing.T) {
 	SetupTests()
 	// house cold and empty initially
 	fire(evEmpty)
+	fmt.Println(service.Occupied)
 	fire(evCold)
 	assert.False(t, service.State)
 
