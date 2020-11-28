@@ -18,14 +18,13 @@ import (
 )
 
 type Watch struct {
-	Name        string
-	Id          string
-	Timeout     time.Duration
-	Problem     bool
-	Recover     bool
-	LastAlerted time.Time
-	LastEvent   time.Time
-	Silent      bool
+	Name      string
+	Id        string
+	Timeout   time.Duration
+	Problem   bool
+	NextAlert time.Time
+	LastEvent time.Time
+	Silent    bool
 }
 
 type Watches []*Watch
@@ -52,47 +51,24 @@ func (self Watches) Swap(i, j int) {
 var watches = map[string]*Watch{}
 var unmapped = map[string]bool{}
 var repeatInterval, _ = time.ParseDuration("12h")
-var alerts = time.NewTimer(time.Second)
 
 func sendAlert(message string) {
 	log.Printf("Sending watchdog alert: %s\n", message)
 	services.SendAlert("💓 "+message, services.Config.Watchdog.Alert, "", 0)
 }
 
-func sendRecoveries() {
-	names := []string{}
-	for _, w := range watches {
-		if w.Recover {
-			if !w.Silent {
-				names = append(names, w.Name)
-			}
-			w.Recover = false
-		}
-	}
-
-	if len(names) > 0 {
-		// send a single notification
-		message := fmt.Sprintf("%s RECOVERED", listOfLots(names, 10))
-		sendAlert(message)
-		// delay multiple recovered messages
-		alerts.Reset(120 * time.Second)
-	} else {
-		alerts.Reset(5 * time.Second)
-	}
-}
-
 func ignoreTopics(topic string) bool {
 	return topic == "log" || topic == "rpc" || topic == "query" || topic == "alert" || topic == "command" || topic == "watchdog" || topic == "state" || strings.HasPrefix(topic, "_")
 }
 
-func checkEvent(ev *pubsub.Event) {
+func (self *Service) checkEvent(ev *pubsub.Event) {
 	if ignoreTopics(ev.Topic) {
 		return
 	}
 	device := ev.Device()
 	if device != "" {
 		mappedDevice(ev)
-		touch(device, ev.Timestamp)
+		self.touch(device, ev.Timestamp)
 	} else if ev.Source() != "" {
 		unmappedDevice(ev)
 	}
@@ -173,7 +149,7 @@ func announce(ev *pubsub.Event, mapped bool) {
 	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
 }
 
-func touch(device string, timestamp time.Time) {
+func (self *Service) touch(device string, timestamp time.Time) {
 	// check if in devices monitored
 	w := watches[device]
 	if w == nil {
@@ -187,63 +163,78 @@ func touch(device string, timestamp time.Time) {
 		return
 	}
 	w.LastEvent = timestamp
+	w.NextAlert = timestamp.Add(w.Timeout)
+	if w.NextAlert.Before(now) {
+		// must have previously alerted - set to repeat interval
+		w.NextAlert = now.Add(repeatInterval)
+	}
+	// reschedule if:
+	// - this was the next scheduled
+	// - there's none scheduled (startup)
+	// - the next scheduled is after this next alert
+	if w == self.nextProblem || self.nextProblem == nil || self.nextProblem.NextAlert.After(w.NextAlert) {
+		// update next problem
+		self.scheduleNextTimeout()
+	}
 
 	// recovered?
 	if w.Problem {
 		w.Problem = false
-		w.Recover = true // picked up by next sendRecoveries()
-
-		// send watchdog event
-		fields := pubsub.Fields{
-			"device":  device,
-			"command": "on",
+		if !w.Silent && !self.problems.Remove(w) {
+			// if it was briefly problematic but recovered, then don't alert
+			self.recoveries.Add(w)
 		}
-		ev := pubsub.NewEvent("watchdog", fields)
-		services.Publisher.Emit(ev)
+		sendWatchdogEvent(device, "on")
 	}
 }
 
-func checkTimeouts() {
-	timeouts := []string{}
-	var lastEvent time.Time
+func sendWatchdogEvent(device, command string) {
+	fields := pubsub.Fields{
+		"device":  device,
+		"command": command,
+	}
+	ev := pubsub.NewEvent("watchdog", fields)
+	services.Publisher.Emit(ev)
+}
+
+func (self *Service) scheduleNextTimeout() {
+	next := time.Time{}
+	now := time.Now()
+	self.nextProblem = nil
 	for _, w := range watches {
-		if w.Problem {
-			// check if should repeat
-			if time.Since(w.LastAlerted) > repeatInterval {
-				if !w.Silent {
-					timeouts = append(timeouts, w.Name)
-				}
-				lastEvent = w.LastEvent
-				w.LastAlerted = time.Now()
-			}
-		} else if time.Since(w.LastEvent) > w.Timeout {
-			// first alert
-			if !w.Silent {
-				timeouts = append(timeouts, w.Name)
-			}
-			lastEvent = w.LastEvent
-			w.Problem = true
-			w.LastAlerted = time.Now()
-
-			// send watchdog event
-			fields := pubsub.Fields{
-				"device":  w.Id,
-				"command": "off",
-			}
-			ev := pubsub.NewEvent("watchdog", fields)
-			services.Publisher.Emit(ev)
+		if w.NextAlert.IsZero() {
+			continue
+		}
+		if w.NextAlert.Before(next) || next.IsZero() {
+			next = w.NextAlert
+			self.nextProblem = w
 		}
 	}
 
-	if len(timeouts) > 0 {
-		// send a single notification
-		message := fmt.Sprintf("%s PROBLEM", listOfLots(timeouts, 10))
-		if len(timeouts) == 1 {
-			now := time.Now()
-			message += " for " + util.FriendlyDuration(now.Sub(lastEvent))
+	if !next.IsZero() {
+		duration := next.Sub(now)
+		// log.Printf("Next scheduled: %s in %s at %s", self.nextProblem.Name, util.ShortDuration(duration), next)
+		if duration < 0 {
+			duration = 0
 		}
-		sendAlert(message)
+		self.timeout.Reset(duration)
+	} else {
+		self.timeout.Stop()
 	}
+}
+
+func (self *Service) checkTimeouts() {
+	w := self.nextProblem
+	if !w.Problem {
+		sendWatchdogEvent(w.Id, "off")
+		w.Problem = true
+	}
+	if !w.Silent {
+		self.recoveries.Remove(w)
+		self.problems.Add(w)
+	}
+	w.NextAlert = w.NextAlert.Add(repeatInterval)
+	self.scheduleNextTimeout()
 }
 
 func listOfLots(ss []string, limit int) string {
@@ -255,7 +246,11 @@ func listOfLots(ss []string, limit int) string {
 
 // Service watchdog
 type Service struct {
-	pinger *fastping.Pinger
+	pinger      *fastping.Pinger
+	problems    *Alerter
+	recoveries  *Alerter
+	timeout     *time.Timer
+	nextProblem *Watch
 }
 
 func (self *Service) ID() string {
@@ -278,15 +273,16 @@ func (self *Service) setup() {
 	// preserve last event when reloading config
 	for k, v := range watches {
 		if o, ok := previous[k]; ok {
-			v.LastEvent = o.LastEvent
-			v.LastAlerted = o.LastAlerted
 			v.Problem = o.Problem
-			v.Recover = o.Recover
+			v.LastEvent = o.LastEvent
+			v.NextAlert = o.NextAlert
 		}
 	}
+	self.scheduleNextTimeout()
 }
 
 func (self *Service) setupDevices() {
+	now := time.Now()
 	for _, d := range services.Config.Devices {
 		if d.Watchdog.IsZero() {
 			continue
@@ -301,13 +297,14 @@ func (self *Service) setupDevices() {
 			Id:        d.Id,
 			Name:      name,
 			Timeout:   d.Watchdog.Duration,
-			LastEvent: time.Time{},
+			NextAlert: now.Add(d.Watchdog.Duration),
 			Silent:    d.Cap["silent"],
 		}
 	}
 }
 
 func (self *Service) setupHeartbeats() {
+	nextAlert := time.Now().Add(time.Second * 241)
 	// monitor gohome processes heartbeats
 	for _, process := range services.Config.Watchdog.Processes {
 		id := fmt.Sprintf("heartbeat.%s", process)
@@ -316,7 +313,7 @@ func (self *Service) setupHeartbeats() {
 			Id:        id,
 			Name:      process,
 			Timeout:   time.Second * 241,
-			LastEvent: time.Time{},
+			NextAlert: nextAlert,
 		}
 	}
 }
@@ -402,21 +399,83 @@ func (self *Service) queryDiscovered(q services.Question) string {
 }
 
 func (self *Service) Init() error {
+	self.problems = NewAlerter("PROBLEM")
+	self.recoveries = NewAlerter("RECOVERED")
+	self.timeout = time.NewTimer(time.Hour)
 	self.setup()
 	return nil
 }
 
+type Alerter struct {
+	Timer   *time.Timer
+	watches map[*Watch]bool
+	delayed bool
+	suffix  string
+}
+
+func NewAlerter(suffix string) *Alerter {
+	timer := time.NewTimer(time.Hour)
+	timer.Stop()
+	return &Alerter{watches: map[*Watch]bool{}, suffix: suffix, Timer: timer}
+}
+
+func (self *Alerter) Add(watch *Watch) {
+	self.watches[watch] = true
+	if !self.delayed {
+		// send this now, but delay any further
+		self.sendAlert()
+		self.delayed = true
+		self.Timer.Reset(2 * time.Minute)
+	}
+}
+
+func (self *Alerter) sendAlert() {
+	// send (batched) notification
+	var names []string
+	var lastWatch *Watch
+	for watch := range self.watches {
+		names = append(names, watch.Name)
+		lastWatch = watch
+	}
+	message := fmt.Sprintf("%s %s", listOfLots(names, 10), self.suffix)
+	if self.suffix == "PROBLEM" && len(names) == 1 {
+		duration := time.Now().Sub(lastWatch.LastEvent)
+		message += " for " + util.FriendlyDuration(duration)
+	}
+	sendAlert(message)
+	// clear out
+	self.watches = map[*Watch]bool{}
+}
+
+func (self *Alerter) Remove(watch *Watch) bool {
+	if !self.watches[watch] {
+		return false
+	}
+	delete(self.watches, watch)
+	return true
+}
+
+func (self *Alerter) TimerCallback() {
+	if len(self.watches) > 0 {
+		self.sendAlert()
+	} else {
+		// cooled down
+		self.delayed = false
+	}
+}
+
 func (self *Service) Run() error {
-	ticker := time.NewTicker(time.Minute)
 	events := services.Subscriber.Channel()
 	for {
 		select {
 		case ev := <-events:
-			checkEvent(ev)
-		case <-ticker.C:
-			checkTimeouts()
-		case <-alerts.C:
-			sendRecoveries()
+			self.checkEvent(ev)
+		case <-self.timeout.C:
+			self.checkTimeouts()
+		case <-self.problems.Timer.C:
+			self.problems.TimerCallback()
+		case <-self.recoveries.Timer.C:
+			self.recoveries.TimerCallback()
 		}
 	}
 }
