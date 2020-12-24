@@ -168,6 +168,9 @@ func syncRequest() (*SyncResponsePayload, error) {
 		if device.Group == "" {
 			continue
 		}
+		if device.Location == "" {
+			continue
+		}
 
 		typ := "action.devices.types.SWITCH"
 		traits := []string{}
