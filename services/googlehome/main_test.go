@@ -43,8 +43,8 @@ func TestSync(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 	assert.Equal(t, ApplicationJson, rr.Header().Get("Content-Type"))
-	assert.Contains(t, rr.Body.String(), `{"id":"light.kitchen","type":"action.devices.types.LIGHT","traits":["action.devices.traits.OnOff"],"name":{"name":"Kitchen","nicknames":["Kitchen"]},"willReportState":false}`)
-	assert.Contains(t, rr.Body.String(), `{"id":"light.glowworm","type":"action.devices.types.LIGHT","traits":["action.devices.traits.Brightness"],"name":{"name":"Glowworm","nicknames":["Glowworm","glow worm"]},"willReportState":false}`)
+	assert.Contains(t, rr.Body.String(), `{"id":"light.kitchen","type":"action.devices.types.LIGHT","traits":["action.devices.traits.OnOff"],"name":{"name":"Kitchen","nicknames":["Kitchen"]},"willReportState":false,"roomHint":"Kitchen"}`)
+	assert.Contains(t, rr.Body.String(), `{"id":"light.glowworm","type":"action.devices.types.LIGHT","traits":["action.devices.traits.Brightness"],"name":{"name":"Glowworm","nicknames":["Glowworm","glow worm"]},"willReportState":false,"roomHint":"Living Room"}`)
 	assert.Contains(t, rr.Body.String(), `{"id":"thermostat.living","type":"action.devices.types.THERMOSTAT","traits":["action.devices.traits.TemperatureSetting"],"name":{"name":"Living room thermostat","nicknames":["Living room thermostat"]},"willReportState":false,"attributes":{"availableThermostatModes":"heat","thermostatTemperatureUnit":"C"},"roomHint":"Living Room"}`)
 }
 

@@ -10,6 +10,7 @@ devices:
     type: light
     caps: [switch]
     source: x10.b06
+    location: Kitchen
   light.glowworm:
     group: downstairs
     name: Glowworm
@@ -17,6 +18,7 @@ devices:
     caps: [light, dimmer]
     source: homeeasy.00123453
     aliases: [glow worm]
+    location: Living Room
   thermostat.living:
     name: Living room thermostat
     group: heating
@@ -27,6 +29,7 @@ devices:
   trv.spareroom:
     name: Spareroom thermostat
     source: energenie.00098b
+    location: Spareroom
 endpoints:
   mqtt:
     broker: tcp://127.0.0.1:1883
