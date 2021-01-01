@@ -2,7 +2,7 @@
 
 Home automation for the geek home. Built in Go.
 
-[![Build Status](https://secure.travis-ci.org/barnybug/gohome.png)](http://travis-ci.org/barnybug/gohome)
+[![Build Status](https://github.com/barnybug/gohome/workflows/Go/badge.svg)](https://github.com/barnybug/gohome/actions)
 [![GoDoc](https://godoc.org/github.com/barnybug/gohome?status.svg)](http://godoc.org/github.com/barnybug/gohome)
 
 ## Features
