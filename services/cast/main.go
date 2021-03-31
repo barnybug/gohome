@@ -161,7 +161,11 @@ func sendAlert(client *cast.Client, message string, volume float64) error {
 	if volume == 0 {
 		volume = 0.3 // default
 	}
-	setVolume(client, volume)
+	if previousVolume == nil || volume != *previousVolume.Level {
+		setVolume(client, volume)
+	} else {
+		previousVolume = nil
+	}
 
 	log.Printf("Playing url: %s", u.String())
 	// play media
