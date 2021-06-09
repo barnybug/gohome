@@ -4,9 +4,14 @@
 package watchdog
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
+	"os/exec"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -247,10 +252,12 @@ func listOfLots(ss []string, limit int) string {
 // Service watchdog
 type Service struct {
 	pinger      *fastping.Pinger
+	sniffer     *ArpSniffer
 	problems    *Alerter
 	recoveries  *Alerter
 	timeout     *time.Timer
 	nextProblem *Watch
+	pings       chan string
 }
 
 func (self *Service) ID() string {
@@ -318,26 +325,106 @@ func (self *Service) setupHeartbeats() {
 	}
 }
 
+type ArpSniffer struct {
+	cmd    *exec.Cmd
+	stdout io.ReadCloser
+	stderr io.ReadCloser
+}
+
+func NewArpSniffer() *ArpSniffer {
+	return &ArpSniffer{}
+}
+
+// 06:29:33.293180 ARP, Request who-has 192.168.10.254 (ff:ff:ff:ff:ff:ff) tell 192.168.10.241, length 46
+var reTell = regexp.MustCompile(`tell ([0-9.]+)`)
+
+func (a *ArpSniffer) Start(channel chan string) {
+	a.cmd = exec.Command("sudo", "stdbuf", "-oL", "tcpdump", "-p", "-n", "-l", "arp", "and", "arp[6:2] == 1")
+	var err error
+	a.stdout, err = a.cmd.StdoutPipe()
+	if err != nil {
+		log.Printf("Failed to start tcpdump: %s", err)
+		return
+	}
+	a.stderr, err = a.cmd.StderrPipe()
+	if err != nil {
+		log.Printf("Failed to start tcpdump: %s", err)
+		return
+	}
+	if err := a.cmd.Start(); err != nil {
+		log.Printf("Failed to start tcpdump: %s", err)
+		return
+	}
+	// discard stderr
+	go io.Copy(ioutil.Discard, a.stderr)
+
+	log.Printf("Sniffing for arp requests")
+	// read stdout by line, parse for "tell <ip>"
+	scanner := bufio.NewScanner(a.stdout)
+	for scanner.Scan() {
+		match := reTell.FindStringSubmatch(scanner.Text())
+		if match == nil {
+			log.Printf("ArpSniffer: no match %s", scanner.Text())
+			continue
+		}
+		ip := match[1]
+		// log.Printf("ArpSniffer: %s", ip)
+		channel <- ip
+	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("ArpSniffer: tcpdump failed: %s", err)
+		return
+	}
+}
+
 func (self *Service) setupPings() {
+	// This pings the list of hosts every 20s to verify if they're connected, and also
+	// snoops on arp requests from hosts to detect more rapidly when they initially join the network.
+	if self.pings != nil {
+		close(self.pings)
+	}
+
+	lookup := map[string]string{}
+	last := map[string]time.Time{}
+	self.pings = make(chan string)
+	go func() {
+		for ip := range self.pings {
+			device := lookup[ip]
+			if device == "" {
+				continue // filter unknown ips
+			}
+			if last[ip].After(time.Now().Add(-20 * time.Second)) {
+				continue // suppress any more regularly than 20s
+			}
+			last[ip] = time.Now()
+			fields := pubsub.Fields{
+				"device":  device,
+				"command": "on",
+			}
+			ev := pubsub.NewEvent("ping", fields)
+			services.Publisher.Emit(ev)
+		}
+	}()
+
 	if self.pinger != nil {
 		// reconfiguring - stop previous pinger
 		self.pinger.Stop()
 	}
+	if self.sniffer == nil {
+		self.sniffer = NewArpSniffer()
+		go self.sniffer.Start(self.pings)
+	}
 
 	// create and run pinger
 	p := fastping.NewPinger()
+	self.pinger = p
 	p.Network("udp") // use unprivileged
 	p.MaxRTT = 20 * time.Second
-	lookup := map[string]string{}
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
-		device := lookup[addr.String()]
-		fields := pubsub.Fields{
-			"device":  device,
-			"command": "on",
-		}
-		ev := pubsub.NewEvent("ping", fields)
-		services.Publisher.Emit(ev)
+		self.pings <- addr.String()
 	}
+
+	// resolve host names -> devices
 	for _, dev := range services.Config.DevicesByProtocol("ping") {
 		host := dev.SourceId()
 		addr, err := net.ResolveIPAddr("ip4:icmp", host)
@@ -349,8 +436,9 @@ func (self *Service) setupPings() {
 			p.AddIPAddr(addr)
 		}
 	}
+
+	// run pinger loop
 	p.RunLoop()
-	self.pinger = p
 }
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
