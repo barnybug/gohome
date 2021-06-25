@@ -5,9 +5,9 @@ package watchdog
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os/exec"
@@ -326,9 +326,7 @@ func (self *Service) setupHeartbeats() {
 }
 
 type ArpSniffer struct {
-	cmd    *exec.Cmd
-	stdout io.ReadCloser
-	stderr io.ReadCloser
+	cmd *exec.Cmd
 }
 
 func NewArpSniffer() *ArpSniffer {
@@ -339,28 +337,25 @@ func NewArpSniffer() *ArpSniffer {
 var reTell = regexp.MustCompile(`tell ([0-9.]+)`)
 
 func (a *ArpSniffer) Start(channel chan string) {
-	a.cmd = exec.Command("sudo", "stdbuf", "-oL", "tcpdump", "-p", "-n", "-l", "arp", "and", "arp[6:2] == 1")
-	var err error
-	a.stdout, err = a.cmd.StdoutPipe()
+	// setcap CAP_NET_RAW=ep /usr/bin/tcpdump
+	a.cmd = exec.Command("tcpdump", "-p", "-n", "-l", "arp", "and", "arp[6:2] == 1")
+	stdout, err := a.cmd.StdoutPipe()
 	if err != nil {
 		log.Printf("Failed to start tcpdump: %s", err)
 		return
 	}
-	a.stderr, err = a.cmd.StderrPipe()
-	if err != nil {
-		log.Printf("Failed to start tcpdump: %s", err)
-		return
-	}
+	stderr, err := a.cmd.StderrPipe()
 	if err := a.cmd.Start(); err != nil {
 		log.Printf("Failed to start tcpdump: %s", err)
 		return
 	}
-	// discard stderr
-	go io.Copy(ioutil.Discard, a.stderr)
+	// buffer stderr
+	var stderrBuf bytes.Buffer
+	go io.Copy(&stderrBuf, stderr)
 
 	log.Printf("Sniffing for arp requests")
 	// read stdout by line, parse for "tell <ip>"
-	scanner := bufio.NewScanner(a.stdout)
+	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		match := reTell.FindStringSubmatch(scanner.Text())
 		if match == nil {
@@ -370,6 +365,10 @@ func (a *ArpSniffer) Start(channel chan string) {
 		ip := match[1]
 		// log.Printf("ArpSniffer: %s", ip)
 		channel <- ip
+	}
+	if a.cmd.ProcessState.ExitCode() != 0 {
+		log.Printf("ArpSniffer: tcpdump failed: %s", string(stderrBuf.Bytes()))
+		return
 	}
 	if err := scanner.Err(); err != nil {
 		log.Printf("ArpSniffer: tcpdump failed: %s", err)

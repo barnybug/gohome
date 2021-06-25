@@ -46,7 +46,6 @@ func translate(message MQTT.Message) *pubsub.Event {
 	}
 	topic := sensor
 	payload := string(message.Payload())
-	fmt.Println("payload", payload)
 	if payload == "ON" || payload == "OFF" {
 		fields[sensor] = strings.ToLower(payload)
 	} else if value, err := strconv.ParseFloat(payload, 64); err == nil {
