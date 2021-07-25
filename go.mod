@@ -12,6 +12,7 @@ require (
 	github.com/barnybug/gogsmmodem v0.0.0-20170503201841-a49dbc25a146
 	github.com/barnybug/gorfxtrx v0.0.0-20190905200316-0c4514bd3ca7
 	github.com/barnybug/miflora v0.0.0-20190206202408-36c55fde159f
+	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8 // indirect
 	github.com/chbmuc/lirc v0.0.0-20150702183631-f5796a80dd2b
 	github.com/eclipse/paho.mqtt.golang v1.0.0
 	github.com/edgard/yeelight v0.0.0-20170904135826-c32a2f3eb57c
