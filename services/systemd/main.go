@@ -33,7 +33,13 @@ func (self *Service) Run() error {
 }
 
 func journalTailer() {
-	cmd := exec.Command("journalctl", "--user-unit=gohome*.service", "--user-unit=gohome*.slice", "-f", "-n0", "-q", "--output=json")
+	args := []string{
+		"-f", "-n0", "-q", "--output=json",
+	}
+	if os.Getenv("GOHOME_JOURNALCTL_ALL") != "true" {
+		args = append(args, []string{"--user-unit=gohome*.service", "--user-unit=gohome*.slice"}...)
+	}
+	cmd := exec.Command("journalctl", args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Fatal(err)
@@ -41,6 +47,8 @@ func journalTailer() {
 	if err := cmd.Start(); err != nil {
 		log.Fatal(err)
 	}
+	host, _ := os.Hostname()
+	device := fmt.Sprintf("system.%s", host)
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		var data map[string]interface{}
@@ -62,6 +70,7 @@ func journalTailer() {
 			fields := map[string]interface{}{
 				"message": message,
 				"source":  source,
+				"device":  device,
 			}
 			ev := pubsub.NewEvent("log", fields)
 			services.Publisher.Emit(ev)
@@ -132,7 +141,7 @@ func (a ByStatus) Less(i, j int) bool {
 func (self *Service) queryStatus(q services.Question) string {
 	host, _ := os.Hostname()
 	table := [][]string{
-		[]string{"Process", "Host", "Status", "PID", "Started"},
+		{"Process", "Host", "Status", "PID", "Started"},
 	}
 	units := getStatus()
 	sort.Sort(ByStatus(units))
