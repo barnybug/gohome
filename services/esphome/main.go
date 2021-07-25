@@ -23,8 +23,8 @@ func (self *Service) ID() string {
 }
 
 func translate(message MQTT.Message) *pubsub.Event {
-	// esphome/flora.garden3/conductivity/state
-	// esphome/sonoff1.relay/state
+	// esphome/flora.garden3/sensor/conductivity/state
+	// esphome/sonoff1/switch/relay/state
 	ps := strings.Split(message.Topic(), "/")
 	last := ps[len(ps)-1]
 	if last == "debug" || last == "status" || last == "command" {
@@ -35,23 +35,30 @@ func translate(message MQTT.Message) *pubsub.Event {
 		return nil
 	}
 
-	i := len(ps) - 2
-	if len(ps) == 3 {
-		i += 1
+	source := ps[1] // "flora.garden3"
+	if !strings.Contains(source, ".") {
+		source = "esphome." + source
 	}
-	sensor := ps[i]   // "conductivity"
-	source := ps[i-1] // "flora.garden3"
+	var topic, field string
+	if ps[2] == "switch" {
+		topic = "ack"
+		field = "command"
+		source += ":" + ps[3]
+	} else {
+		field = ps[3] // "conductivity"
+		topic = field
+	}
+
 	fields := pubsub.Fields{
 		"source": source,
 	}
-	topic := sensor
 	payload := string(message.Payload())
 	if payload == "ON" || payload == "OFF" {
-		fields[sensor] = strings.ToLower(payload)
+		fields[field] = strings.ToLower(payload)
 	} else if value, err := strconv.ParseFloat(payload, 64); err == nil {
-		fields[sensor] = value
+		fields[field] = value
 	} else {
-		fields[sensor] = payload
+		fields[field] = payload
 	}
 	ev := pubsub.NewEvent(topic, fields)
 	services.Config.AddDeviceToEvent(ev)
@@ -59,15 +66,26 @@ func translate(message MQTT.Message) *pubsub.Event {
 }
 
 func handleCommand(ev *pubsub.Event) {
-	device := services.Config.Devices[ev.Device()]
+	source, ok := services.Config.LookupDeviceProtocol(ev.Device(), "esphome")
+	if !ok {
+		return // command not for us
+	}
 	command := ev.Command()
+
 	// relay all commands?
 	if command != "off" && command != "on" {
 		log.Println("Command not recognised:", command)
 		return
 	}
-	log.Printf("Setting device %s to %s\n", device.Id, command)
-	topic := fmt.Sprintf("esphome/%s/command", device.Source)
+	log.Printf("Setting device %s to %s\n", ev.Device(), command)
+
+	sub := "relay" // default
+	ps := strings.SplitN(source, ":", 2)
+	if len(ps) == 2 { // multiple switches
+		source = ps[0]
+		sub = ps[1]
+	}
+	topic := fmt.Sprintf("esphome/%s/switch/%s/command", source, sub)
 	token := mqtt.Client.Publish(topic, 1, false, strings.ToUpper(command))
 	if token.Wait() && token.Error() != nil {
 		log.Println("Failed to publish message:", token.Error())
