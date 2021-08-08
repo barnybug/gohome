@@ -22,19 +22,18 @@ func (self *Service) ID() string {
 }
 
 var modelMap = map[string]string{
-	"CurrentCost-Sensable": "power",
-	"Oregon-CM180":         "power",
-	"Oregon-THGR122N":      "temp",
-	"Oregon-THN132N":       "temp",
-	"Nexus-TH":             "temp",
-	"TFA-TwinPlus":         "temp",
+	"CurrentCost-EnviR": "power",
+	"Oregon-CM180":      "power",
+	"Oregon-THGR122N":   "temp",
+	"Oregon-THN132N":    "temp",
+	"Nexus-TH":          "temp",
+	"TFA-TwinPlus":      "temp",
 }
 var fieldMap = map[string]string{
 	"battery_ok":    "battery",
-	"power0":        "power",
-	"power1":        "power2",
-	"power2":        "power3",
-	"power_W":       "power",
+	"power0_W":      "power",
+	"power1_W":      "power2",
+	"power2_W":      "power3",
 	"energy_kWh":    "total",
 	"temperature_C": "temp",
 	"humidity":      "humidity",
