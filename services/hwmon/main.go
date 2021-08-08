@@ -197,6 +197,7 @@ func readDf(device string) {
 		ev := pubsub.NewEvent("mount", fields)
 		services.Publisher.Emit(ev)
 	}
+	cmd.Wait()
 }
 
 func readUptime(device string) {
