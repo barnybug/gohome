@@ -71,9 +71,7 @@ func translateEvent(data map[string]interface{}) *pubsub.Event {
 		}
 	}
 	ev := pubsub.NewEvent(topic, fields)
-	if t, err := time.Parse("2006-01-02 15:04:05", data["time"].(string)); err == nil {
-		// correct timezone
-		timestamp := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), 0, time.Now().Location())
+	if timestamp, err := time.Parse("2006-01-02 15:04:05", data["time"].(string)); err == nil {
 		ev.Timestamp = timestamp.UTC()
 	}
 	services.Config.AddDeviceToEvent(ev)
