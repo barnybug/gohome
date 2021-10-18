@@ -167,10 +167,14 @@ func (self *Service) touch(device string, timestamp time.Time) {
 	if age.Hours() > 24*365 || timestamp.Before(w.LastEvent) {
 		return
 	}
+	first := w.LastEvent.IsZero()
+	recovered := w.Problem
 	w.LastEvent = timestamp
 	w.NextAlert = timestamp.Add(w.Timeout)
 	if w.NextAlert.Before(now) {
-		// must have previously alerted - set to repeat interval
+		// event too old
+		recovered = false
+		// should have previously alerted - set to repeat interval
 		w.NextAlert = now.Add(repeatInterval)
 	}
 	// reschedule if:
@@ -183,21 +187,20 @@ func (self *Service) touch(device string, timestamp time.Time) {
 	}
 
 	// recovered?
-	if w.Problem {
+	if recovered {
 		w.Problem = false
-		if !w.Silent && !self.problems.Remove(w) {
+		if !w.Silent && !self.problems.Remove(w) && !first {
 			// if it was briefly problematic but recovered, then don't alert
-			// Not quite right: should only send recovery
 			self.recoveries.Add(w)
 		}
-		sendWatchdogEvent(device, "on")
+		sendWatchdogEvent(device, "online")
 	}
 }
 
-func sendWatchdogEvent(device, command string) {
+func sendWatchdogEvent(device, status string) {
 	fields := pubsub.Fields{
-		"device":  device,
-		"command": command,
+		"device": device,
+		"status": status,
 	}
 	ev := pubsub.NewEvent("watchdog", fields)
 	services.Publisher.Emit(ev)
@@ -232,7 +235,7 @@ func (self *Service) scheduleNextTimeout() {
 func (self *Service) checkTimeouts() {
 	w := self.nextProblem
 	if !w.Problem {
-		sendWatchdogEvent(w.Id, "off")
+		sendWatchdogEvent(w.Id, "offline")
 		w.Problem = true
 	}
 	if !w.Silent {
@@ -307,6 +310,7 @@ func (self *Service) setupDevices() {
 			Timeout:   d.Watchdog.Duration,
 			NextAlert: now.Add(d.Watchdog.Duration),
 			Silent:    d.Cap["silent"],
+			Problem:   true,
 		}
 	}
 }
@@ -316,12 +320,14 @@ func (self *Service) setupHeartbeats() {
 	// monitor gohome processes heartbeats
 	for _, process := range services.Config.Watchdog.Processes {
 		id := fmt.Sprintf("heartbeat.%s", process)
+		name := fmt.Sprintf("%s service", process)
 		// if a process misses 2 heartbeats, mark as problem
 		watches[id] = &Watch{
 			Id:        id,
-			Name:      process,
+			Name:      name,
 			Timeout:   time.Second * 241,
 			NextAlert: nextAlert,
+			Problem:   true,
 		}
 	}
 }
@@ -531,7 +537,7 @@ func (self *Alerter) sendAlert() {
 		lastWatch = watch
 	}
 	message := fmt.Sprintf("%s %s", listOfLots(names, 10), self.suffix)
-	if self.suffix == "PROBLEM" && len(names) == 1 {
+	if self.suffix == "PROBLEM" && len(names) == 1 && !lastWatch.LastEvent.IsZero() {
 		duration := time.Now().Sub(lastWatch.LastEvent)
 		message += " for " + util.FriendlyDuration(duration)
 	}
