@@ -401,6 +401,7 @@ func (self *Service) setupPings() {
 				"command": "on",
 			}
 			ev := pubsub.NewEvent("ping", fields)
+			ev.SetRetained(true)
 			services.Publisher.Emit(ev)
 		}
 	}()
