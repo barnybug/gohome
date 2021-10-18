@@ -187,6 +187,7 @@ func (self *Service) touch(device string, timestamp time.Time) {
 		w.Problem = false
 		if !w.Silent && !self.problems.Remove(w) {
 			// if it was briefly problematic but recovered, then don't alert
+			// Not quite right: should only send recovery
 			self.recoveries.Add(w)
 		}
 		sendWatchdogEvent(device, "on")
@@ -326,7 +327,8 @@ func (self *Service) setupHeartbeats() {
 }
 
 type ArpSniffer struct {
-	cmd *exec.Cmd
+	cmd    *exec.Cmd
+	OnRecv func(ip string)
 }
 
 func NewArpSniffer() *ArpSniffer {
@@ -336,7 +338,7 @@ func NewArpSniffer() *ArpSniffer {
 // 06:29:33.293180 ARP, Request who-has 192.168.10.254 (ff:ff:ff:ff:ff:ff) tell 192.168.10.241, length 46
 var reTell = regexp.MustCompile(`tell ([0-9.]+)`)
 
-func (a *ArpSniffer) Start(channel chan string) {
+func (a *ArpSniffer) Start() {
 	// setcap CAP_NET_RAW=ep /usr/bin/tcpdump
 	a.cmd = exec.Command("tcpdump", "-p", "-n", "-l", "arp", "and", "arp[6:2] == 1")
 	stdout, err := a.cmd.StdoutPipe()
@@ -364,7 +366,7 @@ func (a *ArpSniffer) Start(channel chan string) {
 		}
 		ip := match[1]
 		// log.Printf("ArpSniffer: %s", ip)
-		channel <- ip
+		a.OnRecv(ip)
 	}
 	if a.cmd.ProcessState.ExitCode() != 0 {
 		log.Printf("ArpSniffer: tcpdump failed: %s", string(stderrBuf.Bytes()))
@@ -412,7 +414,10 @@ func (self *Service) setupPings() {
 	}
 	if self.sniffer == nil {
 		self.sniffer = NewArpSniffer()
-		go self.sniffer.Start(self.pings)
+		go self.sniffer.Start()
+	}
+	self.sniffer.OnRecv = func(ip string) {
+		self.pings <- ip
 	}
 
 	// create and run pinger
