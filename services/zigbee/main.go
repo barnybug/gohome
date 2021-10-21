@@ -26,6 +26,7 @@ func (self *Service) ID() string {
 var topicMap = map[string]string{
 	"state":       "ack",
 	"temperature": "temp",
+	"action":      "button",
 }
 var fieldMap = map[string]string{
 	"temperature": "temp",
@@ -40,6 +41,7 @@ func getDevice(topic string) string {
 }
 
 var deviceUpdate = regexp.MustCompile(`^zigbee2mqtt/[^/]+$`)
+var buttonAction = regexp.MustCompile(`^(button_\d+)_(.+)$`)
 
 var dedup = map[string]string{}
 
@@ -109,6 +111,10 @@ func translate(message MQTT.Message) *pubsub.Event {
 		// ignore reflected set
 		return nil
 	}
+	if strings.HasSuffix(message.Topic(), "/action") {
+		// ignore action
+		return nil
+	}
 	if !deviceUpdate.MatchString(message.Topic()) {
 		log.Printf("Ignoring topic: %s", message.Topic())
 		return nil
@@ -123,13 +129,15 @@ func translate(message MQTT.Message) *pubsub.Event {
 		log.Printf("Failed to parse message %s: '%s'", message.Topic(), message.Payload())
 		return nil
 	}
+	if data["action"] == "" {
+		// ignore empty action following a button press
+		return nil
+	}
 
 	device := getDevice(message.Topic())
-	source := fmt.Sprintf("zigbee.%v", device)
+	source := fmt.Sprintf("zigbee.%s", device)
 	topic := "zigbee"
-	fields := pubsub.Fields{
-		"source": source,
-	}
+	fields := pubsub.Fields{}
 	for key, value := range data {
 		if topicValue, ok := topicMap[key]; ok {
 			// use presence of keys to determine topic
@@ -140,6 +148,19 @@ func translate(message MQTT.Message) *pubsub.Event {
 			fields["command"] = strings.ToLower(value.(string))
 		} else if key == "brightness" {
 			fields["level"] = DimToPercentage(int(value.(float64)))
+		} else if key == "action" {
+			// multiple button device
+			ps := buttonAction.FindStringSubmatch(value.(string))
+			if len(ps) == 0 {
+				log.Printf("Failed to parse action %v", value)
+				continue
+			}
+			source += ":" + ps[1]
+			if ps[2] == "single" {
+				fields["command"] = "on"
+			} else {
+				fields["command"] = ps[2]
+			}
 		} else if to, ok := fieldMap[key]; ok {
 			fields[to] = value
 		} else if ignoreMap[key] {
@@ -148,6 +169,7 @@ func translate(message MQTT.Message) *pubsub.Event {
 			fields[key] = value // map unknowns as is
 		}
 	}
+	fields["source"] = source
 	ev := pubsub.NewEvent(topic, fields)
 	services.Config.AddDeviceToEvent(ev)
 	return ev
