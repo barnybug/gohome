@@ -521,10 +521,8 @@ func NewAlerter(suffix string) *Alerter {
 func (self *Alerter) Add(watch *Watch) {
 	self.watches[watch] = true
 	if !self.delayed {
-		// send this now, but delay any further
+		// send this now
 		self.sendAlert()
-		self.delayed = true
-		self.Timer.Reset(2 * time.Minute)
 	}
 }
 
@@ -544,6 +542,9 @@ func (self *Alerter) sendAlert() {
 	sendAlert(message)
 	// clear out
 	self.watches = map[*Watch]bool{}
+	// delay any further
+	self.delayed = true
+	self.Timer.Reset(2 * time.Minute)
 }
 
 func (self *Alerter) Remove(watch *Watch) bool {
