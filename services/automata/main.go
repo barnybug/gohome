@@ -148,6 +148,7 @@ func (self *Service) defineFunctions() {
 		"Script":      self.Script,
 		"Snapshot":    self.Snapshot,
 		"StartTimer":  self.StartTimer,
+		"StopTimer":   self.StopTimer,
 	}
 }
 
@@ -873,6 +874,17 @@ func (self *Service) StartTimer(args ...interface{}) (interface{}, error) {
 	name := args[1].(string)
 	d := args[2].(float64)
 	self.startTimer(name, d)
+	return nil, nil
+}
+
+func (self *Service) StopTimer(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string"); err != nil {
+		return nil, err
+	}
+	name := args[1].(string)
+	if timer, ok := self.timers[name]; ok {
+		timer.Stop()
+	}
 	return nil, nil
 }
 
