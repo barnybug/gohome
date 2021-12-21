@@ -791,7 +791,6 @@ func (self *Service) Query(args ...interface{}) (interface{}, error) {
 		return nil, err
 	}
 	query := args[1].(string)
-	log.Printf("Query %s", query)
 	services.QueryChannel(query, time.Second*5)
 	// results currently discarded
 	return nil, nil

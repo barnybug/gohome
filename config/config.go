@@ -123,19 +123,11 @@ type GraphiteConf struct {
 	Tcp string
 }
 
-type ScheduleConf map[string][]map[string]float64
-
-type ZoneConf struct {
-	Sensor   string
-	Schedule ScheduleConf
-}
-
 type HeatingConf struct {
-	Device     string
-	Zones      map[string]ZoneConf
-	Slop       float64
-	Minimum    float64
-	Unoccupied float64
+	Device  string
+	Zones   map[string]string
+	Minimum float64
+	Slop    float64
 }
 
 type IrrigationConf struct {

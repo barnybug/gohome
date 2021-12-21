@@ -1,20 +1,17 @@
 // Service to thermostatically control central heating by schedule and zone.
 // Supports multiple temperature points on a daily schedule, temporary
-// override ('party mode'), hibernation when the house is empty and advanced
-// preheating ('holiday mode').
+// override ('party mode'), hibernation when the house is empty.
 package heating
 
 import (
 	"errors"
 	"fmt"
 	"log"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
@@ -26,149 +23,19 @@ var Clock = func() time.Time {
 
 var maxTempAge, _ = time.ParseDuration("6m")
 
-type Schedule struct {
-	Days map[time.Weekday][]ScheduleTemp
-}
-
-type ScheduleTemp struct {
-	Start int
-	End   int
-	Temp  float64
-}
-
 const (
 	MinimumTemperature = 1.0
 	MaximumTemperature = 25.0
 )
 
-var reHourMinuteRange = regexp.MustCompile(`^(\d+):(\d+)-(\d+):(\d+)$`)
-
-func ParseHourMinuteRange(s string) (int, int, error) {
-	m := reHourMinuteRange.FindStringSubmatch(s)
-	if m == nil {
-		return 0, 0, errors.New("Expected hh:mm-hh:mm")
-	}
-	sh, _ := strconv.Atoi(m[1])
-	sm, _ := strconv.Atoi(m[2])
-	eh, _ := strconv.Atoi(m[3])
-	em, _ := strconv.Atoi(m[4])
-	return sh*60 + sm, eh*60 + em, nil
-}
-
-func WeekdayRange(start, end time.Weekday) []time.Weekday {
-	var days []time.Weekday
-	i := start
-	for {
-		days = append(days, i)
-		if i == end {
-			break
-		}
-		i = NextWeekday(i)
-	}
-	return days
-}
-
-func NextWeekday(w time.Weekday) time.Weekday {
-	if w == time.Saturday {
-		return time.Sunday
-	} else {
-		return w + 1
-	}
-}
-
 const Midnight = 24 * 60
-
-func ParseWeekdays(s string) ([]time.Weekday, error) {
-	var weekdays []time.Weekday
-	for _, d := range strings.Split(s, ",") {
-		if d == "Weekdays" {
-			weekdays = append(weekdays, WeekdayRange(time.Monday, time.Friday)...)
-		} else if d == "Weekends" {
-			weekdays = append(weekdays, WeekdayRange(time.Saturday, time.Sunday)...)
-		} else if d == "All" {
-			weekdays = append(weekdays, WeekdayRange(time.Monday, time.Sunday)...)
-		} else if strings.Contains(d, "-") {
-			ps := strings.SplitN(d, "-", 2)
-			if len(ps) != 2 {
-				return nil, fmt.Errorf("Invalid range: %s", d)
-			}
-			var start, end time.Weekday
-			var ok bool
-			if start, ok = util.DOW[ps[0]]; !ok {
-				return nil, fmt.Errorf("Invalid weekday: %s", ps[0])
-			}
-			if end, ok = util.DOW[ps[1]]; !ok {
-				return nil, fmt.Errorf("Invalid weekday: %s", ps[1])
-			}
-			weekdays = append(weekdays, WeekdayRange(start, end)...)
-		} else {
-			if weekday, ok := util.DOW[d]; ok {
-				weekdays = append(weekdays, weekday)
-			} else {
-				return nil, fmt.Errorf("Invalid weekday: %s", weekday)
-			}
-		}
-	}
-	return weekdays, nil
-}
-
-func NewSchedule(conf config.ScheduleConf) (*Schedule, error) {
-	days := map[time.Weekday][]ScheduleTemp{}
-	for _, day := range WeekdayRange(time.Sunday, time.Saturday) {
-		days[day] = []ScheduleTemp{}
-	}
-	for weekdays, mts := range conf {
-		wds, err := ParseWeekdays(weekdays)
-		if err != nil {
-			return nil, err
-		}
-		for _, weekday := range wds {
-			for _, arr := range mts {
-				for at, temp := range arr {
-					start, end, err := ParseHourMinuteRange(at)
-					if err != nil {
-						return nil, err
-					}
-					if temp < MinimumTemperature || temp > MaximumTemperature {
-						return nil, fmt.Errorf("Temperature %.1f outside range %.1f <= t <= %.1f", temp, MinimumTemperature, MaximumTemperature)
-					}
-					if start > end {
-						// spanning midnight, split
-						tomorrow := NextWeekday(weekday)
-						s2 := ScheduleTemp{0, end, temp}
-						days[tomorrow] = append(days[tomorrow], s2)
-						end = Midnight
-					}
-					s := ScheduleTemp{start, end, temp}
-					days[weekday] = append(days[weekday], s)
-				}
-			}
-		}
-	}
-	return &Schedule{Days: days}, nil
-}
-
-func (self *Schedule) Target(at time.Time, def float64) float64 {
-	day_mins := at.Hour()*60 + at.Minute()
-	target := def
-	if sts, ok := self.Days[at.Weekday()]; ok {
-		var specific = 86401
-		for _, st := range sts {
-			if st.Start <= day_mins && day_mins < st.End && st.End-st.Start < specific {
-				target = st.Temp
-				specific = st.End - st.Start
-			}
-		}
-	}
-	return target
-}
 
 type Zone struct {
 	Thermostat string
 	Temp       float64
+	Target     float64
 	Rate       float64
 	At         time.Time
-	Schedule   *Schedule
 	PartyTemp  float64
 	PartyUntil time.Time
 	Sensor     string
@@ -206,10 +73,7 @@ type Service struct {
 	Sensors       map[string]*Zone
 	State         bool
 	StateChanged  time.Time
-	Occupied      bool
 	Minimum       float64
-	Unoccupied    float64
-	Holiday       time.Time
 	Publisher     pubsub.Publisher
 }
 
@@ -239,17 +103,6 @@ func (self *Service) Event(ev *pubsub.Event) {
 			zone.Update(temp, timestamp)
 			self.Check(false)
 		}
-	case "command":
-		if ev.Device() == "house.heating" {
-			self.Occupied = ev.Command() == "on"
-			if self.Occupied && !self.Holiday.IsZero() {
-				// back from holiday - zero
-				self.Holiday = time.Time{}
-			}
-			// send command ack
-			self.Publisher.Emit(ev.Ack())
-			self.Check(false)
-		}
 	}
 }
 
@@ -270,10 +123,8 @@ func (self *Service) setParty(name string, temp float64, duration time.Duration,
 func (self *Service) Target(zone *Zone, now time.Time) float64 {
 	if now.Before(zone.PartyUntil) {
 		return zone.PartyTemp
-	} else if self.Occupied || (!self.Holiday.IsZero() && now.After(self.Holiday)) {
-		return zone.Schedule.Target(now, self.Minimum)
 	} else {
-		return self.Unoccupied
+		return zone.Target
 	}
 }
 
@@ -361,10 +212,6 @@ func (self *Service) Status(now time.Time) string {
 		}
 	}
 
-	if !self.Holiday.IsZero() {
-		msg += fmt.Sprintf("\nHoliday until: %s", self.Holiday.Format(time.ANSIC))
-	}
-
 	return msg
 }
 
@@ -401,7 +248,6 @@ func (self *Service) ID() string {
 
 func (self *Service) Init() error {
 	self.State = false
-	self.Occupied = true // default to on
 	if self.Publisher == nil {
 		self.Publisher = services.Publisher
 	}
@@ -411,7 +257,8 @@ func (self *Service) Init() error {
 
 // Run the service
 func (self *Service) Run() error {
-	ticker := util.NewScheduler(time.Duration(0), time.Minute)
+	// Run at 2s past the minute to give automata time to send targets
+	ticker := util.NewScheduler(time.Duration(2), time.Minute)
 	events := services.Subscriber.FilteredChannel("temp", "command")
 	for {
 		select {
@@ -430,48 +277,42 @@ func (self *Service) ConfigUpdated(path string) {
 	conf := services.Config.Heating
 	zones := map[string]*Zone{}
 	sensors := map[string]*Zone{}
-	for zone, zoneConf := range conf.Zones {
+	for zone, sensor := range conf.Zones {
 		thermostat := "thermostat." + zone
-		schedule, err := NewSchedule(zoneConf.Schedule)
-		if err != nil {
-			log.Printf("Failed to load configuration: %s\n", err)
-			return
-		}
 		z := &Zone{
-			Schedule:   schedule,
-			Sensor:     zoneConf.Sensor,
+			Sensor:     sensor,
 			Thermostat: thermostat,
+			Target:     conf.Minimum,
 		}
 		if old, ok := self.Zones[zone]; ok {
 			// preserve temp/party when live reloading
 			z.Temp = old.Temp
+			z.Target = old.Target
 			z.Rate = old.Rate
 			z.At = old.At
 			z.PartyTemp = old.PartyTemp
 			z.PartyUntil = old.PartyUntil
 		}
 		zones[zone] = z
-		sensors[zoneConf.Sensor] = z
+		sensors[sensor] = z
 	}
 	self.HeatingDevice = conf.Device
 	self.Slop = conf.Slop
 	self.Zones = zones
 	self.Sensors = sensors
 	self.Minimum = conf.Minimum
-	self.Unoccupied = conf.Unoccupied
 	log.Printf("%d zones configured", len(self.Zones))
 }
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
-		"status":  self.queryStatus,
-		"ch":      services.TextHandler(self.queryParty),
-		"party":   services.TextHandler(self.queryParty),
-		"holiday": services.TextHandler(self.queryHoliday),
+		"status": self.queryStatus,
+		"target": self.queryTarget,
+		"ch":     services.TextHandler(self.queryParty),
+		"party":  services.TextHandler(self.queryParty),
 		"help": services.StaticHandler("" +
 			"status: get status\n" +
-			"party [zone] temp [duration (1h)]: sets heating to temp for duration\n" +
-			"holiday duration: sets holiday mode for this duration\n"),
+			"party [zone] temp [duration (1h)]: sets heating to temp for duration\n"),
 	}
 }
 
@@ -481,6 +322,45 @@ func (self *Service) queryStatus(q services.Question) services.Answer {
 		Text: self.Status(now),
 		Json: self.Json(now),
 	}
+}
+
+func parseTarget(value string) (err error, zone string, target float64) {
+	vs := strings.Split(value, " ")
+	if len(vs) != 2 {
+		err = errors.New("Required zone temperature")
+		return
+	}
+	zone = vs[0]
+	target, err = strconv.ParseFloat(vs[1], 64)
+	if err != nil {
+		err = errors.New("Invalid temperature")
+		return
+	}
+	if target < MinimumTemperature {
+		err = errors.New("Below minimum temperature")
+		return
+	}
+	if target > MaximumTemperature {
+		err = errors.New("Above maximum temperature")
+		return
+	}
+	return
+}
+
+func (self *Service) queryTarget(q services.Question) services.Answer {
+	err, name, target := parseTarget(q.Args)
+	if err != nil {
+		return services.Answer{Text: fmt.Sprint(err)}
+	}
+	if zone, ok := self.Zones[name]; ok {
+		if zone.Target != target {
+			log.Printf("Set %s to target: %v°C", name, target)
+		}
+		zone.Target = target
+	} else {
+		return services.Answer{Text: "Invalid zone"}
+	}
+	return services.Answer{} // no response
 }
 
 func parseParty(value string) (err error, zone string, temp float64, duration time.Duration) {
@@ -529,17 +409,4 @@ func (self *Service) queryParty(q services.Question) string {
 		}
 	}
 	return fmt.Sprint(err)
-}
-
-func (self *Service) queryHoliday(q services.Question) string {
-	if len(q.Args) == 0 {
-		return "Duration required"
-	}
-	until, err := util.ParseRelative(Clock(), q.Args)
-	if err != nil {
-		return fmt.Sprint(err)
-	}
-
-	self.Holiday = until
-	return fmt.Sprintf("Holiday until %s", until.Format(time.ANSIC))
 }

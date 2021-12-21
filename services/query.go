@@ -36,6 +36,9 @@ func TextHandler(fn func(q Question) string) func(q Question) Answer {
 }
 
 func sendAnswer(request *pubsub.Event, source string, answer Answer) {
+	if answer.Text == "" && answer.Json == nil {
+		return // no response
+	}
 	fields := pubsub.Fields{
 		"source": source,
 		"target": request.StringField("source"),
