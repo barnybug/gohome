@@ -131,11 +131,8 @@ type HeatingConf struct {
 }
 
 type IrrigationConf struct {
-	At       *Duration
 	Device   string
-	Enabled  bool
 	Factor   float64
-	Interval *Duration
 	Max_Temp float64
 	Max_Time float64
 	Min_Temp float64

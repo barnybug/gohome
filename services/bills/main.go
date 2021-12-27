@@ -10,7 +10,6 @@ import (
 	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/services"
-	"github.com/barnybug/gohome/util"
 )
 
 func tweet(message string, subtopic string, interval int64) {
@@ -84,15 +83,7 @@ func (self *Service) ID() string {
 
 // Run the service
 func (self *Service) Run() error {
-	// schedule at 00:02
-	offset, _ := time.ParseDuration("2m")
-	repeat, _ := time.ParseDuration("24h")
-	ticker := util.NewScheduler(offset, repeat)
-	for t := range ticker.C {
-		daily(t)
-	}
+	now := time.Now()
+	daily(now)
 	return nil
-}
-
-func (self *Service) Publishes() {
 }

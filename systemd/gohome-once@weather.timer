@@ -1,0 +1,8 @@
+[Unit]
+Description=Timer for gohome weather
+
+[Timer]
+OnCalendar=8:00
+
+[Install]
+WantedBy=timers.target

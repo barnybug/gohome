@@ -1,0 +1,8 @@
+[Unit]
+Description=Timer for gohome bills
+
+[Timer]
+OnCalendar=00:02
+
+[Install]
+WantedBy=timers.target

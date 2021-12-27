@@ -7,11 +7,9 @@ package weather
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/services"
-	"github.com/barnybug/gohome/util"
 )
 
 type td struct {
@@ -87,13 +85,6 @@ func getLast24(g graphite.Querier, sensor string, cf string) float64 {
 	return data[0].Datapoints[0].Value
 }
 
-func tick() {
-	// send weather stats
-	g := graphite.NewQuerier(services.Config.Graphite.Url)
-	msg := weatherStats(g)
-	tweet(msg, "daily", 0)
-}
-
 // Service weather
 type Service struct{}
 
@@ -104,14 +95,9 @@ func (service *Service) ID() string {
 
 // Run the service
 func (service *Service) Run() error {
-	// schedule at 08:00
-	offset, _ := time.ParseDuration("8h")
-	repeat, _ := time.ParseDuration("24h")
-	ticker := util.NewScheduler(offset, repeat)
-	for {
-		select {
-		case <-ticker.C:
-			tick()
-		}
-	}
+	// send weather stats
+	g := graphite.NewQuerier(services.Config.Graphite.Url)
+	msg := weatherStats(g)
+	tweet(msg, "daily", 0)
+	return nil
 }

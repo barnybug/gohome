@@ -1,16 +1,13 @@
 [Unit]
-Description=gohome service %i
-StartLimitIntervalSec=0
+Description=gohome once %i
 
 [Service]
 Environment="GOHOME_MQTT=tcp://mqtt:1883"
 Environment="GOHOME_API=..."
-Type=notify
+Type=oneshot
 ExecStart=%h/bin/armv7l/gohome run %i
-Restart=always
+Restart=on-failure
 RestartSec=5s
-WatchdogSec=120s
-NotifyAccess=main
 
 [Install]
 WantedBy=default.target

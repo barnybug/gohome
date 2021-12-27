@@ -14,7 +14,6 @@ import (
 	"github.com/barnybug/gohome/lib/graphite"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
-	"github.com/barnybug/gohome/util"
 )
 
 func calculateDuration(g graphite.Querier) (duration time.Duration, avgTemp float64) {
@@ -57,11 +56,7 @@ func irrigationStats(g graphite.Querier) (msg string, duration time.Duration) {
 	return
 }
 
-func tick(t time.Time) {
-	if !services.Config.Irrigation.Enabled {
-		log.Println("Currently disabled, not running")
-		return
-	}
+func run(t time.Time) {
 	g := graphite.NewQuerier(services.Config.Graphite.Url)
 	msg, duration := irrigationStats(g)
 	log.Println(msg)
@@ -95,10 +90,7 @@ func (self *Service) ID() string {
 // Run the service
 func (self *Service) Run() error {
 	// schedule at given time and interval
-	ticker := util.NewScheduler(services.Config.Irrigation.At.Duration,
-		services.Config.Irrigation.Interval.Duration)
-	for t := range ticker.C {
-		tick(t)
-	}
+	now := time.Now()
+	run(now)
 	return nil
 }

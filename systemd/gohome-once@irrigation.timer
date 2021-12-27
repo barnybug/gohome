@@ -1,0 +1,9 @@
+[Unit]
+Description=Timer for gohome irrigation
+
+[Timer]
+OnCalendar=6:00
+OnCalendar=18:00
+
+[Install]
+WantedBy=timers.target
