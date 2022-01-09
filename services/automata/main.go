@@ -32,12 +32,10 @@ package automata
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 	"os/exec"
 	"path"
 	"regexp"
@@ -52,28 +50,14 @@ import (
 
 	"github.com/barnybug/gofsm"
 
-	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 )
-
-var eventsLogPath = config.LogPath("events.log")
-
-func openLogFile() *os.File {
-	logfile, err := os.OpenFile(eventsLogPath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
-	if err != nil {
-		log.Println("Couldn't open events.log:", err)
-		logfile, _ = os.Open(os.DevNull)
-		return logfile
-	}
-	return logfile
-}
 
 // Service automata
 type Service struct {
 	timers            map[string]*time.Timer
 	configUpdated     chan bool
-	log               *os.File
 	functions         map[string]govaluate.ExpressionFunction
 	restoredAutomaton map[string]bool
 	rand              *rand.Rand
@@ -205,27 +189,10 @@ func (self *Service) ConfigUpdated(path string) {
 	}
 }
 
-func (self *Service) RestoreFile(automata *gofsm.Automata) {
-	r, err := os.Open(config.ConfigPath("automata.state"))
-	if err != nil {
-		log.Println("Restoring automata state failed:", err)
-		return
-	}
-	dec := json.NewDecoder(r)
-	var p gofsm.AutomataState
-	err = dec.Decode(&p)
-	if err != nil {
-		log.Println("Restoring automata state failed:", err)
-		return
-	}
-	automata.Restore(p)
-}
-
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status": services.TextHandler(self.queryStatus),
 		"switch": services.TextHandler(self.querySwitch),
-		"logs":   services.TextHandler(self.queryLogs),
 		"script": services.TextHandler(self.queryScript),
 		"state":  services.TextHandler(self.queryState),
 		"help": services.StaticHandler("" +
@@ -359,14 +326,6 @@ func (self *Service) queryScript(q services.Question) string {
 func tail(filename string, lines int64) ([]byte, error) {
 	n := fmt.Sprintf("-n%d", lines)
 	return exec.Command("tail", n, filename).Output()
-}
-
-func (self *Service) queryLogs(q services.Question) string {
-	data, err := tail(eventsLogPath, 25)
-	if err != nil {
-		return fmt.Sprintf("Couldn't retrieve logs: %s", err)
-	}
-	return string(data)
 }
 
 type MultiError []error
@@ -532,7 +491,6 @@ func (self *Service) Init() error {
 
 // Run the service
 func (self *Service) Run() error {
-	self.log = openLogFile()
 	self.timers = map[string]*time.Timer{}
 	self.configUpdated = make(chan bool, 2)
 	self.restoredAutomaton = map[string]bool{}
@@ -618,10 +576,6 @@ func (self *Service) Run() error {
 }
 
 func (self *Service) appendLog(msg string) {
-	now := time.Now()
-	logMsg := fmt.Sprintf("%s: %s", now.Format(time.StampMilli), msg)
-	fmt.Fprintln(self.log, logMsg)
-
 	fields := pubsub.Fields{
 		"message": msg,
 		"source":  "event",

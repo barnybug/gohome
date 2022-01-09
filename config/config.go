@@ -3,8 +3,6 @@ package config
 import (
 	"io"
 	"io/ioutil"
-	"os"
-	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -12,7 +10,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/barnybug/gohome/pubsub"
-	"github.com/barnybug/gohome/util"
 )
 
 type BillConf struct {
@@ -296,16 +293,6 @@ func (self *Regexp) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// Open configuration from disk.
-func Open() (*Config, error) {
-	file, err := os.Open(ConfigPath("gohome.yml"))
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	return OpenReader(file)
-}
-
 // Open configuration from a reader.
 func OpenReader(r io.Reader) (*Config, error) {
 	data, err := ioutil.ReadAll(r)
@@ -393,20 +380,6 @@ func (self *Config) DevicesByCap(cap string) []DeviceConf {
 }
 
 // helpers
-
-// Resolve a configuration file under .config/gohome
-func ConfigPath(p string) string {
-	config := os.Getenv("XDG_CONFIG_HOME")
-	if config == "" {
-		config = path.Join(os.Getenv("HOME"), ".config")
-	}
-	return path.Join(config, "gohome", p)
-}
-
-// Get path to a log file
-func LogPath(p string) string {
-	return path.Join(util.ExpandUser("~/go/log"), p)
-}
 
 func Must(c *Config, err error) *Config {
 	if err != nil {
