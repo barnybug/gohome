@@ -127,7 +127,7 @@ func (self *Service) ID() string {
 
 func (self *Service) Run() error {
 	w := NewWunderground(services.Config.Wunderground)
-	for ev := range services.Subscriber.FilteredChannel("temp", "rain", "wind", "pressure") {
+	for ev := range services.Subscriber.Subscribe(pubsub.Prefix("temp"), pubsub.Prefix("rain"), pubsub.Prefix("wind"), pubsub.Prefix("pressure")) {
 		processEvent(ev, w)
 	}
 	return nil

@@ -87,7 +87,7 @@ func (self *Service) Run() error {
 		}
 	}()
 
-	events := services.Subscriber.FilteredChannel("alert")
+	events := services.Subscriber.Subscribe(pubsub.Prefix("alert"))
 	for ev := range events {
 		if ev.Target() == "telegram" {
 			remote := ev.StringField("remote")

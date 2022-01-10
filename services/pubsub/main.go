@@ -64,7 +64,7 @@ func (self *Service) Run() error {
 		go func(sub pubsub.Subscriber) {
 			pubs := routing[sub]
 			// wait for an event
-			for ev := range sub.Channel() {
+			for ev := range sub.Subscribe(pubsub.All()) {
 				// send the event onto publishers
 				for _, pub := range pubs {
 					pub.Emit(ev)

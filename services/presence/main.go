@@ -305,7 +305,7 @@ func NewBeacon(mac string) Checker {
 func (s *Beacon) run(alive chan string) {
 	log.Printf("Listening for %s beacons (passive)", s.mac)
 
-	beacons := services.Subscriber.FilteredChannel("beacon")
+	beacons := services.Subscriber.Subscribe(pubsub.Prefix("beacon"))
 	for ev := range beacons {
 		mac := strings.ToLower(ev.StringField("mac"))
 		if mac == s.mac {
@@ -425,8 +425,8 @@ func (self *Service) Run() error {
 
 	timer := time.NewTimer(time.Hour)
 	timer.Stop()
-	commands := services.Subscriber.FilteredChannel("command")
-	triggers := services.Subscriber.FilteredChannel("lock")
+	commands := services.Subscriber.Subscribe(pubsub.Prefix("command"))
+	triggers := services.Subscriber.Subscribe(pubsub.Prefix("lock"))
 L:
 	for {
 		select {

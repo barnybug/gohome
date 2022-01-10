@@ -57,7 +57,8 @@ import (
 // Service automata
 type Service struct {
 	timers            map[string]*time.Timer
-	configUpdated     chan bool
+	config            *services.ConfigService
+	automataConfig    *services.ConfigWaiter
 	functions         map[string]govaluate.ExpressionFunction
 	restoredAutomaton map[string]bool
 	rand              *rand.Rand
@@ -69,8 +70,6 @@ var automata *gofsm.Automata
 func (self *Service) ID() string {
 	return "automata"
 }
-
-var reAction = regexp.MustCompile(`(\w+)\((.+)\)`)
 
 type EventContext struct {
 	service *Service
@@ -180,13 +179,6 @@ func (self EventContext) String() string {
 		s += fmt.Sprintf(" %s=%v", k, v)
 	}
 	return s
-}
-
-func (self *Service) ConfigUpdated(path string) {
-	if path == "config/automata" || path == "config" {
-		// trigger reload in main loop
-		self.configUpdated <- true
-	}
 }
 
 func (self *Service) QueryHandlers() services.QueryHandlers {
@@ -342,14 +334,14 @@ func (m MultiError) Error() string {
 }
 
 func (self *Service) loadAutomata() error {
-	value := services.Configurations.Get("config/automata")
+	value := string(self.automataConfig.Value)
 	tmpl := template.New("Automata")
-	tmpl, err := tmpl.Parse(string(value))
+	tmpl, err := tmpl.Parse(value)
 	if err != nil {
 		return err
 	}
 	context := map[string]interface{}{
-		"devices": services.Config.Devices,
+		"devices": self.config.Value.Devices,
 	}
 
 	wr := new(bytes.Buffer)
@@ -405,6 +397,20 @@ func (self *Service) loadAutomata() error {
 
 	automata = updated
 	return nil
+}
+
+func (self *Service) reloadAutomata() {
+	// live reload the automata!
+	log.Println("Automata config updated, reloading")
+	state := automata.Persist()
+	err := self.loadAutomata()
+	if err != nil {
+		log.Println("Failed to reload automata:", err)
+		return
+	}
+	automata.Restore(state)
+	log.Println("Automata reloaded successfully")
+	self.stateRestored()
 }
 
 func timeit(name string, fn func()) {
@@ -485,24 +491,22 @@ func publishState(device, state, trigger string) {
 }
 
 func (self *Service) Init() error {
-	services.Configurations.WaitForConfig("config/automata")
-	return nil
+	self.config = services.WaitForConfig()
+	self.automataConfig = services.NewConfigWaiter(pubsub.Exact("config/automata"))
+	// wait for first automata config
+	self.automataConfig.Wait()
+	// load templated automata
+	return self.loadAutomata()
 }
 
 // Run the service
 func (self *Service) Run() error {
 	self.timers = map[string]*time.Timer{}
-	self.configUpdated = make(chan bool, 2)
 	self.restoredAutomaton = map[string]bool{}
 	self.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
-	// load templated automata
-	err := self.loadAutomata()
-	if err != nil {
-		return err
-	}
 
 	// setup channels
-	ch := services.Subscriber.Channel()
+	ch := services.Subscriber.Subscribe(pubsub.All())
 	defer services.Subscriber.Close(ch)
 	stateRestored := time.NewTimer(time.Second * 5)
 	earth := earthChannel()
@@ -543,18 +547,13 @@ func (self *Service) Run() error {
 		case action := <-automata.Actions:
 			self.performAction(action)
 
-		case <-self.configUpdated:
-			// live reload the automata!
-			log.Println("Automata config updated, reloading")
-			state := automata.Persist()
-			err := self.loadAutomata()
-			if err != nil {
-				log.Println("Failed to reload automata:", err)
-				continue
-			}
-			automata.Restore(state)
-			log.Println("Automata reloaded successfully")
-			self.stateRestored()
+		case <-self.automataConfig.Updated:
+			// template changed
+			self.reloadAutomata()
+
+		case <-self.config.Updated:
+			// template results potentially changed
+			self.reloadAutomata()
 
 		case <-stateRestored.C:
 			// all retained State has been restored. Persist any missing State initial states.
@@ -572,7 +571,6 @@ func (self *Service) Run() error {
 			services.Publisher.Emit(ev)
 		}
 	}
-	return nil
 }
 
 func (self *Service) appendLog(msg string) {

@@ -228,7 +228,7 @@ func (self *Service) Run() error {
 		}
 	})
 
-	commandChannel := services.Subscriber.FilteredChannel("command")
+	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 	for {
 		select {
 		case command := <-commandChannel:

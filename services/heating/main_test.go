@@ -41,11 +41,12 @@ var (
 )
 
 func SetupTests() {
-	services.Config = config.ExampleConfig
+	config := config.ExampleConfig
 	yaml.Unmarshal([]byte(configYaml), &testConfig)
-	services.Config.Heating = testConfig
+	config.Heating = testConfig
 	em = &dummy.Publisher{}
 	service = &Service{
+		config:    &services.ConfigService{Value: config},
 		Publisher: em,
 	}
 	service.Init()

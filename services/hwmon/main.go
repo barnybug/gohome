@@ -221,8 +221,8 @@ func (self *Service) sample() {
 	readUptime(self.device)
 }
 
-// Run the service
-func (self *Service) Run() error {
+func (self *Service) Init() error {
+	// does not need config
 	self.device = deviceName()
 	var err error
 	self.zones, err = findThermalDevices()
@@ -230,7 +230,11 @@ func (self *Service) Run() error {
 		return err
 	}
 	log.Printf("%d thermal zones", len(self.zones))
+	return nil
+}
 
+// Run the service
+func (self *Service) Run() error {
 	self.sample()
 	ticker := time.NewTicker(60 * time.Second)
 	for range ticker.C {

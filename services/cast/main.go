@@ -274,8 +274,8 @@ func (service *Service) Run() error {
 	go service.listener(discover)
 	go discover.Run(ctx, time.Second*300)
 
-	commands := services.Subscriber.FilteredChannel("command")
-	alerts := services.Subscriber.FilteredChannel("alert")
+	commands := services.Subscriber.Subscribe(pubsub.Prefix("command"))
+	alerts := services.Subscriber.Subscribe(pubsub.Prefix("alert"))
 	for {
 		select {
 		case ev := <-alerts:
@@ -284,6 +284,4 @@ func (service *Service) Run() error {
 			service.handleCommand(ev)
 		}
 	}
-
-	return nil
 }

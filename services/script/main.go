@@ -24,6 +24,11 @@ func (self *Service) ID() string {
 	return "script"
 }
 
+func (self *Service) Init() error {
+	// no config required
+	return nil
+}
+
 func (self *Service) Run() error {
 	// start script
 	args := os.Args

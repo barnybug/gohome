@@ -377,8 +377,8 @@ func (self *Service) Run() error {
 	if err != nil {
 		return err
 	}
-	thermostatChannel := services.Subscriber.FilteredChannel("thermostat")
-	commandChannel := services.Subscriber.FilteredChannel("command")
+	thermostatChannel := services.Subscriber.Subscribe(pubsub.Prefix("thermostat"))
+	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 
 	receiveTimer := time.NewTimer(time.Millisecond)
 	offset := time.Duration(0)

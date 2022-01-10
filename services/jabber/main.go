@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 
 	xmpp "github.com/mattn/go-xmpp"
@@ -133,7 +134,7 @@ func (self *Service) Run() error {
 		}
 	}()
 
-	events := services.Subscriber.FilteredChannel("alert")
+	events := services.Subscriber.Subscribe(pubsub.Prefix("alert"))
 	for ev := range events {
 		if ev.Target() != "jabber" {
 			continue

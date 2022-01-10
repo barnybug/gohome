@@ -1,10 +1,7 @@
 package mqtt
 
 import (
-	"fmt"
 	"log"
-	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -14,9 +11,8 @@ import (
 type eventFilter func(*pubsub.Event) bool
 
 type eventChannel struct {
-	filter eventFilter
 	C      chan *pubsub.Event
-	topics []string
+	topics []pubsub.Topic
 }
 
 // Subscriber struct
@@ -47,9 +43,12 @@ func (self *Subscriber) publishHandler(client MQTT.Client, msg MQTT.Message) {
 	self.channelsLock.Lock()
 	// fmt.Printf("Event: %+v\n", event)
 	for _, ch := range self.channels {
-		if ch.filter(event) {
-			// fmt.Printf("Sending to: %+v\n", ch.topics)
-			ch.C <- event
+		for _, t := range ch.topics {
+			if t.Match(topic) {
+				// fmt.Printf("Sending to: %+v\n", ch.topics)
+				ch.C <- event
+				break
+			}
 		}
 	}
 	self.channelsLock.Unlock()
@@ -62,7 +61,7 @@ func (self *Subscriber) connectHandler(client MQTT.Client) {
 	// (re)subscribe when (re)connected
 	subs := map[string]byte{}
 	for topic, _ := range self.topicCount {
-		subs[topicName(topic)] = 1 // QOS
+		subs[topic] = 1 // QOS
 	}
 
 	if len(subs) > 0 {
@@ -74,21 +73,43 @@ func (self *Subscriber) connectHandler(client MQTT.Client) {
 	}
 }
 
-func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventChannel {
+func topicToMqtt(topic pubsub.Topic) string {
+	switch topic := topic.(type) {
+	case *pubsub.AllTopic:
+		return "gohome/#"
+	case *pubsub.ExactTopic:
+		return "gohome/" + topic.Exact
+	case *pubsub.PrefixTopic:
+		return "gohome/" + topic.Prefix + "/#"
+	default:
+		log.Panicln("Topic type unsupported")
+	}
+	return ""
+}
+
+func topicsToMqtt(topics []pubsub.Topic) []string {
+	var ret []string
+	for _, topic := range topics {
+		ret = append(ret, topicToMqtt(topic))
+	}
+	return ret
+}
+
+func (self *Subscriber) addChannel(topics []pubsub.Topic) eventChannel {
 	// subscribe topics not yet subscribed to
 	subs := map[string]byte{}
-	for _, topic := range topics {
+	mqttTopics := topicsToMqtt(topics)
+	for _, topic := range mqttTopics {
 		_, exists := self.topicCount[topic]
 		if !exists {
-			// log.Println("Subscribe", topicName(topic))
-			subs[topicName(topic)] = 1 // QOS
+			// log.Println("Subscribe", topic)
+			subs[topic] = 1 // QOS
 		}
 		self.topicCount[topic] += 1
 	}
 
 	ch := eventChannel{
 		C:      make(chan *pubsub.Event, 16),
-		filter: filter,
 		topics: topics,
 	}
 	self.channelsLock.Lock()
@@ -105,33 +126,9 @@ func (self *Subscriber) addChannel(filter eventFilter, topics []string) eventCha
 	return ch
 }
 
-func (self *Subscriber) Channel() <-chan *pubsub.Event {
-	ch := self.addChannel(func(ev *pubsub.Event) bool { return true }, []string{""})
+func (self *Subscriber) Subscribe(topics ...pubsub.Topic) <-chan *pubsub.Event {
+	ch := self.addChannel(topics)
 	return ch.C
-}
-
-func topicRegex(topics []string) *regexp.Regexp {
-	expr := fmt.Sprintf("^(%s)($|/)", strings.Join(topics, "|"))
-	return regexp.MustCompile(expr)
-}
-
-func eventMatcher(topics []string) eventFilter {
-	re := topicRegex(topics)
-	return func(ev *pubsub.Event) bool {
-		return re.MatchString(ev.Topic)
-	}
-}
-
-func (self *Subscriber) FilteredChannel(topics ...string) <-chan *pubsub.Event {
-	ch := self.addChannel(eventMatcher(topics), topics)
-	return ch.C
-}
-
-func topicName(topic string) string {
-	if topic == "" {
-		return "gohome/#"
-	}
-	return "gohome/" + topic + "/#"
 }
 
 func (self *Subscriber) Close(channel <-chan *pubsub.Event) {
@@ -139,10 +136,11 @@ func (self *Subscriber) Close(channel <-chan *pubsub.Event) {
 	for _, ch := range self.channels {
 		if channel == chan *pubsub.Event(ch.C) {
 			for _, topic := range ch.topics {
-				self.topicCount[topic] -= 1
-				if self.topicCount[topic] == 0 {
+				t := topicToMqtt(topic)
+				self.topicCount[t] -= 1
+				if self.topicCount[t] == 0 {
 					// fmt.Printf("Unsubscribe: %+v\n", topicName(topic))
-					if token := self.broker.client.Unsubscribe(topicName(topic)); token.Wait() && token.Error() != nil {
+					if token := self.broker.client.Unsubscribe(t); token.Wait() && token.Error() != nil {
 						log.Println("Error unsubscribing:", token.Error())
 					}
 				}

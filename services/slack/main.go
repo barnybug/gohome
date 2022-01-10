@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/nlopes/slack"
 )
@@ -54,7 +55,7 @@ func logTransmitter(rtm *slack.RTM) {
 	logsChannel := lookupChannelByName(rtm, "logs")
 	eventsChannel := lookupChannelByName(rtm, "events")
 
-	for ev := range services.Subscriber.FilteredChannel("log") {
+	for ev := range services.Subscriber.Subscribe(pubsub.Prefix("log")) {
 		var msg *slack.OutgoingMessage
 		source := ev.StringField("source")
 		if source == "event" {

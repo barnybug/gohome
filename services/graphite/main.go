@@ -95,7 +95,7 @@ func (self *Service) ID() string {
 // Run the service
 func (self *Service) Run() error {
 	gr = graphite.NewWriter(services.Config.Graphite.Tcp)
-	for ev := range services.Subscriber.Channel() {
+	for ev := range services.Subscriber.Subscribe(pubsub.All()) {
 		sendToGraphite(ev)
 	}
 	return nil

@@ -58,7 +58,9 @@ func event(ev *pubsub.Event) {
 }
 
 // Service datalogger
-type Service struct{}
+type Service struct {
+	config *services.ConfigService
+}
 
 // ID of the service
 func (self *Service) ID() string {
@@ -66,28 +68,30 @@ func (self *Service) ID() string {
 }
 
 func (self *Service) setup() {
-	if services.Config.Datalogger.Path == "" {
+	if self.config.Value.Datalogger.Path == "" {
 		log.Fatal("datalogger path not defined")
 	}
 	logDir = util.ExpandUser(services.Config.Datalogger.Path)
 }
 
-func (self *Service) ConfigUpdated(path string) {
-	self.setup()
-}
-
 func (self *Service) Init() error {
+	self.config = services.WaitForConfig()
 	self.setup()
 	return nil
 }
 
 func (self *Service) Run() error {
-	for ev := range services.Subscriber.Channel() {
-		if ev.Retained {
-			// ignore retained events from reconnecting
-			continue
+	events := services.Subscriber.Subscribe(pubsub.All())
+	for {
+		select {
+		case ev := <-events:
+			if ev.Retained {
+				// ignore retained events from reconnecting
+				continue
+			}
+			event(ev)
+		case <-self.config.Updated:
+			self.setup()
 		}
-		event(ev)
 	}
-	return nil
 }

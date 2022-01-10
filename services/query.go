@@ -122,7 +122,7 @@ func QuerySubscriber() {
 		return
 	}
 
-	for ev := range Subscriber.FilteredChannel("query") {
+	for ev := range Subscriber.Subscribe(pubsub.Prefix("query")) {
 		handleQuery(ev, queryables)
 	}
 	queries.Wait() // mostly for tests

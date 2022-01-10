@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 )
 
@@ -95,11 +96,16 @@ func startWebserver() {
 	}
 }
 
+func (self *Service) Init() error {
+	services.WaitForConfig()
+	return nil
+}
+
 // Run the service
 func (self *Service) Run() error {
 	go startWebserver()
 
-	for ev := range services.Subscriber.FilteredChannel("alert") {
+	for ev := range services.Subscriber.Subscribe(pubsub.Prefix("alert")) {
 		msg, ok := ev.Fields["message"].(string)
 		if ev.Target() == "espeak" && ok {
 			say(msg)

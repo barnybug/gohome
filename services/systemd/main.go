@@ -26,6 +26,11 @@ func (self *Service) ID() string {
 	return "systemd"
 }
 
+func (self *Service) Init() error {
+	// no config required
+	return nil
+}
+
 func (self *Service) Run() error {
 	// tail logs and retransmit under topic: log
 	journalTailer()

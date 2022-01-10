@@ -18,6 +18,11 @@ func (self *Service) ID() string {
 	return "sender"
 }
 
+func (self *Service) Init() error {
+	// no config required
+	return nil
+}
+
 func (self *Service) Run() error {
 	b := bufio.NewScanner(os.Stdin)
 	for b.Scan() {

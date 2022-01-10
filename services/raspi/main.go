@@ -125,7 +125,7 @@ func (self *Service) Run() error {
 	interrupts := make(chan InterruptEvent, 10)
 
 	setupPins(interrupts)
-	commands := services.Subscriber.FilteredChannel("command")
+	commands := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 
 	for {
 		select {

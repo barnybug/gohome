@@ -31,25 +31,86 @@ type Flags interface {
 	Flags()
 }
 
-type ConfigSubscriber interface {
-	ConfigUpdated(path string)
-}
-
 var serviceMap map[string]Service = map[string]Service{}
 var enabled []Service
 var Config *config.Config
-var RawConfig []byte
 
 var Publisher pubsub.Publisher
 var Subscriber pubsub.Subscriber
 
-type ConfigStorage struct {
-	config  map[string][]byte
-	hashes  map[string]uint32
-	channel <-chan *pubsub.Event
+type Listener func()
+
+type ConfigWaiter struct {
+	Value   []byte
+	hash    uint32
+	events  <-chan *pubsub.Event
+	update  func()
+	Updated chan bool
 }
 
-var Configurations *ConfigStorage
+func NewConfigWaiter(topic pubsub.Topic) *ConfigWaiter {
+	return &ConfigWaiter{
+		events:  Subscriber.Subscribe(topic),
+		Updated: make(chan bool),
+	}
+}
+
+func (c *ConfigWaiter) Wait() {
+	if c.loopOne() {
+		if c.update != nil {
+			c.update()
+		}
+		c.notify()
+	}
+}
+
+func (c *ConfigWaiter) notify() {
+	// non-blocking send
+	select {
+	case c.Updated <- true:
+	default:
+	}
+}
+
+func (c *ConfigWaiter) loopOne() bool {
+	ev := <-c.events
+	value := ev.Bytes()
+	hashValue := hash(value)
+	previous := c.hash
+	if previous == hashValue {
+		// ignore duplicate events - from services subscribing to gohome/#.
+		return false
+	}
+	c.hash = hashValue
+	c.Value = value
+	return true
+}
+
+type ConfigService struct {
+	ConfigWaiter
+	Value *config.Config
+}
+
+func NewConfigService() *ConfigService {
+	cs := &ConfigService{
+		ConfigWaiter{
+			events:  Subscriber.Subscribe(pubsub.Exact("config")),
+			Updated: make(chan bool),
+		},
+		nil,
+	}
+	cs.update = func() {
+		// (re)load config
+		conf, err := config.OpenRaw(cs.ConfigWaiter.Value)
+		if err != nil {
+			log.Println("Error reading config:", err)
+			return
+		}
+		cs.Value = conf
+		Config = conf // set global
+	}
+	return cs
+}
 
 func SetupLogging() {
 	log.SetFlags(log.Ltime | log.Lmicroseconds)
@@ -62,66 +123,23 @@ func hash(s []byte) uint32 {
 	return h.Sum32()
 }
 
-func CreateConfigStorage() *ConfigStorage {
-	return &ConfigStorage{
-		config:  map[string][]byte{},
-		hashes:  map[string]uint32{},
-		channel: Subscriber.FilteredChannel("config"),
+var globalConfigService *ConfigService
+
+func WaitForConfig() *ConfigService {
+	if globalConfigService == nil {
+		globalConfigService = NewConfigService()
+		// await first config
+		globalConfigService.Wait()
+		// listen for updates
+		go globalConfigService.Watch()
 	}
+	return globalConfigService
 }
 
-func (c *ConfigStorage) loopOnce() {
-	ev := <-c.channel
-	path := ev.Topic
-	value := ev.Bytes()
-	hashValue := hash(value)
-	previous := c.hashes[path]
-	if previous == hashValue {
-		// ignore duplicate events - from services subscribing to gohome/#.
-		return
-	}
-	c.hashes[path] = hashValue
-	if path == "config" {
-		// (re)load config
-		conf, err := config.OpenRaw([]byte(value))
-		if err != nil {
-			log.Println("Error reloading config:", err)
-			return
-		}
-		Config = conf
-		RawConfig = []byte(value)
-	}
-
-	c.config[path] = value
-	if previous != 0 {
-		log.Printf("%s updated", path)
-	}
-
-	// notify any interested services
-	for _, service := range enabled {
-		if f, ok := service.(ConfigSubscriber); ok {
-			f.ConfigUpdated(path)
-		}
-	}
-}
-
-func (c *ConfigStorage) WaitForConfig(path string) {
+func (c *ConfigService) Watch() {
 	for {
-		if _, ok := c.config[path]; ok {
-			return
-		}
-		c.loopOnce()
+		c.Wait()
 	}
-}
-
-func (c *ConfigStorage) Watch() {
-	for {
-		c.loopOnce()
-	}
-}
-
-func (c *ConfigStorage) Get(path string) []byte {
-	return c.config[path]
 }
 
 func SetupFlags() {
@@ -141,8 +159,7 @@ func SetupBroker(name string) {
 		log.Fatalln("Set GOHOME_MQTT to the mqtt server. eg: tcp://127.0.0.1:1883")
 	}
 
-	var broker *mqtt.Broker
-	broker = mqtt.NewBroker(url, name)
+	broker := mqtt.NewBroker(url, name)
 	Publisher = broker.Publisher()
 	if Publisher == nil {
 		log.Fatalln("Failed to initialise pub endpoint")
@@ -156,9 +173,6 @@ func SetupBroker(name string) {
 
 func Setup(name string) {
 	SetupBroker(name)
-	Configurations = CreateConfigStorage()
-	// wait for initial config
-	Configurations.WaitForConfig("config")
 }
 
 func Launch(ss []string) {
@@ -184,11 +198,11 @@ func Launch(ss []string) {
 				log.Fatalf("Error init service %s: %s", service.ID(), err.Error())
 			}
 			log.Printf("Initialized %s\n", service.ID())
+		} else {
+			// services without Init
+			WaitForConfig()
 		}
 	}
-
-	// listen for config changes
-	go Configurations.Watch()
 
 	for _, service := range enabled {
 		// run heartbeater

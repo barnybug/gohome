@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/barnybug/gohome/util"
@@ -56,10 +57,11 @@ func (self Watches) Swap(i, j int) {
 var watches = map[string]*Watch{}
 var unmapped = map[string]bool{}
 var repeatInterval, _ = time.ParseDuration("12h")
+var conf *config.Config
 
 func sendAlert(message string) {
 	log.Printf("Sending watchdog alert: %s\n", message)
-	services.SendAlert("💓 "+message, services.Config.Watchdog.Alert, "", 0)
+	services.SendAlert("💓 "+message, conf.Watchdog.Alert, "", 0)
 }
 
 func ignoreTopics(topic string) bool {
@@ -87,7 +89,7 @@ func mappedDevice(ev *pubsub.Event) {
 }
 
 func unmappedDevice(ev *pubsub.Event) {
-	if _, ok := services.Config.LookupSource(ev.Source()); ok {
+	if _, ok := conf.LookupSource(ev.Source()); ok {
 		// ignored
 		return
 	}
@@ -141,7 +143,7 @@ func announce(ev *pubsub.Event, mapped bool) {
 	}
 	var message string
 	if mapped {
-		dev := services.Config.Devices[ev.Device()]
+		dev := conf.Devices[ev.Device()]
 		message = fmt.Sprintf("✔️ Device configured: '%s'", dev.Name)
 	} else {
 		// some discovered devices have friendly names (eg tradfri)
@@ -151,7 +153,7 @@ func announce(ev *pubsub.Event, mapped bool) {
 		}
 		message = fmt.Sprintf("🔎 Discovered: '%s' id: '%s' emitting '%s' events", name, source, ev.Topic)
 	}
-	services.SendAlert(message, services.Config.Watchdog.Alert, "", 0)
+	services.SendAlert(message, conf.Watchdog.Alert, "", 0)
 }
 
 func (self *Service) touch(device string, timestamp time.Time) {
@@ -255,6 +257,7 @@ func listOfLots(ss []string, limit int) string {
 
 // Service watchdog
 type Service struct {
+	config      *services.ConfigService
 	pinger      *fastping.Pinger
 	sniffer     *ArpSniffer
 	problems    *Alerter
@@ -268,14 +271,8 @@ func (self *Service) ID() string {
 	return "watchdog"
 }
 
-func (self *Service) ConfigUpdated(path string) {
-	if path != "config" {
-		return
-	}
-	self.setup()
-}
-
 func (self *Service) setup() {
+	conf = self.config.Value
 	previous := watches
 	watches = map[string]*Watch{}
 	self.setupDevices()
@@ -294,7 +291,7 @@ func (self *Service) setup() {
 
 func (self *Service) setupDevices() {
 	now := time.Now()
-	for _, d := range services.Config.Devices {
+	for _, d := range self.config.Value.Devices {
 		if d.Watchdog.IsZero() {
 			continue
 		}
@@ -318,7 +315,7 @@ func (self *Service) setupDevices() {
 func (self *Service) setupHeartbeats() {
 	nextAlert := time.Now().Add(time.Second * 241)
 	// monitor gohome processes heartbeats
-	for _, process := range services.Config.Watchdog.Processes {
+	for _, process := range self.config.Value.Watchdog.Processes {
 		id := fmt.Sprintf("heartbeat.%s", process)
 		name := fmt.Sprintf("%s service", process)
 		// if a process misses 2 heartbeats, mark as problem
@@ -436,7 +433,7 @@ func (self *Service) setupPings() {
 	}
 
 	// resolve host names -> devices
-	for _, dev := range services.Config.DevicesByProtocol("ping") {
+	for _, dev := range self.config.Value.DevicesByProtocol("ping") {
 		host := dev.SourceId()
 		addr, err := net.ResolveIPAddr("ip4:icmp", host)
 		if err != nil {
@@ -498,6 +495,7 @@ func (self *Service) queryDiscovered(q services.Question) string {
 }
 
 func (self *Service) Init() error {
+	self.config = services.WaitForConfig()
 	self.problems = NewAlerter("PROBLEM")
 	self.recoveries = NewAlerter("RECOVERED")
 	self.timeout = time.NewTimer(time.Hour)
@@ -565,7 +563,7 @@ func (self *Alerter) TimerCallback() {
 }
 
 func (self *Service) Run() error {
-	events := services.Subscriber.Channel()
+	events := services.Subscriber.Subscribe(pubsub.All())
 	for {
 		select {
 		case ev := <-events:
@@ -576,6 +574,8 @@ func (self *Service) Run() error {
 			self.problems.TimerCallback()
 		case <-self.recoveries.Timer.C:
 			self.recoveries.TimerCallback()
+		case <-self.config.Updated:
+			self.setup()
 		}
 	}
 }

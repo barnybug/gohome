@@ -75,7 +75,7 @@ func (self *Service) Run() error {
 
 	log.Println("Ready")
 
-	events := services.Subscriber.FilteredChannel("alert")
+	events := services.Subscriber.Subscribe(pubsub.Prefix("alert"))
 	for {
 		select {
 		case ev := <-events:

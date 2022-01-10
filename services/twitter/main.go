@@ -98,7 +98,7 @@ func (self *Service) ID() string {
 
 func (self *Service) Run() error {
 	client := createClient()
-	for ev := range services.Subscriber.FilteredChannel("alert") {
+	for ev := range services.Subscriber.Subscribe(pubsub.Prefix("alert")) {
 		if ev.Target() == "twitter" {
 			tweet(client, ev)
 		}

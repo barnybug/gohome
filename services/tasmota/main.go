@@ -106,7 +106,7 @@ func (self *Service) ID() string {
 }
 
 func (self *Service) Run() error {
-	commandChannel := services.Subscriber.FilteredChannel("command")
+	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 	messageChannel := make(chan MQTT.Message)
 	mqtt.Client.Subscribe("tasmota/#", 1, func(client MQTT.Client, message MQTT.Message) {
 		messageChannel <- message

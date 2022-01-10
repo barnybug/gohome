@@ -252,9 +252,13 @@ func apiEventsFeed(w http.ResponseWriter, r *http.Request) {
 	var ch <-chan *pubsub.Event
 	if topics != "" {
 		topics := strings.Split(topics, ",")
-		ch = services.Subscriber.FilteredChannel(topics...)
+		var subs []pubsub.Topic
+		for _, t := range topics {
+			subs = append(subs, pubsub.Prefix(t))
+		}
+		ch = services.Subscriber.Subscribe(subs...)
 	} else {
-		ch = services.Subscriber.Channel()
+		ch = services.Subscriber.Subscribe(pubsub.All())
 	}
 	defer services.Subscriber.Close(ch)
 
@@ -309,7 +313,7 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get existing value
-	value := services.Configurations.Get(path)
+	value := configurations[path]
 
 	if r.Method == "GET" {
 		w.Header().Add("Content-Type", "application/yaml; charset=utf-8")
@@ -338,7 +342,7 @@ func apiConfig(w http.ResponseWriter, r *http.Request) {
 func apiLogs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json; boundary=NL")
 
-	ch := services.Subscriber.FilteredChannel("log")
+	ch := services.Subscriber.Subscribe(pubsub.Prefix("log"))
 	defer services.Subscriber.Close(ch)
 	for ev := range ch {
 		_, err := fmt.Fprintf(w, "%s\r\n", ev)
@@ -401,10 +405,15 @@ func httpEndpoint() {
 	}
 }
 
+var configurations map[string][]byte = map[string][]byte{}
+
 func recordEvents() {
-	for ev := range services.Subscriber.Channel() {
+	config := pubsub.Prefix("config")
+	for ev := range services.Subscriber.Subscribe(pubsub.All()) {
 		// record to store
-		if ev.Device() != "" {
+		if config.Match(ev.Topic) {
+			configurations[ev.Topic] = ev.Raw
+		} else if ev.Device() != "" {
 			if _, ok := DeviceState[ev.Device()]; !ok {
 				DeviceState[ev.Device()] = make(map[string]*pubsub.Event)
 			}

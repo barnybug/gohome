@@ -37,7 +37,7 @@ func (self *Service) ID() string {
 func (self *Service) Run() error {
 	pb = pushbullet.New(services.Config.Pushbullet.Token)
 
-	events := services.Subscriber.FilteredChannel("alert")
+	events := services.Subscriber.Subscribe(pubsub.Prefix("alert"))
 	for ev := range events {
 		if ev.Target() == "pushbullet" {
 			sendMessage(ev)

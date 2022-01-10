@@ -4,6 +4,7 @@ package lirc
 import (
 	"log"
 
+	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/chbmuc/lirc"
 )
@@ -23,7 +24,7 @@ func (self *Service) Run() error {
 
 	go ir.Run()
 
-	for ev := range services.Subscriber.FilteredChannel("command") {
+	for ev := range services.Subscriber.Subscribe(pubsub.Prefix("command")) {
 		device := ev.Device()
 		code := ev.Command()
 		if remote, ok := services.Config.LookupDeviceProtocol(device, "lirc"); ok {

@@ -22,7 +22,7 @@ func Query(query string, timeout time.Duration) []*pubsub.Event {
 // Query with `query`, waiting for `timeout` for results.
 func QueryChannel(query string, timeout time.Duration) <-chan *pubsub.Event {
 	reply_to := fmt.Sprintf("_rpc.%d", rand.Int())
-	ch := Subscriber.FilteredChannel(reply_to)
+	ch := Subscriber.Subscribe(pubsub.Exact(reply_to))
 
 	SendQuery(query, "rpc", "", reply_to)
 

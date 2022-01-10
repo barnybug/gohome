@@ -119,7 +119,7 @@ func (self *Service) queryDiscover(q services.Question) string {
 }
 
 func (self *Service) Run() error {
-	commandChannel := services.Subscriber.FilteredChannel("command")
+	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 	self.lights = map[string]*yeelight.Light{}
 	self.discover()
 	log.Printf("Discovered %d lights", len(self.lights))

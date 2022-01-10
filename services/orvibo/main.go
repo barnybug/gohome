@@ -56,7 +56,7 @@ func (self *Service) ID() string {
 
 func (self *Service) Run() error {
 	devices := map[string]*Device{}
-	commandChannel := services.Subscriber.FilteredChannel("command")
+	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 
 	if services.Config.Orvibo.Broadcast != "" {
 		BroadcastAddress = services.Config.Orvibo.Broadcast

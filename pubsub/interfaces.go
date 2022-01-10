@@ -7,10 +7,13 @@ type Publisher interface {
 	Close()
 }
 
+type Topic interface {
+	Match(topic string) bool
+}
+
 // Subscriber interface
 type Subscriber interface {
 	ID() string
-	FilteredChannel(...string) <-chan *Event
-	Channel() <-chan *Event
+	Subscribe(...Topic) <-chan *Event
 	Close(<-chan *Event)
 }

@@ -281,7 +281,7 @@ func (self *Service) repeatSend(dev *gorfxtrx.Device, event *pubsub.Event, pkt g
 }
 
 func (self *Service) transmitCommands(dev *gorfxtrx.Device) {
-	for ev := range services.Subscriber.FilteredChannel("command") {
+	for ev := range services.Subscriber.Subscribe(pubsub.Prefix("command")) {
 		pkt, err := translateCommands(ev)
 		if err != nil {
 			log.Println("Couldn't translate command:", err)

@@ -67,6 +67,7 @@ func (self *Zone) setParty(temp float64, duration time.Duration, at time.Time) {
 
 // Service heating
 type Service struct {
+	config        *services.ConfigService
 	HeatingDevice string
 	Slop          float64
 	Zones         map[string]*Zone
@@ -251,7 +252,10 @@ func (self *Service) Init() error {
 	if self.Publisher == nil {
 		self.Publisher = services.Publisher
 	}
-	self.ConfigUpdated("config")
+	if self.config == nil {
+		self.config = services.WaitForConfig()
+	}
+	self.configUpdated()
 	return nil
 }
 
@@ -259,22 +263,21 @@ func (self *Service) Init() error {
 func (self *Service) Run() error {
 	// Run at 2s past the minute to give automata time to send targets
 	ticker := util.NewScheduler(time.Duration(2), time.Minute)
-	events := services.Subscriber.FilteredChannel("temp", "command")
+	events := services.Subscriber.Subscribe(pubsub.Prefix("temp"), pubsub.Prefix("command"))
 	for {
 		select {
 		case ev := <-events:
 			self.Event(ev)
 		case <-ticker.C:
 			self.Heartbeat()
+		case <-self.config.Updated:
+			self.configUpdated()
 		}
 	}
 }
 
-func (self *Service) ConfigUpdated(path string) {
-	if path != "config" {
-		return
-	}
-	conf := services.Config.Heating
+func (self *Service) configUpdated() {
+	conf := self.config.Value.Heating
 	zones := map[string]*Zone{}
 	sensors := map[string]*Zone{}
 	for zone, sensor := range conf.Zones {

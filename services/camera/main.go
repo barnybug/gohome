@@ -305,6 +305,7 @@ func (w *Watcher) watch() bool {
 
 // Service camera
 type Service struct {
+	config  *services.ConfigService
 	watcher *Watcher
 }
 
@@ -313,12 +314,13 @@ func (self *Service) ID() string {
 	return "camera"
 }
 
-func (self *Service) ConfigUpdated(path string) {
+func (self *Service) configUpdated() {
 	setupCameras()
 	self.watcher.Restart()
 }
 
 func (self *Service) Init() error {
+	self.config = services.WaitForConfig()
 	setupCameras()
 	self.watcher = &Watcher{}
 	return nil
@@ -329,10 +331,15 @@ func (self *Service) Run() error {
 	go self.watcher.Run()
 	go startWebserver()
 
-	for ev := range services.Subscriber.FilteredChannel("command") {
-		if _, ok := cameras[ev.Device()]; ok {
-			eventCommand(ev)
+	events := services.Subscriber.Subscribe(pubsub.Prefix("command"))
+	for {
+		select {
+		case ev := <-events:
+			if _, ok := cameras[ev.Device()]; ok {
+				eventCommand(ev)
+			}
+		case <-self.config.Updated:
+			self.configUpdated()
 		}
 	}
-	return nil
 }

@@ -503,7 +503,7 @@ func (self *Service) ID() string {
 }
 
 func recordEvents() {
-	for ev := range services.Subscriber.Channel() {
+	for ev := range services.Subscriber.Subscribe(pubsub.All()) {
 		if ev.Device() == "" {
 			continue
 		}

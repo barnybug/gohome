@@ -13,6 +13,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 	"github.com/tarm/serial"
 )
@@ -52,7 +53,7 @@ func (self *Service) Run() error {
 		log.Fatalln("Opening serial port:", err)
 	}
 
-	for ev := range services.Subscriber.FilteredChannel("command") {
+	for ev := range services.Subscriber.Subscribe(pubsub.Prefix("command")) {
 		if code, ok := services.Config.LookupDeviceProtocol(ev.Device(), "arduino"); ok {
 			on := ev.Command() == "on"
 			command(dev, code, on)

@@ -147,12 +147,17 @@ func (self *Service) handleDiscovery(device *broadlink.Device) {
 	}
 }
 
-func (self *Service) Run() error {
+func (self *Service) Init() error {
 	self.discovered = map[string]*broadlink.Device{}
 	self.state = map[string]*broadlink.BGState{}
 	self.deviceMap = map[string]*broadlink.Device{}
+	services.WaitForConfig()
+	return nil
+}
+
+func (self *Service) Run() error {
 	manager := broadlink.NewManager(false)
-	commandChannel := services.Subscriber.FilteredChannel("command")
+	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 
 	go func() {
 		for {

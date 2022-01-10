@@ -4,7 +4,8 @@ import "github.com/barnybug/gohome/pubsub"
 
 // Subscriber for testing
 type Subscriber struct {
-	Events []*pubsub.Event
+	subscriptions []pubsub.Topic
+	Events        []*pubsub.Event
 }
 
 // ID of Subscriber
@@ -16,20 +17,20 @@ func (sub *Subscriber) replayEvents() <-chan *pubsub.Event {
 	ch := make(chan *pubsub.Event)
 	go func() {
 		for _, ev := range sub.Events {
-			ch <- ev
+			for _, s := range sub.subscriptions {
+				if s.Match(ev.Topic) {
+					ch <- ev
+					break
+				}
+			}
 		}
 		close(ch)
 	}()
 	return ch
 }
 
-// FilteredChannel by topic
-func (sub *Subscriber) FilteredChannel(...string) <-chan *pubsub.Event {
-	return sub.replayEvents()
-}
-
-// Channel with all events
-func (sub *Subscriber) Channel() <-chan *pubsub.Event {
+func (sub *Subscriber) Subscribe(topics ...pubsub.Topic) <-chan *pubsub.Event {
+	sub.subscriptions = append(sub.subscriptions, topics...)
 	return sub.replayEvents()
 }
 
