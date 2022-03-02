@@ -65,6 +65,9 @@ func speakEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("Streaming:", text)
+	if services.Config.Espeak.Prefix != "" {
+		text = fmt.Sprintf("%s %s", services.Config.Espeak.Prefix, text)
+	}
 
 	args := strings.Split(services.Config.Espeak.Args, " ")
 	args = append(args, "--stdout")

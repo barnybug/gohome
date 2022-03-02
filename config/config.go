@@ -94,8 +94,9 @@ type EndpointsConf struct {
 }
 
 type EspeakConf struct {
-	Args string
-	Port int
+	Args   string
+	Port   int
+	Prefix string
 }
 
 type GeneralEmailConf struct {
