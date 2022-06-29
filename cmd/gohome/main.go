@@ -12,7 +12,6 @@ import (
 	"github.com/barnybug/gohome/services/api"
 	"github.com/barnybug/gohome/services/arduino"
 	"github.com/barnybug/gohome/services/automata"
-	"github.com/barnybug/gohome/services/bills"
 	"github.com/barnybug/gohome/services/ble"
 	"github.com/barnybug/gohome/services/broadlink"
 	"github.com/barnybug/gohome/services/camera"
@@ -63,7 +62,6 @@ func registerServices() {
 	services.Register(&api.Service{})
 	services.Register(&arduino.Service{})
 	services.Register(&automata.Service{})
-	services.Register(&bills.Service{})
 	services.Register(&ble.Service{})
 	services.Register(&broadlink.Service{})
 	services.Register(&camera.Service{})
