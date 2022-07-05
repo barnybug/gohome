@@ -28,6 +28,7 @@ package solaredge
 import (
 	"bytes"
 	"errors"
+	"math"
 
 	"github.com/u-root/u-root/pkg/uio"
 )
@@ -115,4 +116,11 @@ func NewCommonMeter(data []byte) (CommonMeter, error) {
 	cm.C_SerialNumber = bytes.Trim(cm.C_SerialNumber, "\x00")
 
 	return cm, nil
+}
+
+func decode_float32(buf *uio.Lexer) float32 {
+	a := buf.Read16()
+	b := buf.Read16()
+	bits := uint32(b)<<16 + uint32(a)
+	return math.Float32frombits(bits)
 }

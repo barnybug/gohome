@@ -39,7 +39,7 @@ func scaleu32(value uint32, sf int16) float64 {
 	return float64(value) * math.Pow10(int(sf))
 }
 
-func readInverter(client modbus.Client, handler *modbus.TCPClientHandler, serial []byte) (*pubsub.Event, error) {
+func readInverter(client modbus.Client, handler *modbus.TCPClientHandler, serial string) (*pubsub.Event, error) {
 	for {
 		inverterData, err := client.ReadHoldingRegisters(40069, 40)
 		if err != nil {
@@ -74,7 +74,7 @@ func readInverter(client modbus.Client, handler *modbus.TCPClientHandler, serial
 	}
 }
 
-func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial []byte) (*pubsub.Event, error) {
+func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial string) (*pubsub.Event, error) {
 	infoData, err := client.ReadHoldingRegisters(40188, 105)
 	if err != nil {
 		return nil, err
@@ -98,41 +98,46 @@ func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial []
 	return ev, nil
 }
 
-func readBattery(client modbus.Client, handler *modbus.TCPClientHandler) (*pubsub.Event, error) {
-	data, err := client.ReadHoldingRegisters(0xE100, 76)
+func readBatteryData(client modbus.Client, serial string) (*pubsub.Event, error) {
+	b, err := ReadBatteryData(client)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(data)
-	// m, err := NewBatteryModel(data)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// source := fmt.Sprintf("meter.%s", serial)
-	// fields := map[string]interface{}{
-	// 	"source":    source,
-	// 	"current":   scaleu16(m.M_AC_Current, m.M_AC_Current_SF),
-	// 	"voltage":   scaleu16(m.M_AC_VoltageLN, m.M_AC_Voltage_SF),
-	// 	"power":     scalei16(m.M_AC_Power, m.M_AC_Power_SF),
-	// 	"frequency": scaleu16(m.M_AC_Frequency, m.M_AC_Frequency_SF),
-	// 	"exported":  scaleu32(m.M_Exported, m.M_Energy_W_SF),
-	// 	"imported":  scaleu32(m.M_Imported, m.M_Energy_W_SF),
-	// }
-	// ev := pubsub.NewEvent("power", fields)
-	// services.Config.AddDeviceToEvent(ev)
-	// return ev, nil
-	return nil, nil
+	source := fmt.Sprintf("battery.%s", serial)
+	fields := map[string]interface{}{
+		"source":         source,
+		"temp":           b.TempAvg,
+		"voltage":        b.Voltage,
+		"current":        b.Current,
+		"power":          b.Power,
+		"discharged":     b.Discharged,
+		"charged":        b.Charged,
+		"capacity_max":   b.BatteryMax,
+		"capacity_avail": b.BatteryAvailable,
+		"soh":            b.BatterySoH,
+		"soc":            b.BatterySoC,
+		"status":         b.Status,
+	}
+	ev := pubsub.NewEvent("battery", fields)
+	services.Config.AddDeviceToEvent(ev)
+	return ev, nil
 }
 
-func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serial []byte, meterSerial []byte) {
-	inv, err := readInverter(client, handler, serial)
+type Serials struct {
+	inverter string
+	meter    string
+	battery  string
+}
+
+func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serials Serials) {
+	inv, err := readInverter(client, handler, serials.inverter)
 	if err != nil {
 		log.Fatalf("Error reading inverter: %s", err)
 	}
 	if inv != nil {
 		services.Publisher.Emit(inv)
 	}
-	meter, err := readMeter(client, handler, meterSerial)
+	meter, err := readMeter(client, handler, serials.meter)
 	if err != nil {
 		log.Fatalf("Error reading meter: %s", err)
 	}
@@ -140,7 +145,13 @@ func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serial []
 		services.Publisher.Emit(meter)
 	}
 
-	readBattery(client, handler)
+	battery, err := readBatteryData(client, serials.battery)
+	if err != nil {
+		log.Fatalf("Error reading meter: %s", err)
+	}
+	if battery != nil {
+		services.Publisher.Emit(battery)
+	}
 }
 
 // Run the service
@@ -157,23 +168,46 @@ func (self *Service) Run() error {
 
 	// Collect and log common inverter data
 	infoData, err := client.ReadHoldingRegisters(40000, 70)
-	cm, err := NewCommonModel(infoData)
-	log.Printf("Inverter Model: %s", cm.C_Model)
-	log.Printf("Inverter Serial: %s", cm.C_SerialNumber)
-	log.Printf("Inverter Version: %s", cm.C_Version)
+	inv, err := NewCommonModel(infoData)
+	if err != nil {
+		log.Fatalf("Error reading Inverter: %s", err.Error())
+	}
+	log.Printf("Inverter Model: %s", inv.C_Model)
+	log.Printf("Inverter Serial: %s", inv.C_SerialNumber)
+	log.Printf("Inverter Version: %s", inv.C_Version)
 
 	infoData2, err := client.ReadHoldingRegisters(40121, 65)
-	cm2, err := NewCommonMeter(infoData2)
-	log.Printf("Meter Manufacturer: %s", cm2.C_Manufacturer)
-	log.Printf("Meter Model: %s", cm2.C_Model)
-	log.Printf("Meter Serial: %s", cm2.C_SerialNumber)
-	log.Printf("Meter Version: %s", cm2.C_Version)
-	log.Printf("Meter Option: %s", cm2.C_Option)
+	meter, err := NewCommonMeter(infoData2)
+	if err != nil {
+		log.Fatalf("Error reading Meter: %s", err.Error())
+	}
+	log.Printf("Meter Manufacturer: %s", meter.C_Manufacturer)
+	log.Printf("Meter Model: %s", meter.C_Model)
+	log.Printf("Meter Serial: %s", meter.C_SerialNumber)
+	log.Printf("Meter Version: %s", meter.C_Version)
+	log.Printf("Meter Option: %s", meter.C_Option)
 
-	readCycle(client, handler, cm.C_SerialNumber, cm2.C_SerialNumber)
+	battery, err := ReadBatteryInfo(client)
+	if err != nil {
+		log.Fatalf("Error reading Battery: %s", err.Error())
+	}
+	log.Printf("Battery Manufacturer: %s", battery.Manufacturer)
+	log.Printf("Battery Model: %s", battery.Model)
+	log.Printf("Battery Firmware: %s", battery.Firmware)
+	log.Printf("Battery Serial: %s", battery.Serial)
+	log.Printf("Battery Rated Energy: %.1f kWh", battery.RatedEnergy/1000)
+	log.Printf("Battery Charge/Discharge (Continuous): %.1f/%.1f kW", battery.MaxPowerContinuousCharge/1000, battery.MaxPowerContinuousDischarge/1000)
+
+	serials := Serials{
+		inverter: string(inv.C_SerialNumber),
+		meter:    string(meter.C_SerialNumber),
+		battery:  string(battery.Serial[:]),
+	}
+
+	readCycle(client, handler, serials)
 	ticker := time.NewTicker(15 * time.Second)
 	for range ticker.C {
-		readCycle(client, handler, cm.C_SerialNumber, cm2.C_SerialNumber)
+		readCycle(client, handler, serials)
 	}
 	return nil
 }
