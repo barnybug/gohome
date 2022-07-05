@@ -183,6 +183,10 @@ type SlackConf struct {
 	Token string
 }
 
+type SolaredgeConf struct {
+	Inverter string
+}
+
 type TelegramConf struct {
 	Token   string
 	Chat_id int64
@@ -234,6 +238,7 @@ type Config struct {
 	Pushbullet   PushbulletConf
 	Rfid         RfidConf
 	Slack        SlackConf
+	Solaredge    SolaredgeConf
 	SMS          SMSConf
 	Telegram     TelegramConf
 	Twitter      TwitterConf
