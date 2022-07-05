@@ -17,7 +17,8 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.0.0
 	github.com/edgard/yeelight v0.0.0-20170904135826-c32a2f3eb57c
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
-	github.com/gogo/protobuf v0.0.0-20160305141414-f4cc07910fc3 // indirect
+	github.com/goburrow/modbus v0.1.0 // indirect
+	github.com/goburrow/serial v0.1.0 // indirect
 	github.com/google/uuid v1.1.0 // indirect
 	github.com/gorilla/context v0.0.0-20140522220343-1f3e8a46c5bb // indirect
 	github.com/gorilla/mux v0.0.0-20140527234147-0ef595e787ef
@@ -32,11 +33,12 @@ require (
 	github.com/mitsuse/pushbullet-go v0.1.0
 	github.com/nlopes/slack v0.0.0-20170604215958-f243c7602fdf
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.6.1
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
-	golang.org/x/net v0.0.0-20170308210134-a6577fac2d73
+	github.com/u-root/u-root v0.8.0 // indirect
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	gopkg.in/telegram-bot-api.v4 v4.0.0-20161125055035-0a57807db79e
 	gopkg.in/yaml.v2 v2.2.2
 )
