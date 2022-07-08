@@ -40,9 +40,10 @@ func scaleu32(value uint32, sf int16) float64 {
 	return float64(value) * math.Pow10(int(sf))
 }
 
-func readInverter(client modbus.Client, handler *modbus.TCPClientHandler, serial string) (*pubsub.Event, error) {
+func readInverter(client modbus.Client, handler *modbus.TCPClientHandler, serial string) (ev *pubsub.Event, ac_power, dc_power float64, err error) {
+	var inverterData []byte
 	for {
-		inverterData, err := client.ReadHoldingRegisters(40069, 40)
+		inverterData, err = client.ReadHoldingRegisters(40069, 40)
 		if err != nil {
 			log.Printf("Error reading holding registers: %s", err.Error())
 			log.Printf("Attempting to reconnect")
@@ -51,31 +52,36 @@ func readInverter(client modbus.Client, handler *modbus.TCPClientHandler, serial
 			_ = handler.Connect()
 			continue
 		}
-		i, err := NewInverterModel(inverterData)
-		if err != nil {
-			return nil, err
-		}
-
-		source := fmt.Sprintf("inverter.%s", serial)
-		fields := map[string]interface{}{
-			"source":       source,
-			"ac_current":   scaleu16(i.AC_Current, i.AC_Current_SF),
-			"ac_voltage":   scaleu16(i.AC_VoltageAN, i.AC_Voltage_SF),
-			"ac_power":     scalei16(i.AC_Power, i.AC_Power_SF),
-			"ac_frequency": scaleu16(i.AC_Frequency, i.AC_Frequency_SF),
-			"ac_energy_wh": scalei32(i.AC_Energy_WH, i.AC_Energy_WH_SF),
-			"dc_current":   scaleu16(i.DC_Current, i.DC_Current_SF),
-			"dc_voltage":   scaleu16(i.DC_Voltage, i.DC_Voltage_SF),
-			"dc_power":     scalei16(i.DC_Power, i.DC_Power_SF),
-			"temp":         scalei16(i.Temp_Sink, i.Temp_SF),
-		}
-		ev := pubsub.NewEvent("solaredge", fields)
-		services.Config.AddDeviceToEvent(ev)
-		return ev, nil
+		break
 	}
+
+	var i InverterModel
+	i, err = NewInverterModel(inverterData)
+	if err != nil {
+		return
+	}
+
+	source := fmt.Sprintf("inverter.%s", serial)
+	ac_power = scalei16(i.AC_Power, i.AC_Power_SF)
+	dc_power = scalei16(i.DC_Power, i.DC_Power_SF)
+	fields := map[string]interface{}{
+		"source":       source,
+		"ac_current":   scaleu16(i.AC_Current, i.AC_Current_SF),
+		"ac_voltage":   scaleu16(i.AC_VoltageAN, i.AC_Voltage_SF),
+		"ac_power":     scalei16(i.AC_Power, i.AC_Power_SF),
+		"ac_frequency": scaleu16(i.AC_Frequency, i.AC_Frequency_SF),
+		"ac_energy_wh": scalei32(i.AC_Energy_WH, i.AC_Energy_WH_SF),
+		"dc_current":   scaleu16(i.DC_Current, i.DC_Current_SF),
+		"dc_voltage":   scaleu16(i.DC_Voltage, i.DC_Voltage_SF),
+		"dc_power":     scalei16(i.DC_Power, i.DC_Power_SF),
+		"temp":         scalei16(i.Temp_Sink, i.Temp_SF),
+	}
+	ev = pubsub.NewEvent("solaredge", fields)
+	services.Config.AddDeviceToEvent(ev)
+	return
 }
 
-func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial string) (*pubsub.Event, error) {
+func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial string, ac_power, dc_power, battery_power float64) (*pubsub.Event, error) {
 	infoData, err := client.ReadHoldingRegisters(40188, 105)
 	if err != nil {
 		return nil, err
@@ -85,11 +91,19 @@ func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial st
 		return nil, err
 	}
 	source := fmt.Sprintf("meter.grid") // serial unreliable read
+	power := scalei16(m.M_AC_Power, m.M_AC_Power_SF)
+	load := ac_power - power
+	solar := dc_power + battery_power*0.82 // losses DC->AC
+	if solar < 0 {
+		solar = 0
+	}
 	fields := map[string]interface{}{
 		"source":    source,
 		"current":   scaleu16(m.M_AC_Current, m.M_AC_Current_SF),
 		"voltage":   scaleu16(m.M_AC_VoltageLN, m.M_AC_Voltage_SF),
-		"power":     scalei16(m.M_AC_Power, m.M_AC_Power_SF),
+		"power":     -power, // +ve import, -ve export
+		"load":      load,
+		"solar":     solar,
 		"frequency": scaleu16(m.M_AC_Frequency, m.M_AC_Frequency_SF),
 		"exported":  scaleu32(m.M_Exported, m.M_Energy_W_SF),
 		"imported":  scaleu32(m.M_Imported, m.M_Energy_W_SF),
@@ -99,10 +113,10 @@ func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial st
 	return ev, nil
 }
 
-func readBatteryData(client modbus.Client, serial string) (*pubsub.Event, error) {
+func readBatteryData(client modbus.Client, serial string) (*pubsub.Event, float32, error) {
 	b, err := ReadBatteryData(client)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	source := fmt.Sprintf("battery.%s", serial)
 	fields := map[string]interface{}{
@@ -122,7 +136,7 @@ func readBatteryData(client modbus.Client, serial string) (*pubsub.Event, error)
 	}
 	ev := pubsub.NewEvent("power", fields)
 	services.Config.AddDeviceToEvent(ev)
-	return ev, nil
+	return ev, b.Power, nil
 }
 
 type Serials struct {
@@ -132,27 +146,26 @@ type Serials struct {
 }
 
 func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serials Serials) {
-	inv, err := readInverter(client, handler, serials.inverter)
+	inv, ac_power, dc_power, err := readInverter(client, handler, serials.inverter)
 	if err != nil {
 		log.Fatalf("Error reading inverter: %s", err)
 	}
 	if inv != nil {
 		services.Publisher.Emit(inv)
 	}
-	meter, err := readMeter(client, handler, serials.meter)
+	battery, battery_power, err := readBatteryData(client, serials.battery)
+	if err != nil {
+		log.Fatalf("Error reading battery: %s", err)
+	}
+	if battery != nil {
+		services.Publisher.Emit(battery)
+	}
+	meter, err := readMeter(client, handler, serials.meter, ac_power, dc_power, float64(battery_power))
 	if err != nil {
 		log.Fatalf("Error reading meter: %s", err)
 	}
 	if meter != nil {
 		services.Publisher.Emit(meter)
-	}
-
-	battery, err := readBatteryData(client, serials.battery)
-	if err != nil {
-		log.Fatalf("Error reading meter: %s", err)
-	}
-	if battery != nil {
-		services.Publisher.Emit(battery)
 	}
 }
 

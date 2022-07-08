@@ -130,6 +130,15 @@ func decode_bele32(buf *uio.Lexer) uint32 {
 	return uint32(b)<<16 + uint32(a)
 }
 
+func decode_bele64(buf *uio.Lexer) uint64 {
+	// madness: words are BE, but longs the words LE of the words
+	a := buf.Read16()
+	b := buf.Read16()
+	c := buf.Read16()
+	d := buf.Read16()
+	return uint64(d)<<48 + uint64(c)<<32 + uint64(b)<<16 + uint64(a)
+}
+
 func encode_bele32(buf *uio.Lexer, v uint32) {
 	buf.Write16(uint16(v & 0xFFFF))
 	buf.Write16(uint16(v >> 16))
