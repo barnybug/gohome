@@ -117,9 +117,14 @@ func ReadBatteryData(client modbus.Client) (BatteryData, error) {
 }
 
 var BatteryStatuses = map[uint16]string{
-	3:  "Charging",
-	4:  "Discharging",
-	6:  "Idle",
+	0: "Off",
+	1: "Standby",
+	2: "Init",
+	3: "Charging",
+	4: "Discharging",
+	5: "Fault",
+	6: "Idle",
+	// 7?
 	10: "Sleep",
 }
 
@@ -142,6 +147,10 @@ func ParseBatteryData(data []byte) (BatteryData, error) {
 		BatterySoH:       decode_float32(buf),
 		BatterySoC:       decode_float32(buf),
 		Status:           buf.Read16(),
+	}
+	if b.Status == 7 {
+		// Inverter rebooted, junk data
+		return BatteryData{}, errors.New("Junk data")
 	}
 
 	return b, nil

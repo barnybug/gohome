@@ -2,6 +2,7 @@
 package solaredge
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -90,6 +91,12 @@ func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial st
 	if err != nil {
 		return nil, err
 	}
+	// validate
+	if m.M_Exported == 0 {
+		log.Println("Invalid meter data (export 0)")
+		return nil, errors.New("Invalid meter data")
+	}
+
 	source := fmt.Sprintf("meter.grid") // serial unreliable read
 	power := scalei16(m.M_AC_Power, m.M_AC_Power_SF)
 	load := ac_power - power
@@ -148,21 +155,24 @@ type Serials struct {
 func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serials Serials) {
 	inv, ac_power, dc_power, err := readInverter(client, handler, serials.inverter)
 	if err != nil {
-		log.Fatalf("Error reading inverter: %s", err)
+		log.Println("Error reading inverter: %s", err)
+		return
 	}
 	if inv != nil {
 		services.Publisher.Emit(inv)
 	}
 	battery, battery_power, err := readBatteryData(client, serials.battery)
 	if err != nil {
-		log.Fatalf("Error reading battery: %s", err)
+		log.Println("Error reading battery: %s", err)
+		return
 	}
 	if battery != nil {
 		services.Publisher.Emit(battery)
 	}
 	meter, err := readMeter(client, handler, serials.meter, ac_power, dc_power, float64(battery_power))
 	if err != nil {
-		log.Fatalf("Error reading meter: %s", err)
+		log.Println("Error reading meter: %s", err)
+		return
 	}
 	if meter != nil {
 		services.Publisher.Emit(meter)
