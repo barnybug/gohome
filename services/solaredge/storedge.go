@@ -40,13 +40,13 @@ const AddressStoredgeControl = 0xE004
 // With help from here:
 // https://github.com/binsentsu/home-assistant-solaredge-modbus/
 type ControlInfo struct {
-	ControlMode          string
+	ControlMode          ControlMode
 	ACChargePolicy       string
 	ACChargeLimit        float32
 	BackupReserved       float32
-	DefaultMode          string
+	DefaultMode          ChargeDischargeMode
 	RemoteTimeout        uint32
-	RemoteMode           string
+	RemoteMode           ChargeDischargeMode
 	RemoteChargeLimit    float32
 	RemoteDischargeLimit float32
 }
@@ -59,12 +59,18 @@ func ReadControlInfo(client modbus.Client) (ControlInfo, error) {
 	return ParseControlInfo(data)
 }
 
-var ControlMode = map[uint16]string{
-	0: "Disabled",
-	1: "Maximize Self Consumption",
-	2: "Time of Use",
-	3: "Backup Only",
-	4: "Remote Control",
+type ControlMode uint16
+
+const (
+	ControlModeDisabled ControlMode = iota
+	ControlModeMaximizeSelfConsumption
+	ControlModeTimeOfUse
+	ControlModeBackupOnly
+	ControlModeRemoteControl
+)
+
+func (c ControlMode) String() string {
+	return []string{"Disabled", "Maximize Self Consumption", "Time of Use", "Backup Only", "Remote Control"}[c]
 }
 
 var ACChargePolicy = map[uint16]string{
@@ -74,14 +80,21 @@ var ACChargePolicy = map[uint16]string{
 	3: "Percent of Production",
 }
 
-var ChargeDischargeMode = map[uint16]string{
-	0: "Off",
-	1: "Charge from excess PV power only",
-	2: "Charge from PV first",
-	3: "Charge from PV and AC",
-	4: "Maximize export",
-	5: "Discharge to match load",
-	7: "Maximize self consumption",
+type ChargeDischargeMode uint16
+
+const (
+	Off ChargeDischargeMode = iota
+	ChargeFromExcessPVPowerOnly
+	ChargeFromPVFirst
+	ChargeFromPVAndAC
+	MaximizeExport
+	DischargeToMatchLoad
+	Unused
+	MaximizeSelfConsumption
+)
+
+func (c ChargeDischargeMode) String() string {
+	return []string{"Off", "Charge from excess PV power only", "Charge from PV first", "Charge from PV and AC", "Maximize export", "Discharge to match load", "Unused", "Maximize self consumption"}[c]
 }
 
 // ParseControlInfo takes block of data read from the Modbus TCP connection and returns a new populated struct
@@ -91,13 +104,13 @@ func ParseControlInfo(data []byte) (ControlInfo, error) {
 		return ControlInfo{}, errors.New("improper data size")
 	}
 	b := ControlInfo{
-		ControlMode:          ControlMode[buf.Read16()],
+		ControlMode:          ControlMode(buf.Read16()),
 		ACChargePolicy:       ACChargePolicy[buf.Read16()],
 		ACChargeLimit:        decode_float32(buf),
 		BackupReserved:       decode_float32(buf),
-		DefaultMode:          ChargeDischargeMode[buf.Read16()],
+		DefaultMode:          ChargeDischargeMode(buf.Read16()),
 		RemoteTimeout:        decode_bele32(buf),
-		RemoteMode:           ChargeDischargeMode[buf.Read16()],
+		RemoteMode:           ChargeDischargeMode(buf.Read16()),
 		RemoteChargeLimit:    decode_float32(buf),
 		RemoteDischargeLimit: decode_float32(buf),
 	}

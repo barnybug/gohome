@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -17,7 +19,11 @@ import (
 const MaxRetries = 5
 
 // Service solaredge
-type Service struct{}
+type Service struct {
+	client        modbus.Client
+	remoteMode    ChargeDischargeMode
+	remoteTimeout time.Time
+}
 
 // ID of the service
 func (self *Service) ID() string {
@@ -152,8 +158,8 @@ type Serials struct {
 	battery  string
 }
 
-func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serials Serials) {
-	inv, ac_power, dc_power, err := readInverter(client, handler, serials.inverter)
+func (self *Service) readCycle(handler *modbus.TCPClientHandler, serials Serials) {
+	inv, ac_power, dc_power, err := readInverter(self.client, handler, serials.inverter)
 	if err != nil {
 		log.Println("Error reading inverter: %s", err)
 		return
@@ -161,7 +167,7 @@ func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serials S
 	if inv != nil {
 		services.Publisher.Emit(inv)
 	}
-	battery, battery_power, err := readBatteryData(client, serials.battery)
+	battery, battery_power, err := readBatteryData(self.client, serials.battery)
 	if err != nil {
 		log.Println("Error reading battery: %s", err)
 		return
@@ -169,7 +175,7 @@ func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serials S
 	if battery != nil {
 		services.Publisher.Emit(battery)
 	}
-	meter, err := readMeter(client, handler, serials.meter, ac_power, dc_power, float64(battery_power))
+	meter, err := readMeter(self.client, handler, serials.meter, ac_power, dc_power, float64(battery_power))
 	if err != nil {
 		log.Println("Error reading meter: %s", err)
 		return
@@ -179,49 +185,78 @@ func readCycle(client modbus.Client, handler *modbus.TCPClientHandler, serials S
 	}
 }
 
-func (self *Service) handleCommand(ev *pubsub.Event, client modbus.Client) {
+var chargeModes = map[string]ChargeDischargeMode{
+	"off": Off,
+	// 0 – Off
+	"load_then_battery": ChargeFromExcessPVPowerOnly,
+	// 1 – Charge excess PV power only.
+	// Only PV excess power not going to AC is used for charging the battery. Inverter NominalActivePowerLimit (or the
+	// inverter rated power whichever is lower) sets how much power the inverter is producing to the AC. In this mode,
+	// the battery cannot be discharged. If the PV power is lower than NominalActivePowerLimit the AC production will
+	// be equal to the PV power.
+	"battery_then_load": ChargeFromPVFirst,
+	// 2 – Charge from PV first, before producing power to the AC.
+	// The Battery charge has higher priority than AC production. First charge the battery then produce AC.
+	// If StorageRemoteCtrl_ChargeLimit is lower than PV excess power goes to AC according to
+	// NominalActivePowerLimit. If NominalActivePowerLimit is reached and battery StorageRemoteCtrl_ChargeLimit is
+	// reached, PV power is curtailed.
+	"charge": ChargeFromPVAndAC,
+	// 3 – Charge from PV+AC according to the max battery power.
+	// Charge from both PV and AC with priority on PV power.
+	// If PV production is lower than StorageRemoteCtrl_ChargeLimit, the battery will be charged from AC up to
+	// NominalActivePow-erLimit. In this case AC power = StorageRemoteCtrl_ChargeLimit- PVpower.
+	// If PV power is larger than StorageRemoteCtrl_ChargeLimit the excess PV power will be directed to the AC up to the
+	// Nominal-ActivePowerLimit beyond which the PV is curtailed.
+	"export": MaximizeExport,
+	// 4 – Maximize export – discharge battery to meet max inverter AC limit.
+	// AC power is maintained to NominalActivePowerLimit, using PV power and/or battery power. If the PV power is not
+	// sufficient, battery power is used to complement AC power up to StorageRemoteCtrl_DishargeLimit. In this mode,
+	// charging excess power will occur if there is more PV than the AC limit.
+	"load": DischargeToMatchLoad,
+	// 5 – Discharge to meet loads consumption. Discharging to the grid is not allowed.
+	"unused":  Unused,
+	"optimum": MaximizeSelfConsumption,
+	// 7 – Maximize self-consumption
+}
+
+func (self *Service) handleCommand(ev *pubsub.Event) {
 	if _, ok := services.Config.LookupDeviceProtocol(ev.Device(), "inverter"); !ok {
 		return
 	}
-	var controlMode uint16 = 1 // maximize self consumption
-
 	timeout := uint32(ev.IntField("timeout"))
 	mode := ev.StringField("mode")
 	if timeout > 86400 {
 		log.Println("command error: timeout over 86400")
 		return
 	}
-	var defaultMode uint16 = 7 // Maximise Self Consumption
-	var remoteMode uint16 = 99
+	remoteMode := Unused
 
 	if mode != "" {
-		for key, value := range ChargeDischargeMode {
-			if value == mode {
-				remoteMode = key
-			}
-		}
-		if remoteMode == 99 {
+		if m, ok := chargeModes[mode]; ok {
+			remoteMode = m
+		} else {
 			log.Println("command error: invalid mode")
+			log.Println("Supported modes:")
+			for value, _ := range chargeModes {
+				log.Printf("- %s", value)
+			}
 			return
 		}
 		if timeout == 0 {
 			log.Println("timeout is required")
 			return
 		}
-		controlMode = 4 // remote control
-	}
-	client.WriteSingleRegister(0xE004, controlMode)
-	if remoteMode != 99 {
-		buf := uio.NewBigEndianBuffer([]byte{})
-		buf.Write16(defaultMode)    // 0xE00A
-		encode_bele32(buf, timeout) // 0xE00B
-		buf.Write16(remoteMode)     // 0xE00D
-		client.WriteMultipleRegisters(0xE00A, uint16(buf.Len()/2), buf.Data())
+		self.remoteMode = remoteMode
+		self.remoteTimeout = time.Now().Add(time.Second * time.Duration(timeout))
+		self.sendRemoteMode()
+	} else {
+		// revert
+		self.client.WriteSingleRegister(0xE004, uint16(ControlModeMaximizeSelfConsumption))
 	}
 
 	log.Println("Command sent to inverter")
 
-	ci, err := ReadControlInfo(client)
+	ci, err := ReadControlInfo(self.client)
 	if err != nil {
 		log.Println("Error reading control info")
 	} else {
@@ -229,12 +264,91 @@ func (self *Service) handleCommand(ev *pubsub.Event, client modbus.Client) {
 	}
 }
 
+func (self *Service) sendRemoteMode() {
+	now := time.Now()
+	if now.After(self.remoteTimeout) {
+		return
+	}
+	self.client.WriteSingleRegister(0xE004, uint16(ControlModeRemoteControl))
+	buf := uio.NewBigEndianBuffer([]byte{})
+	defaultMode := MaximizeSelfConsumption
+	buf.Write16(uint16(defaultMode)) // 0xE00A
+	timeout := self.remoteTimeout.Sub(now).Seconds()
+	encode_bele32(buf, uint32(timeout))  // 0xE00B
+	buf.Write16(uint16(self.remoteMode)) // 0xE00D
+	self.client.WriteMultipleRegisters(0xE00A, uint16(buf.Len()/2), buf.Data())
+}
+
 func printControlInfo(ci ControlInfo) {
 	log.Printf("Control Current Mode: %s", ci.ControlMode)
-	if ci.ControlMode == "Remote Control" {
+	if ci.ControlMode == ControlModeRemoteControl {
 		log.Printf("Control Remote Mode: '%s' (Default: '%s') Timeout: %ds Charge/Discharge Limit: %.1f/%0.1f kW", ci.RemoteMode, ci.DefaultMode, ci.RemoteTimeout, ci.RemoteChargeLimit/1000, ci.RemoteDischargeLimit/1000)
 	}
 	log.Printf("Control AC Charge Policy: %s Limit: %.1f Backup Reserved: %.0f%%", ci.ACChargePolicy, ci.ACChargeLimit, ci.BackupReserved)
+}
+
+func (self *Service) QueryHandlers() services.QueryHandlers {
+	return services.QueryHandlers{
+		"status": services.TextHandler(self.queryStatus),
+		"mode":   services.TextHandler(self.queryMode),
+		"help": services.StaticHandler("" +
+			"status: get status\n" +
+			"mode: set mode\n"),
+	}
+}
+
+func formatPower(value float32) string {
+	if value > 800 {
+		return fmt.Sprintf("%.1fkW", value/1000)
+	}
+	return fmt.Sprintf("%.0fW", value)
+}
+
+func (self *Service) queryStatus(q services.Question) string {
+	b, err := ReadBatteryData(self.client)
+	if err != nil {
+		return fmt.Sprintf("error reading battery: %s", err)
+	}
+
+	status := BatteryStatuses[b.Status]
+	message := fmt.Sprintf("Battery: %.1f%% (%s) %s", b.BatterySoC, status, formatPower(b.Power))
+	return message
+}
+
+func parseMode(value string) (err error, mode ChargeDischargeMode, timeout int) {
+	vs := strings.Split(value, " ")
+	if len(vs) != 2 {
+		err = errors.New("mode 60")
+		return
+	}
+	if m, ok := chargeModes[vs[0]]; ok {
+		mode = m
+	} else {
+		err = errors.New("Invalid mode")
+		return
+	}
+	timeout, err = strconv.Atoi(vs[1])
+	if err != nil {
+		err = errors.New("Invalid timeout")
+		return
+	}
+	return
+}
+
+func (self *Service) queryMode(q services.Question) string {
+	err, mode, timeout := parseMode(q.Args)
+	if err != nil {
+		var elems []string
+		for value := range chargeModes {
+			elems = append(elems, value)
+		}
+		modes := strings.Join(elems, ", ")
+		return fmt.Sprintf("usage: mode %s 60 (%s)", modes, err)
+	}
+	self.remoteMode = mode
+	self.remoteTimeout = time.Now().Add(time.Duration(timeout) * time.Second)
+	self.sendRemoteMode()
+	return "Command sent to inverter"
 }
 
 // Run the service
@@ -246,11 +360,11 @@ func (self *Service) Run() error {
 	if err != nil {
 		log.Fatalf("Error connecting to Inverter: %s", err.Error())
 	}
-	client := modbus.NewClient(handler)
+	self.client = modbus.NewClient(handler)
 	defer handler.Close()
 
 	// Collect and log common inverter data
-	infoData, err := client.ReadHoldingRegisters(40000, 70)
+	infoData, err := self.client.ReadHoldingRegisters(40000, 70)
 	inv, err := NewCommonModel(infoData)
 	if err != nil {
 		log.Fatalf("Error reading Inverter: %s", err.Error())
@@ -259,7 +373,7 @@ func (self *Service) Run() error {
 	log.Printf("Inverter Serial: %s", inv.C_SerialNumber)
 	log.Printf("Inverter Version: %s", inv.C_Version)
 
-	infoData2, err := client.ReadHoldingRegisters(40121, 65)
+	infoData2, err := self.client.ReadHoldingRegisters(40121, 65)
 	meter, err := NewCommonMeter(infoData2)
 	if err != nil {
 		log.Fatalf("Error reading Meter: %s", err.Error())
@@ -270,7 +384,7 @@ func (self *Service) Run() error {
 	log.Printf("Meter Version: %s", meter.C_Version)
 	log.Printf("Meter Option: %s", meter.C_Option)
 
-	battery, err := ReadBatteryInfo(client)
+	battery, err := ReadBatteryInfo(self.client)
 	if err != nil {
 		log.Fatalf("Error reading Battery: %s", err.Error())
 	}
@@ -281,7 +395,7 @@ func (self *Service) Run() error {
 	log.Printf("Battery Rated Energy: %.1f kWh", battery.RatedEnergy/1000)
 	log.Printf("Battery Charge/Discharge (Continuous): %.1f/%.1f kW", battery.MaxPowerContinuousCharge/1000, battery.MaxPowerContinuousDischarge/1000)
 
-	ci, err := ReadControlInfo(client)
+	ci, err := ReadControlInfo(self.client)
 	if err != nil {
 		log.Fatalf("Error reading Control: %s", err.Error())
 	}
@@ -293,15 +407,18 @@ func (self *Service) Run() error {
 		battery:  string(battery.Serial[:]),
 	}
 
-	readCycle(client, handler, serials)
+	self.readCycle(handler, serials)
 	commands := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 	ticker := time.NewTicker(6 * time.Second)
+	remote := time.NewTicker(60 * time.Second)
 	for {
 		select {
 		case <-ticker.C:
-			readCycle(client, handler, serials)
+			self.readCycle(handler, serials)
 		case ev := <-commands:
-			self.handleCommand(ev, client)
+			self.handleCommand(ev)
+		case <-remote.C:
+			self.sendRemoteMode()
 		}
 	}
 }
