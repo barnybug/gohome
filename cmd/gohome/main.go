@@ -56,7 +56,7 @@ import (
 	"github.com/barnybug/gohome/util"
 )
 
-var version = "master" /* passed in by go build */
+var version = "main" /* passed in by go build */
 
 func registerServices() {
 	// register available services

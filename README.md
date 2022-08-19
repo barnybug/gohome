@@ -68,7 +68,7 @@ You also will need mosquitto installed:
 ## Configuration
 
 An example configuration is at:
-https://github.com/barnybug/gohome/blob/master/config.yml
+https://github.com/barnybug/gohome/blob/main/config.yml
 
 Edit this to match your setup and upload:
 
