@@ -28,6 +28,7 @@ var modelMap = map[string]string{
 	"Oregon-THN132N":    "temp",
 	"Nexus-TH":          "temp",
 	"TFA-TwinPlus":      "temp",
+	"Nexa-Security":     "sensor",
 }
 var fieldMap = map[string]string{
 	"battery_ok":    "battery",
@@ -50,7 +51,8 @@ var skipFields = map[string]bool{
 
 func translateEvent(data map[string]interface{}) *pubsub.Event {
 	model, _ := data["model"].(string)
-	source := fmt.Sprintf("%s.%v", model, data["id"])
+	id := int(data["id"].(float64))
+	source := fmt.Sprintf("%s.%d", model, id)
 	topic := "rtl433"
 	if t, ok := modelMap[model]; ok {
 		topic = t
