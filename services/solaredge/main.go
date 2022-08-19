@@ -99,14 +99,18 @@ func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial st
 	}
 	// validate
 	if m.M_Exported == 0 {
-		log.Println("Invalid meter data (export 0)")
-		return nil, errors.New("Invalid meter data")
+		return nil, errors.New("Invalid meter data (export 0)")
 	}
 
 	source := fmt.Sprintf("meter.grid") // serial unreliable read
 	power := scalei16(m.M_AC_Power, m.M_AC_Power_SF)
 	load := ac_power - power
-	solar := dc_power + battery_power*0.82 // losses DC->AC
+	loss := 0.98
+	if battery_power < 0 {
+		// battery draining: DC->AC loss
+		loss = 0.82
+	}
+	solar := dc_power + battery_power*loss
 	if solar < 0 {
 		solar = 0
 	}
@@ -161,7 +165,7 @@ type Serials struct {
 func (self *Service) readCycle(handler *modbus.TCPClientHandler, serials Serials) {
 	inv, ac_power, dc_power, err := readInverter(self.client, handler, serials.inverter)
 	if err != nil {
-		log.Println("Error reading inverter: %s", err)
+		log.Printf("Error reading inverter: %s", err)
 		return
 	}
 	if inv != nil {
@@ -169,7 +173,7 @@ func (self *Service) readCycle(handler *modbus.TCPClientHandler, serials Serials
 	}
 	battery, battery_power, err := readBatteryData(self.client, serials.battery)
 	if err != nil {
-		log.Println("Error reading battery: %s", err)
+		log.Printf("Error reading battery: %s", err)
 		return
 	}
 	if battery != nil {
@@ -177,7 +181,7 @@ func (self *Service) readCycle(handler *modbus.TCPClientHandler, serials Serials
 	}
 	meter, err := readMeter(self.client, handler, serials.meter, ac_power, dc_power, float64(battery_power))
 	if err != nil {
-		log.Println("Error reading meter: %s", err)
+		log.Printf("Error reading meter: %s", err)
 		return
 	}
 	if meter != nil {
@@ -365,18 +369,24 @@ func (self *Service) Run() error {
 
 	// Collect and log common inverter data
 	infoData, err := self.client.ReadHoldingRegisters(40000, 70)
-	inv, err := NewCommonModel(infoData)
 	if err != nil {
 		log.Fatalf("Error reading Inverter: %s", err.Error())
+	}
+	inv, err := NewCommonModel(infoData)
+	if err != nil {
+		log.Fatalf("Error decoding Inverter: %s", err.Error())
 	}
 	log.Printf("Inverter Model: %s", inv.C_Model)
 	log.Printf("Inverter Serial: %s", inv.C_SerialNumber)
 	log.Printf("Inverter Version: %s", inv.C_Version)
 
 	infoData2, err := self.client.ReadHoldingRegisters(40121, 65)
-	meter, err := NewCommonMeter(infoData2)
 	if err != nil {
 		log.Fatalf("Error reading Meter: %s", err.Error())
+	}
+	meter, err := NewCommonMeter(infoData2)
+	if err != nil {
+		log.Fatalf("Error decoding Meter: %s", err.Error())
 	}
 	log.Printf("Meter Manufacturer: %s", meter.C_Manufacturer)
 	log.Printf("Meter Model: %s", meter.C_Model)
