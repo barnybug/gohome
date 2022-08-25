@@ -69,25 +69,44 @@ func speakEndpoint(w http.ResponseWriter, r *http.Request) {
 		text = fmt.Sprintf("%s %s", services.Config.Espeak.Prefix, text)
 	}
 
+	// write to temporary file
+	file, err := os.CreateTemp("", "espeak.*.wav")
+	if err != nil {
+		log.Fatal(err)
+	}
+	file.Close() // espeak overwrites, so no point keeping this open
+	defer os.Remove(file.Name())
+
 	args := strings.Split(services.Config.Espeak.Args, " ")
-	args = append(args, "--stdout")
+	args = append(args, "-w")
+	args = append(args, file.Name())
 	args = append(args, text)
 	cmd := exec.Command("espeak", args...)
-	stdout, err := cmd.StdoutPipe()
+	err = cmd.Start()
 	if err == nil {
-		err = cmd.Start()
+		err = cmd.Wait()
 	}
 	if err != nil {
 		log.Printf("Error opening espeak: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, "Error")
+		fmt.Fprintf(w, "Error: %s", err)
 		return
 	}
+
 	w.Header().Add("Content-Type", "audio/x-wav")
 	w.WriteHeader(http.StatusOK)
-	io.Copy(w, stdout)
-	stdout.Close()
-	cmd.Wait()
+
+	data, err := os.Open(file.Name())
+	if err != nil {
+		log.Printf("Error reopening file: %s", err)
+		return
+	}
+
+	written, err := io.Copy(w, data)
+	if err != nil {
+		log.Printf("Error copying: %s", err)
+	}
+	log.Printf("Wrote: %d bytes", written)
 }
 
 func startWebserver() {
