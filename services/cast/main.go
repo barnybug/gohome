@@ -159,7 +159,7 @@ func sendAlert(client *cast.Client, message string, volume float64) error {
 	}
 
 	if volume == 0 {
-		volume = 0.1 // default
+		volume = 0.5 // default
 	}
 	if previousVolume == nil || volume != *previousVolume.Level {
 		setVolume(client, volume)
