@@ -80,6 +80,11 @@ type Service struct {
 
 func (self *Service) Heartbeat() {
 	self.Check(true)
+	if self.HeatingDevice == "auto" {
+		// no specific device to switch on or off, the hive thermostat directly controls
+		// the call for heat from the boiler controller.
+		return
+	}
 	// emit event for datalogging
 	fields := pubsub.Fields{
 		"device":  self.HeatingDevice,
@@ -147,11 +152,16 @@ func (self *Service) Check(emitEvents bool) {
 				"target": target,
 				"temp":   zone.Temp,
 			}
+			if now.Before(zone.PartyUntil) {
+				fields["boost"] = zone.PartyUntil.Sub(now).Seconds()
+			}
 			ev := pubsub.NewEvent("thermostat", fields)
 			self.Publisher.Emit(ev)
 		}
 	}
-
+	if self.HeatingDevice == "auto" {
+		return
+	}
 	if !self.State && state {
 		log.Println("Turning on heating for:", trigger)
 	} else if self.State && !state {

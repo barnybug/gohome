@@ -24,12 +24,14 @@ func (self *Service) ID() string {
 }
 
 var topicMap = map[string]string{
-	"state":       "ack",
-	"temperature": "temp",
-	"action":      "button",
+	"state":                  "ack",
+	"temperature":            "temp",
+	"local_temperature_heat": "temp",
+	"action":                 "button",
 }
 var fieldMap = map[string]string{
-	"temperature": "temp",
+	"temperature":            "temp",
+	"local_temperature_heat": "temp",
 }
 var ignoreMap = map[string]bool{
 	"update_available": true,
@@ -142,6 +144,8 @@ func translate(message MQTT.Message) *pubsub.Event {
 		if topicValue, ok := topicMap[key]; ok {
 			// use presence of keys to determine topic
 			topic = topicValue
+		} else if key == "brightness" {
+
 		}
 		// map fields
 		if key == "state" {
@@ -220,6 +224,38 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 	}
 }
 
+func (self *Service) handleThermostat(ev *pubsub.Event) {
+	target, ok := ev.Fields["target"].(float64)
+	if !ok {
+		log.Println("Error: thermostat event target field invalid:", ev)
+		return
+	}
+
+	id, ok := services.Config.LookupDeviceProtocol(ev.Device(), "zigbee")
+	if !ok {
+		return // command not for us
+	}
+	// hive https://www.zigbee2mqtt.io/devices/SLR2b.html
+	// translate to zigbee2mqtt message
+	topic := fmt.Sprintf("zigbee2mqtt/%s/set", id)
+	body := map[string]interface{}{
+		"system_mode_heat":               "heat",
+		"temperature_setpoint_hold_heat": "1",
+		"occupied_heating_setpoint_heat": fmt.Sprint(int(target)),
+	}
+	if boost, ok := ev.Fields["boost"].(float64); ok {
+		// boost (aka party mode) - so they show up on device
+		body["system_mode_heat"] = "emergency_heating"
+		body["temperature_setpoint_hold_duration_heat"] = int(boost / 60) // minutes
+	}
+	payload, _ := json.Marshal(body)
+	log.Println("Sending", topic, string(payload))
+	token := mqtt.Client.Publish(topic, 1, false, payload)
+	if token.Wait() && token.Error() != nil {
+		log.Println("Failed to publish message:", token.Error())
+	}
+}
+
 func (self *Service) Run() error {
 	mqtt.Client.Subscribe("zigbee2mqtt/#", 1, func(client MQTT.Client, msg MQTT.Message) {
 		ev := translate(msg)
@@ -229,10 +265,13 @@ func (self *Service) Run() error {
 	})
 
 	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
+	thermostatChannel := services.Subscriber.Subscribe(pubsub.Prefix("thermostat"))
 	for {
 		select {
 		case command := <-commandChannel:
 			self.handleCommand(command)
+		case ev := <-thermostatChannel:
+			self.handleThermostat(ev)
 		}
 	}
 	return nil
