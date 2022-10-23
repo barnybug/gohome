@@ -241,7 +241,7 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 	body := map[string]interface{}{
 		"system_mode_heat":               "heat",
 		"temperature_setpoint_hold_heat": "1",
-		"occupied_heating_setpoint_heat": fmt.Sprint(int(target)),
+		"occupied_heating_setpoint_heat": fmt.Sprint(target),
 	}
 	if boost, ok := ev.Fields["boost"].(float64); ok {
 		// boost (aka party mode) - so they show up on device
