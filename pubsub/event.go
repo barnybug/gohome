@@ -25,7 +25,9 @@ func NewEvent(topic string, fields Fields) *Event {
 	timestamp := time.Now().UTC()
 	if ts, ok := fields["timestamp"].(string); ok {
 		delete(fields, "timestamp")
-		timestamp, _ = time.Parse(TimeFormat, ts)
+		if t, err := time.Parse(TimeFormat, ts); err == nil {
+			timestamp = t
+		}
 	}
 	return &Event{Topic: topic, Timestamp: timestamp, Fields: fields, Format: "json"}
 }

@@ -54,17 +54,21 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
+type Functions map[string]govaluate.ExpressionFunction
+
 // Service automata
 type Service struct {
 	timers            map[string]*time.Timer
 	config            *services.ConfigService
 	automataConfig    *services.ConfigWaiter
-	functions         map[string]govaluate.ExpressionFunction
+	whenFunctions     Functions
+	actionFunctions   Functions
 	restoredAutomaton map[string]bool
 	rand              *rand.Rand
 }
 
 var automata *gofsm.Automata
+var deviceState = map[string]map[string]*pubsub.Event{} // device -> topic
 
 // ID of the service
 func (self *Service) ID() string {
@@ -103,8 +107,8 @@ func NewEventContext(service *Service, event *pubsub.Event) EventContext {
 }
 
 func State(args ...interface{}) (interface{}, error) {
-	if len(args) != 1 {
-		return nil, errors.New("Expected 1 arguments to State()")
+	if err := checkArguments(args, "string"); err != nil {
+		return nil, err
 	}
 	name := args[0].(string)
 	aut, ok := automata.Automaton[name]
@@ -115,12 +119,39 @@ func State(args ...interface{}) (interface{}, error) {
 	return aut.State.Name, nil
 }
 
+func Value(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "string", "string", "string"); err != nil {
+		return nil, err
+	}
+	device := args[0].(string)
+	topics, ok := deviceState[device]
+	if !ok {
+		return nil, fmt.Errorf("Value(): no event for device '%s' found", device)
+	}
+	topic := args[1].(string)
+	event, ok := topics[topic]
+	if !ok {
+		return nil, fmt.Errorf("Value(): no event for device '%s' topic '%s' found", device, topic)
+	}
+
+	field := args[2].(string)
+	value, ok := event.Fields[field]
+	if !ok {
+		return nil, fmt.Errorf("Value(): no field for device '%s' topic '%s' field '%s' found", device, topic, field)
+	}
+
+	return value, nil
+}
+
 var parsingCache = map[string]*govaluate.EvaluableExpression{}
 
 func (self *Service) defineFunctions() {
 	// govaluate functions
-	self.functions = map[string]govaluate.ExpressionFunction{
-		"State":       State,
+	self.whenFunctions = map[string]govaluate.ExpressionFunction{
+		"State": State,
+		"Value": Value,
+	}
+	self.actionFunctions = map[string]govaluate.ExpressionFunction{
 		"Alert":       self.Alert,
 		"Command":     self.Command,
 		"Delay":       self.Delay,
@@ -135,16 +166,16 @@ func (self *Service) defineFunctions() {
 	}
 }
 
-func (self *Service) ParseCached(s string) (*govaluate.EvaluableExpression, error) {
+func (self *Service) ParseCached(s string, functions Functions) (*govaluate.EvaluableExpression, error) {
 	if expr, ok := parsingCache[s]; ok {
 		return expr, nil
 	}
 
-	if self.functions == nil {
+	if self.whenFunctions == nil {
 		self.defineFunctions()
 	}
 
-	expr, err := govaluate.NewEvaluableExpressionWithFunctions(s, self.functions)
+	expr, err := govaluate.NewEvaluableExpressionWithFunctions(s, functions)
 	if err != nil {
 		return nil, fmt.Errorf("Bad expression '%s': %s", s, err)
 	}
@@ -153,7 +184,7 @@ func (self *Service) ParseCached(s string) (*govaluate.EvaluableExpression, erro
 }
 
 func (self EventContext) Match(when string) bool {
-	expr, err := self.service.ParseCached(when)
+	expr, err := self.service.ParseCached(when, self.service.whenFunctions)
 	if err != nil {
 		log.Printf("Error parsing expression '%s': %s", when, err)
 		return false
@@ -361,13 +392,13 @@ func (self *Service) loadAutomata() error {
 	for _, aut := range updated.Automaton {
 		for _, transition := range aut.Transitions {
 			for _, t := range transition {
-				_, err := self.ParseCached(t.When)
+				_, err := self.ParseCached(t.When, self.whenFunctions)
 				if err != nil {
 					errors = append(errors, err)
 				}
 
 				for _, action := range t.Actions {
-					_, err := self.ParseCached(action)
+					_, err := self.ParseCached(action, self.actionFunctions)
 					if err != nil {
 						errors = append(errors, err)
 					}
@@ -377,13 +408,13 @@ func (self *Service) loadAutomata() error {
 
 		for _, state := range aut.States {
 			for _, action := range state.Entering {
-				_, err := self.ParseCached(action)
+				_, err := self.ParseCached(action, self.actionFunctions)
 				if err != nil {
 					errors = append(errors, err)
 				}
 			}
 			for _, action := range state.Leaving {
-				_, err := self.ParseCached(action)
+				_, err := self.ParseCached(action, self.actionFunctions)
 				if err != nil {
 					errors = append(errors, err)
 				}
@@ -444,7 +475,7 @@ func (self *Service) performAction(action gofsm.Action) {
 	// rewrite expressions to add implicit 'context' first parameter
 	// Might do away with this.
 	code = strings.Replace(code, "(", "(context, ", 1)
-	expr, err := self.ParseCached(code)
+	expr, err := self.ParseCached(code, self.actionFunctions)
 	if err != nil {
 		log.Println("Error parsing action:", err)
 		return
@@ -520,6 +551,20 @@ func (self *Service) Run() error {
 				// ignore direct commands - ack/homeeasy events indicate commands completing.
 				continue
 			}
+
+			if ev.Device() == "" {
+				// For dumb devices only emitting "source"
+				services.Config.AddDeviceToEvent(ev)
+			}
+
+			// keep event values for reference in other conditions
+			if ev.Device() != "" {
+				if _, ok := deviceState[ev.Device()]; !ok {
+					deviceState[ev.Device()] = make(map[string]*pubsub.Event)
+				}
+				deviceState[ev.Device()][ev.Topic] = ev
+			}
+
 			if ev.Retained {
 				if ev.Topic == "state" {
 					self.restoreState(ev)
@@ -530,11 +575,6 @@ func (self *Service) Run() error {
 			if ev.Topic == "state" && ev.StringField("trigger") == "initial" {
 				// ignore initial state events
 				continue
-			}
-
-			if ev.Device() == "" {
-				// For dumb devices only emitting "source"
-				services.Config.AddDeviceToEvent(ev)
 			}
 
 			// send relevant events to the automata
@@ -724,6 +764,8 @@ func asyncScript(command string) {
 		log.Printf("Script '%s' successful: %s", command, output)
 	}()
 }
+
+// action functions
 
 func (self *Service) Alert(args ...interface{}) (interface{}, error) {
 	if err := checkArguments(args, "", "string", "string"); err != nil {
