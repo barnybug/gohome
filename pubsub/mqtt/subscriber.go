@@ -17,11 +17,12 @@ type eventChannel struct {
 
 // Subscriber struct
 type Subscriber struct {
-	broker       *Broker
-	channels     []eventChannel
-	channelsLock sync.Mutex
-	topicCount   map[string]int
-	persist      bool
+	broker         *Broker
+	channels       []eventChannel
+	channelsLock   sync.Mutex
+	topicCount     map[string]int
+	topicCountLock sync.RWMutex
+	persist        bool
 }
 
 func NewSubscriber(broker *Broker, persist bool) *Subscriber {
@@ -60,9 +61,11 @@ func (self *Subscriber) connectHandler(client MQTT.Client) {
 	}
 	// (re)subscribe when (re)connected
 	subs := map[string]byte{}
+	self.topicCountLock.RLock()
 	for topic, _ := range self.topicCount {
 		subs[topic] = 1 // QOS
 	}
+	self.topicCountLock.RUnlock()
 
 	if len(subs) > 0 {
 		// nil = all messages go to the default handler
@@ -99,6 +102,7 @@ func (self *Subscriber) addChannel(topics []pubsub.Topic) eventChannel {
 	// subscribe topics not yet subscribed to
 	subs := map[string]byte{}
 	mqttTopics := topicsToMqtt(topics)
+	self.topicCountLock.Lock()
 	for _, topic := range mqttTopics {
 		_, exists := self.topicCount[topic]
 		if !exists {
@@ -107,6 +111,7 @@ func (self *Subscriber) addChannel(topics []pubsub.Topic) eventChannel {
 		}
 		self.topicCount[topic] += 1
 	}
+	self.topicCountLock.Unlock()
 
 	ch := eventChannel{
 		C:      make(chan *pubsub.Event, 16),
@@ -137,8 +142,11 @@ func (self *Subscriber) Close(channel <-chan *pubsub.Event) {
 		if channel == chan *pubsub.Event(ch.C) {
 			for _, topic := range ch.topics {
 				t := topicToMqtt(topic)
+				self.topicCountLock.Lock()
 				self.topicCount[t] -= 1
-				if self.topicCount[t] == 0 {
+				current := self.topicCount[t]
+				self.topicCountLock.Unlock()
+				if current == 0 {
 					// fmt.Printf("Unsubscribe: %+v\n", topicName(topic))
 					if token := self.broker.client.Unsubscribe(t); token.Wait() && token.Error() != nil {
 						log.Println("Error unsubscribing:", token.Error())
