@@ -41,6 +41,7 @@ var Subscriber pubsub.Subscriber
 type Listener func()
 
 type ConfigWaiter struct {
+	topic   pubsub.Topic
 	Value   []byte
 	hash    uint32
 	events  <-chan *pubsub.Event
@@ -50,17 +51,18 @@ type ConfigWaiter struct {
 
 func NewConfigWaiter(topic pubsub.Topic) *ConfigWaiter {
 	return &ConfigWaiter{
+		topic:   topic,
 		events:  Subscriber.Subscribe(topic),
-		Updated: make(chan bool),
+		Updated: make(chan bool, 1),
 	}
 }
 
 func (c *ConfigWaiter) Wait() {
-	if c.loopOne() {
-		if c.update != nil {
-			c.update()
-		}
-		c.notify()
+	// wait until changed
+	for !c.loopOne() {
+	}
+	if c.update != nil {
+		c.update()
 	}
 }
 
@@ -68,22 +70,34 @@ func (c *ConfigWaiter) notify() {
 	// non-blocking send
 	select {
 	case c.Updated <- true:
+		// log.Printf("ConfigWaiter %s notify sent", c.topic)
 	default:
+		log.Printf("ConfigWaiter %s notify failed", c.topic)
 	}
 }
 
 func (c *ConfigWaiter) loopOne() bool {
+	// log.Printf("ConfigWaiter %s waiting for events", c.topic)
 	ev := <-c.events
 	value := ev.Bytes()
 	hashValue := hash(value)
 	previous := c.hash
 	if previous == hashValue {
 		// ignore duplicate events - from services subscribing to gohome/#.
+		// log.Printf("ConfigWaiter %s received event - unchanged", c.topic)
 		return false
 	}
+	// log.Printf("ConfigWaiter %s received event", c.topic)
 	c.hash = hashValue
 	c.Value = value
 	return true
+}
+
+func (c *ConfigWaiter) Watch() {
+	for {
+		c.Wait()
+		c.notify()
+	}
 }
 
 type ConfigService struct {
@@ -92,10 +106,12 @@ type ConfigService struct {
 }
 
 func NewConfigService() *ConfigService {
+	topic := pubsub.Exact("config")
 	cs := &ConfigService{
 		ConfigWaiter{
-			events:  Subscriber.Subscribe(pubsub.Exact("config")),
-			Updated: make(chan bool),
+			topic:   topic,
+			events:  Subscriber.Subscribe(topic),
+			Updated: make(chan bool, 1),
 		},
 		nil,
 	}
@@ -134,12 +150,6 @@ func WaitForConfig() *ConfigService {
 		go globalConfigService.Watch()
 	}
 	return globalConfigService
-}
-
-func (c *ConfigService) Watch() {
-	for {
-		c.Wait()
-	}
 }
 
 func SetupFlags() {

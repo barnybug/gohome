@@ -171,10 +171,6 @@ func (self *Service) ParseCached(s string, functions Functions) (*govaluate.Eval
 		return expr, nil
 	}
 
-	if self.whenFunctions == nil {
-		self.defineFunctions()
-	}
-
 	expr, err := govaluate.NewEvaluableExpressionWithFunctions(s, functions)
 	if err != nil {
 		return nil, fmt.Errorf("Bad expression '%s': %s", s, err)
@@ -522,10 +518,13 @@ func publishState(device, state, trigger string) {
 }
 
 func (self *Service) Init() error {
+	self.defineFunctions()
 	self.config = services.WaitForConfig()
 	self.automataConfig = services.NewConfigWaiter(pubsub.Exact("config/automata"))
 	// wait for first automata config
 	self.automataConfig.Wait()
+	// watch for further changes
+	go self.automataConfig.Watch()
 	// load templated automata
 	return self.loadAutomata()
 }
