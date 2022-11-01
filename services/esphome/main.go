@@ -22,37 +22,54 @@ func (self *Service) ID() string {
 	return "esphome"
 }
 
+func announce(source string) {
+	fields := pubsub.Fields{"source": source}
+	ev := pubsub.NewEvent("announce", fields)
+	services.Config.AddDeviceToEvent(ev)
+	services.Publisher.Emit(ev)
+}
+
+func source(ps []string) string {
+	source := ps[1] // "flora.garden3"
+	if !strings.Contains(source, ".") {
+		source = "esphome." + source
+	}
+	if ps[2] == "switch" {
+		source += ":" + ps[3]
+	}
+	return source
+}
+
 func translate(message MQTT.Message) *pubsub.Event {
 	// esphome/flora.garden3/sensor/conductivity/state
 	// esphome/sonoff1/switch/relay/state
 	ps := strings.Split(message.Topic(), "/")
 	last := ps[len(ps)-1]
-	if last == "debug" || last == "status" || last == "command" {
+	if last == "debug" || last == "command" {
 		return nil
 	}
-	if last != "state" {
+	source := source(ps)
+	payload := string(message.Payload())
+	if last == "status" {
+		log.Printf("%s status %s", source, payload)
+		return nil
+	}
+	if last != "state" && last != "status" {
 		log.Printf("Ignoring unknown topic: %s", message.Topic())
 		return nil
 	}
 
-	source := ps[1] // "flora.garden3"
-	if !strings.Contains(source, ".") {
-		source = "esphome." + source
-	}
 	var topic, field string
 	if ps[2] == "switch" {
 		topic = "ack"
 		field = "command"
-		source += ":" + ps[3]
 	} else {
 		field = ps[3] // "conductivity"
 		topic = field
 	}
-
 	fields := pubsub.Fields{
 		"source": source,
 	}
-	payload := string(message.Payload())
 	if payload == "ON" || payload == "OFF" {
 		fields[field] = strings.ToLower(payload)
 	} else if value, err := strconv.ParseFloat(payload, 64); err == nil {
@@ -62,6 +79,9 @@ func translate(message MQTT.Message) *pubsub.Event {
 	}
 	ev := pubsub.NewEvent(topic, fields)
 	services.Config.AddDeviceToEvent(ev)
+	if topic == "ack" && ev.Device() != "" {
+		log.Printf("Set device %s to %s", ev.Device(), ev.Command())
+	}
 	return ev
 }
 
