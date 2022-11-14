@@ -305,7 +305,7 @@ func (self *Service) transmitCommands(dev *gorfxtrx.Device) {
 
 func getStatus(dev *gorfxtrx.Device) {
 	log.Println("Setting mode")
-	setmode := &gorfxtrx.SetMode{}
+	setmode := &gorfxtrx.SetMode{Oregon: true}
 	err := dev.Send(setmode)
 	if err != nil {
 		log.Println("Error sending packet:", err)

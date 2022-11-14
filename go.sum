@@ -34,6 +34,8 @@ github.com/barnybug/gorfxtrx v0.0.0-20190313200345-fab70020949d h1:aevgnoqhJgelJ
 github.com/barnybug/gorfxtrx v0.0.0-20190313200345-fab70020949d/go.mod h1:vGfufSVvFEDxZNel47pRC8PjecRw9zMT4i0wEJzFRyc=
 github.com/barnybug/gorfxtrx v0.0.0-20190905200316-0c4514bd3ca7 h1:piie6HX3xkwQeKQ/nPx3Vy9MckJdpxE5NfVawx4hpOA=
 github.com/barnybug/gorfxtrx v0.0.0-20190905200316-0c4514bd3ca7/go.mod h1:vkgXls79dfeUXi50lYE9jjLCJPzTRdmpOGuujU6Rsjg=
+github.com/barnybug/gorfxtrx v0.0.0-20221114071147-22f3b092d552 h1:q29omEdXAFhPBEv2XxLoJUOqw4DsFHsjHfz3g+FI47o=
+github.com/barnybug/gorfxtrx v0.0.0-20221114071147-22f3b092d552/go.mod h1:vkgXls79dfeUXi50lYE9jjLCJPzTRdmpOGuujU6Rsjg=
 github.com/barnybug/miflora v0.0.0-20190206202408-36c55fde159f h1:H7nVY9Sk8TLg6NAsLYIjj4nNHbcgskGysJN56IENWes=
 github.com/barnybug/miflora v0.0.0-20190206202408-36c55fde159f/go.mod h1:emo0XuZuFlREoK2Lyqk4xHboCs3O+4FwihWwP0tHwuU=
 github.com/beevik/ntp v0.3.0/go.mod h1:hIHWr+l3+/clUnF44zdK+CWW7fO8dR5cIylAQ76NRpg=

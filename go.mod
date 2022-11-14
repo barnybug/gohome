@@ -10,7 +10,7 @@ require (
 	github.com/barnybug/go-cast v0.0.0-20170213204855-3896d2c05eb1
 	github.com/barnybug/gofsm v0.0.0-20191107182434-63b866209683
 	github.com/barnybug/gogsmmodem v0.0.0-20170503201841-a49dbc25a146
-	github.com/barnybug/gorfxtrx v0.0.0-20190905200316-0c4514bd3ca7
+	github.com/barnybug/gorfxtrx v0.0.0-20221114071147-22f3b092d552
 	github.com/barnybug/miflora v0.0.0-20190206202408-36c55fde159f
 	github.com/c9s/goprocinfo v0.0.0-20210130143923-c95fcf8c64a8 // indirect
 	github.com/chbmuc/lirc v0.0.0-20150702183631-f5796a80dd2b
