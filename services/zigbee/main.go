@@ -144,8 +144,6 @@ func translate(message MQTT.Message) *pubsub.Event {
 		if topicValue, ok := topicMap[key]; ok {
 			// use presence of keys to determine topic
 			topic = topicValue
-		} else if key == "brightness" {
-
 		}
 		// map fields
 		if key == "state" {
@@ -153,17 +151,21 @@ func translate(message MQTT.Message) *pubsub.Event {
 		} else if key == "brightness" {
 			fields["level"] = DimToPercentage(int(value.(float64)))
 		} else if key == "action" {
-			// multiple button device
-			ps := buttonAction.FindStringSubmatch(value.(string))
-			if len(ps) == 0 {
-				log.Printf("Failed to parse action %v", value)
-				continue
-			}
-			source += ":" + ps[1]
-			if ps[2] == "single" {
-				fields["command"] = "on"
+			if value == "off" || value == "on" {
+				fields["command"] = value
 			} else {
-				fields["command"] = ps[2]
+				// multiple button device
+				ps := buttonAction.FindStringSubmatch(value.(string))
+				if len(ps) == 0 {
+					log.Printf("Failed to parse action %v", value)
+					continue
+				}
+				source += ":" + ps[1]
+				if ps[2] == "single" {
+					fields["command"] = "on"
+				} else {
+					fields["command"] = ps[2]
+				}
 			}
 		} else if to, ok := fieldMap[key]; ok {
 			fields[to] = value
