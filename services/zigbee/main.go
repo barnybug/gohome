@@ -131,7 +131,7 @@ func translate(message MQTT.Message) *pubsub.Event {
 		log.Printf("Failed to parse message %s: '%s'", message.Topic(), message.Payload())
 		return nil
 	}
-	if data["action"] == "" {
+	if action, ok := data["action"]; ok && (action == "" || action == nil) {
 		// ignore empty action following a button press
 		return nil
 	}
