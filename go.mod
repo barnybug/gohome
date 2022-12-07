@@ -16,6 +16,7 @@ require (
 	github.com/chbmuc/lirc v0.0.0-20150702183631-f5796a80dd2b
 	github.com/eclipse/paho.mqtt.golang v1.0.0
 	github.com/edgard/yeelight v0.0.0-20170904135826-c32a2f3eb57c
+	github.com/go-ble/ble v0.0.0-20220920230323-9a45bebfde4f // indirect
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
 	github.com/goburrow/modbus v0.1.0 // indirect
 	github.com/goburrow/serial v0.1.0 // indirect
@@ -33,6 +34,7 @@ require (
 	github.com/mitsuse/pushbullet-go v0.1.0
 	github.com/nlopes/slack v0.0.0-20170604215958-f243c7602fdf
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e
