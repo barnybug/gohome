@@ -40,6 +40,7 @@ import (
 	"github.com/barnybug/gohome/services/rtl433"
 	"github.com/barnybug/gohome/services/script"
 	"github.com/barnybug/gohome/services/sender"
+	"github.com/barnybug/gohome/services/shelly"
 	"github.com/barnybug/gohome/services/slack"
 	"github.com/barnybug/gohome/services/sms"
 	"github.com/barnybug/gohome/services/solaredge"
@@ -93,6 +94,7 @@ func registerServices() {
 	services.Register(&rtl433.Service{})
 	services.Register(&script.Service{})
 	services.Register(&sender.Service{})
+	services.Register(&shelly.Service{})
 	services.Register(&slack.Service{})
 	services.Register(&sms.Service{})
 	services.Register(&solaredge.Service{})
