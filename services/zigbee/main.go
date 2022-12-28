@@ -23,15 +23,57 @@ func (self *Service) ID() string {
 	return "zigbee"
 }
 
-var topicMap = map[string]string{
-	"state":                  "ack",
-	"temperature":            "temp",
-	"local_temperature_heat": "temp",
-	"action":                 "button",
+type Field struct {
+	Topic string
+	Field string
+	Parse func(value interface{}) interface{}
 }
-var fieldMap = map[string]string{
-	"temperature":            "temp",
-	"local_temperature_heat": "temp",
+
+func parseHeating(value interface{}) interface{} {
+	switch value {
+	case "idle":
+		return false
+	case "heat":
+		return true
+	default:
+		return nil
+	}
+}
+
+func parseBrightness(value interface{}) interface{} {
+	if f, ok := value.(float64); ok {
+		return DimToPercentage(int(f))
+	}
+	return nil
+}
+
+var mapping = map[string]Field{
+	"state": {
+		Topic: "ack",
+		Field: "state",
+	},
+	"temperature": {
+		Topic: "temp",
+		Field: "temp",
+	},
+	"local_temperature_heat": {
+		Topic: "temp",
+		Field: "temp",
+	},
+	"action": {
+		Topic: "button",
+		Field: "action",
+	},
+	"running_state_heat": {
+		Topic: "temp",
+		Field: "heating",
+		Parse: parseHeating,
+	},
+	"brightness": {
+		Topic: "ack",
+		Field: "level",
+		Parse: parseBrightness,
+	},
 }
 var ignoreMap = map[string]bool{
 	"update_available": true,
@@ -141,15 +183,11 @@ func translate(message MQTT.Message) *pubsub.Event {
 	topic := "zigbee"
 	fields := pubsub.Fields{}
 	for key, value := range data {
-		if topicValue, ok := topicMap[key]; ok {
-			// use presence of keys to determine topic
-			topic = topicValue
-		}
 		// map fields
-		if key == "state" {
+		if ignoreMap[key] {
+			continue
+		} else if key == "state" {
 			fields["command"] = strings.ToLower(value.(string))
-		} else if key == "brightness" {
-			fields["level"] = DimToPercentage(int(value.(float64)))
 		} else if key == "action" {
 			if value == "off" || value == "on" {
 				fields["command"] = value
@@ -167,10 +205,14 @@ func translate(message MQTT.Message) *pubsub.Event {
 					fields["command"] = ps[2]
 				}
 			}
-		} else if to, ok := fieldMap[key]; ok {
-			fields[to] = value
-		} else if ignoreMap[key] {
-			continue
+		} else if field, ok := mapping[key]; ok {
+			topic = field.Topic
+			if field.Parse != nil {
+				value = field.Parse(value)
+			}
+			if value != nil {
+				fields[field.Field] = value
+			}
 		} else {
 			fields[key] = value // map unknowns as is
 		}
@@ -219,7 +261,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		body["color"] = map[string]interface{}{"hex": ev.StringField("colour")}
 	}
 	payload, _ := json.Marshal(body)
-	log.Println("Sending", topic, string(payload))
+	// log.Println("Sending", topic, string(payload))
 	token := mqtt.Client.Publish(topic, 1, false, payload)
 	if token.Wait() && token.Error() != nil {
 		log.Println("Failed to publish message:", token.Error())
@@ -251,7 +293,7 @@ func (self *Service) handleThermostat(ev *pubsub.Event) {
 		body["temperature_setpoint_hold_duration_heat"] = int(boost / 60) // minutes
 	}
 	payload, _ := json.Marshal(body)
-	log.Println("Sending", topic, string(payload))
+	// log.Println("Sending", topic, string(payload))
 	token := mqtt.Client.Publish(topic, 1, false, payload)
 	if token.Wait() && token.Error() != nil {
 		log.Println("Failed to publish message:", token.Error())

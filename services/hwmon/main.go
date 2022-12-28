@@ -78,12 +78,18 @@ func readTemps(device string, zones map[string]string) {
 
 func findThermalDevices() (zones map[string]string, err error) {
 	zones = map[string]string{}
-	matches, err := filepath.Glob("/sys/devices/virtual/thermal/thermal_zone?/temp")
+	paths, err := filepath.Glob("/sys/devices/virtual/thermal/thermal_zone?/temp")
 	if err != nil {
 		return
 	}
-	for _, match := range matches {
-		zones[thermalZoneFieldName(match)] = match
+	for _, path := range paths {
+		// test reading to verify sensor is working
+		_, err := readTemp(path)
+		if err != nil {
+			fmt.Printf("error reading - ignoring %s: %s\n", path, err)
+			continue
+		}
+		zones[thermalZoneFieldName(path)] = path
 	}
 	return
 }

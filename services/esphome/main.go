@@ -79,9 +79,9 @@ func translate(message MQTT.Message) *pubsub.Event {
 	}
 	ev := pubsub.NewEvent(topic, fields)
 	services.Config.AddDeviceToEvent(ev)
-	if topic == "ack" && ev.Device() != "" {
-		log.Printf("Set device %s to %s", ev.Device(), ev.Command())
-	}
+	// if topic == "ack" && ev.Device() != "" {
+	// 	log.Printf("Set device %s to %s", ev.Device(), ev.Command())
+	// }
 	return ev
 }
 
