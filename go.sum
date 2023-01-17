@@ -112,6 +112,8 @@ github.com/gorilla/context v0.0.0-20140522220343-1f3e8a46c5bb h1:1GWjMcanmPl58qx
 github.com/gorilla/context v0.0.0-20140522220343-1f3e8a46c5bb/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/mux v0.0.0-20140527234147-0ef595e787ef h1:QyET/LoVRJZdCNojvpmXrjiWSr99F9C1sHIIw0BGeIc=
 github.com/gorilla/mux v0.0.0-20140527234147-0ef595e787ef/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
+github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
+github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/hashicorp/go.net v0.0.0-20151006203346-104dcad90073 h1:9dodOMuH6u7LvPEkVydBv6KTHdm+SqsHOxHTzRW+1+w=
 github.com/hashicorp/go.net v0.0.0-20151006203346-104dcad90073/go.mod h1:hjKkEWcCURg++eb33jQU7oqQcI9XDCnUzHA0oac0k90=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
@@ -147,6 +149,8 @@ github.com/mattn/go-colorable v0.1.6 h1:6Su7aK7lXmJ/U79bYtBjLNaha4Fs1Rg9plHpcH+v
 github.com/mattn/go-colorable v0.1.6/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
 github.com/mattn/go-isatty v0.0.12 h1:wuysRhFDzyxgEmMf5xjvJ2M9dZoWAXNNr5LSBS7uHXY=
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
+github.com/mattn/go-mastodon v0.0.6 h1:lqU1sOeeIapaDsDUL6udDZIzMb2Wqapo347VZlaOzf0=
+github.com/mattn/go-mastodon v0.0.6/go.mod h1:cg7RFk2pcUfHZw/IvKe1FUzmlq5KnLFqs7eV2PHplV8=
 github.com/mattn/go-xmpp v0.0.0-20170423100754-906d9d747d2b h1:Q9s9PRlh2my2ijeUdi6rvKOYPMCPyKRHMPPTVGwWVQM=
 github.com/mattn/go-xmpp v0.0.0-20170423100754-906d9d747d2b/go.mod h1:Cs5mF0OsrRRmhkyOod//ldNPOwJsrBvJ+1WRspv0xoc=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
@@ -232,6 +236,8 @@ github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e h1:nt2877sKf
 github.com/tatsushid/go-fastping v0.0.0-20160109021039-d7bb493dee3e/go.mod h1:B4+Kq1u5FlULTjFSM707Q6e/cOHFv0z/6QRoxubDIQ8=
 github.com/technoweenie/multipartstreamer v1.0.1 h1:XRztA5MXiR1TIRHxH2uNxXxaIkKQDeX7m2XsSOlQEnM=
 github.com/technoweenie/multipartstreamer v1.0.1/go.mod h1:jNVxdtShOxzAsukZwTSw6MDx5eUJoiEBsSvzDU9uzog=
+github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 h1:nrZ3ySNYwJbSpD6ce9duiP+QkD3JuLCcWkdaehUS/3Y=
+github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80/go.mod h1:iFyPdL66DjUD96XmzVL3ZntbzcflLnznH0fr99w5VqE=
 github.com/twitchtv/twirp v5.8.0+incompatible/go.mod h1:RRJoFSAmTEh2weEqWtpPE3vFK5YBhA6bqp2l1kfCC5A=
 github.com/u-root/iscsinl v0.1.1-0.20210528121423-84c32645822a/go.mod h1:RWIgJWqm9/0gjBZ0Hl8iR6MVGzZ+yAda2uqqLmetE2I=
 github.com/u-root/u-root v0.8.0 h1:jqP7uPC2+0eRszYTrmdZ6UDyO1Dbuy0rpMo+BnPZ9cY=

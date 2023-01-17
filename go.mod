@@ -28,6 +28,7 @@ require (
 	github.com/kurrik/json v0.0.0-20140724225315-f63ef626c5ff // indirect
 	github.com/kurrik/oauth1a v0.0.0-20151019171716-cb1b80e32dd4
 	github.com/kurrik/twittergo v0.0.0-20150522053940-c62b9397a628
+	github.com/mattn/go-mastodon v0.0.6 // indirect
 	github.com/mattn/go-xmpp v0.0.0-20170423100754-906d9d747d2b
 	github.com/mdlayher/apcupsd v0.0.0-20160907034522-888a66ab0fe0
 	github.com/miekg/dns v0.0.0-20170525221906-0c23f842c83e // indirect

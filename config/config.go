@@ -143,6 +143,13 @@ type JabberConf struct {
 	Pass string
 }
 
+type MastodonConf struct {
+	Server        string
+	Client_id     string
+	Client_secret string
+	Access_token  string
+}
+
 type OrviboConf struct {
 	Broadcast string
 }
@@ -233,6 +240,7 @@ type Config struct {
 	Heating      HeatingConf
 	Irrigation   IrrigationConf
 	Jabber       JabberConf
+	Mastodon     MastodonConf
 	Orvibo       OrviboConf
 	Presence     PresenceConf
 	Pushbullet   PushbulletConf

@@ -30,6 +30,7 @@ import (
 	"github.com/barnybug/gohome/services/irrigation"
 	"github.com/barnybug/gohome/services/jabber"
 	"github.com/barnybug/gohome/services/lirc"
+	"github.com/barnybug/gohome/services/mastodon"
 	"github.com/barnybug/gohome/services/miflora"
 	"github.com/barnybug/gohome/services/orvibo"
 	"github.com/barnybug/gohome/services/presence"
@@ -84,6 +85,7 @@ func registerServices() {
 	services.Register(&irrigation.Service{})
 	services.Register(&jabber.Service{})
 	services.Register(&lirc.Service{})
+	services.Register(&mastodon.Service{})
 	services.Register(&miflora.Service{})
 	services.Register(&orvibo.Service{})
 	services.Register(&presence.Service{})
