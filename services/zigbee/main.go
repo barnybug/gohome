@@ -7,6 +7,7 @@ import (
 	"log"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/barnybug/gohome/pubsub/mqtt"
 
@@ -88,11 +89,18 @@ var deviceUpdate = regexp.MustCompile(`^zigbee2mqtt/[^/]+$`)
 var buttonAction = regexp.MustCompile(`^(button_\d+)_(.+)$`)
 
 var dedup = map[string]string{}
+var dedupOld = map[string]string{}
 
 func checkDup(message MQTT.Message) bool {
 	payload := string(message.Payload())
-	if last, ok := dedup[message.Topic()]; ok && payload == last {
-		return true
+	if last, ok := dedup[message.Topic()]; ok {
+		if payload == last {
+			return true
+		}
+	} else if last, ok := dedupOld[message.Topic()]; ok {
+		if payload == last {
+			return true
+		}
 	}
 	dedup[message.Topic()] = payload
 	return false
@@ -147,7 +155,7 @@ func translate(message MQTT.Message) *pubsub.Event {
 		checkLogMessage(message)
 		return nil
 	}
-	if strings.HasPrefix(message.Topic(), "zigbee2mqtt/bridge/") {
+	if strings.HasPrefix(message.Topic(), "zigbee2mqtt/bridge/") || strings.HasPrefix(message.Topic(), "zigbee2mqtt/901/") {
 		// ignore other bridge messages
 		return nil
 	}
@@ -310,12 +318,16 @@ func (self *Service) Run() error {
 
 	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
 	thermostatChannel := services.Subscriber.Subscribe(pubsub.Prefix("thermostat"))
+	rolloverDedup := time.NewTicker(30 * time.Second)
 	for {
 		select {
 		case command := <-commandChannel:
 			self.handleCommand(command)
 		case ev := <-thermostatChannel:
 			self.handleThermostat(ev)
+		case <-rolloverDedup.C:
+			dedupOld = dedup
+			dedup = map[string]string{}
 		}
 	}
 	return nil
