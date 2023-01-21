@@ -237,68 +237,59 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		return // command not for us
 	}
 	device := services.Config.Devices[ev.Device()]
-	command := ev.Command()
-	if command != "off" && command != "on" {
-		log.Println("Command not recognised:", command)
-		return
-	}
-	log.Printf("Setting device %s to %s\n", ev.Device(), command)
 
 	// translate to zigbee2mqtt message
 	topic := fmt.Sprintf("zigbee2mqtt/%s/set", id)
-	body := map[string]interface{}{}
-	body["state"] = strings.ToUpper(command)
-	if ev.IsSet("level") {
-		body["brightness"] = PercentageToDim(int(ev.IntField("level")))
-	}
-	temp := ev.IntField("temp")
-	if temp > 0 {
-		if device.Cap["colourtemp"] {
-			mirek := int(1_000_000 / temp)
-			body["color_temp"] = mirek
-		} else {
-			// emulate colour temperature with x/y/dim
-			x, y, dim := KelvinToColorXYDim(int(temp))
-			body["color"] = map[string]interface{}{"x": x, "y": y}
-			if !ev.IsSet("level") {
-				body["brightness"] = dim
+	var body map[string]interface{}
+	if device.Cap["light"] {
+		command := ev.Command()
+		if command != "off" && command != "on" {
+			log.Println("light: command not recognised:", command)
+			return
+		}
+		body = map[string]interface{}{
+			"state": strings.ToUpper(command),
+		}
+		if ev.IsSet("level") {
+			body["brightness"] = PercentageToDim(int(ev.IntField("level")))
+		}
+		temp := ev.IntField("temp")
+		if temp > 0 {
+			if device.Cap["colourtemp"] {
+				mirek := int(1_000_000 / temp)
+				body["color_temp"] = mirek
+			} else {
+				// emulate colour temperature with x/y/dim
+				x, y, dim := KelvinToColorXYDim(int(temp))
+				body["color"] = map[string]interface{}{"x": x, "y": y}
+				if !ev.IsSet("level") {
+					body["brightness"] = dim
+				}
 			}
 		}
-	}
-	if ev.IsSet("colour") {
-		body["color"] = map[string]interface{}{"hex": ev.StringField("colour")}
-	}
-	payload, _ := json.Marshal(body)
-	// log.Println("Sending", topic, string(payload))
-	token := mqtt.Client.Publish(topic, 1, false, payload)
-	if token.Wait() && token.Error() != nil {
-		log.Println("Failed to publish message:", token.Error())
-	}
-}
-
-func (self *Service) handleThermostat(ev *pubsub.Event) {
-	target, ok := ev.Fields["target"].(float64)
-	if !ok {
-		log.Println("Error: thermostat event target field invalid:", ev)
+		if ev.IsSet("colour") {
+			body["color"] = map[string]interface{}{"hex": ev.StringField("colour")}
+		}
+	} else if device.Cap["thermostat"] {
+		// hive https://www.zigbee2mqtt.io/devices/SLR2b.html
+		target, ok := ev.Fields["target"].(float64)
+		if !ok {
+			log.Println("Error: thermostat event target field invalid:", ev)
+			return
+		}
+		body = map[string]interface{}{
+			"system_mode_heat":               "heat",
+			"temperature_setpoint_hold_heat": "1",
+			"occupied_heating_setpoint_heat": target,
+		}
+		if boost, ok := ev.Fields["boost"].(float64); ok {
+			// boost (aka party mode) - so they show up on device
+			body["system_mode_heat"] = "emergency_heating"
+			body["temperature_setpoint_hold_duration_heat"] = int(boost / 60) // minutes
+		}
+	} else {
+		log.Println("command to unrecognised device:", device)
 		return
-	}
-
-	id, ok := services.Config.LookupDeviceProtocol(ev.Device(), "zigbee")
-	if !ok {
-		return // command not for us
-	}
-	// hive https://www.zigbee2mqtt.io/devices/SLR2b.html
-	// translate to zigbee2mqtt message
-	topic := fmt.Sprintf("zigbee2mqtt/%s/set", id)
-	body := map[string]interface{}{
-		"system_mode_heat":               "heat",
-		"temperature_setpoint_hold_heat": "1",
-		"occupied_heating_setpoint_heat": fmt.Sprint(target),
-	}
-	if boost, ok := ev.Fields["boost"].(float64); ok {
-		// boost (aka party mode) - so they show up on device
-		body["system_mode_heat"] = "emergency_heating"
-		body["temperature_setpoint_hold_duration_heat"] = int(boost / 60) // minutes
 	}
 	payload, _ := json.Marshal(body)
 	// log.Println("Sending", topic, string(payload))
@@ -317,14 +308,11 @@ func (self *Service) Run() error {
 	})
 
 	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
-	thermostatChannel := services.Subscriber.Subscribe(pubsub.Prefix("thermostat"))
 	rolloverDedup := time.NewTicker(30 * time.Second)
 	for {
 		select {
 		case command := <-commandChannel:
 			self.handleCommand(command)
-		case ev := <-thermostatChannel:
-			self.handleThermostat(ev)
 		case <-rolloverDedup.C:
 			dedupOld = dedup
 			dedup = map[string]string{}

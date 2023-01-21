@@ -150,12 +150,11 @@ func (self *Service) Check(emitEvents bool) {
 				"device": zone.Thermostat,
 				"source": "ch",
 				"target": target,
-				"temp":   zone.Temp,
 			}
 			if now.Before(zone.PartyUntil) {
 				fields["boost"] = zone.PartyUntil.Sub(now).Seconds()
 			}
-			ev := pubsub.NewEvent("thermostat", fields)
+			ev := pubsub.NewEvent("command", fields)
 			self.Publisher.Emit(ev)
 		}
 	}
