@@ -88,46 +88,36 @@ func readInverter(client modbus.Client, handler *modbus.TCPClientHandler, serial
 	return
 }
 
-func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial string, ac_power, dc_power, battery_power float64) (*pubsub.Event, error) {
-	infoData, err := client.ReadHoldingRegisters(40188, 105)
+func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial string) (event *pubsub.Event, power float64, err error) {
+	var infoData []byte
+	infoData, err = client.ReadHoldingRegisters(40188, 105)
 	if err != nil {
-		return nil, err
+		return
 	}
 	m, err := NewMeterModel(infoData)
 	if err != nil {
-		return nil, err
+		return
 	}
 	// validate
 	if m.M_Exported == 0 {
-		return nil, errors.New("Invalid meter data (export 0)")
+		err = errors.New("Invalid meter data (export 0)")
+		return
 	}
 
 	source := fmt.Sprintf("meter.grid") // serial unreliable read
-	power := scalei16(m.M_AC_Power, m.M_AC_Power_SF)
-	load := ac_power - power
-	loss := 0.98
-	if battery_power < 0 {
-		// battery draining: DC->AC loss
-		loss = 0.82
-	}
-	solar := dc_power + battery_power*loss
-	if solar < 0 {
-		solar = 0
-	}
+	power = scalei16(m.M_AC_Power, m.M_AC_Power_SF)
 	fields := map[string]interface{}{
 		"source":    source,
 		"current":   scaleu16(m.M_AC_Current, m.M_AC_Current_SF),
 		"voltage":   scaleu16(m.M_AC_VoltageLN, m.M_AC_Voltage_SF),
 		"power":     -power, // +ve import, -ve export
-		"load":      load,
-		"solar":     solar,
 		"frequency": scaleu16(m.M_AC_Frequency, m.M_AC_Frequency_SF),
 		"exported":  scaleu32(m.M_Exported, m.M_Energy_W_SF),
 		"imported":  scaleu32(m.M_Imported, m.M_Energy_W_SF),
 	}
-	ev := pubsub.NewEvent("power", fields)
-	services.Config.AddDeviceToEvent(ev)
-	return ev, nil
+	event = pubsub.NewEvent("power", fields)
+	services.Config.AddDeviceToEvent(event)
+	return event, power, nil
 }
 
 func readBatteryData(client modbus.Client, serial string) (*pubsub.Event, float32, error) {
@@ -179,12 +169,20 @@ func (self *Service) readCycle(handler *modbus.TCPClientHandler, serials Serials
 	if battery != nil {
 		services.Publisher.Emit(battery)
 	}
-	meter, err := readMeter(self.client, handler, serials.meter, ac_power, dc_power, float64(battery_power))
+	meter, power, err := readMeter(self.client, handler, serials.meter)
 	if err != nil {
 		log.Printf("Error reading meter: %s", err)
 		return
 	}
 	if meter != nil {
+		load := ac_power - power
+		solar := dc_power + float64(battery_power)
+		if solar < 0 {
+			solar = 0
+		}
+		// TODO: fix transients
+		meter.SetField("load", load)
+		meter.SetField("solar", solar)
 		services.Publisher.Emit(meter)
 	}
 }
