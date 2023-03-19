@@ -231,6 +231,14 @@ func translate(message MQTT.Message) *pubsub.Event {
 	return ev
 }
 
+func splitEndpoint(s string) (string, string) {
+	ns := strings.SplitN(s, ":", 2)
+	if len(ns) == 2 {
+		return ns[0], ns[1]
+	}
+	return ns[0], ""
+}
+
 func (self *Service) handleCommand(ev *pubsub.Event) {
 	id, ok := services.Config.LookupDeviceProtocol(ev.Device(), "zigbee")
 	if !ok {
@@ -239,12 +247,13 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 	device := services.Config.Devices[ev.Device()]
 
 	// translate to zigbee2mqtt message
-	topic := fmt.Sprintf("zigbee2mqtt/%s/set", id)
+	zid, ep := splitEndpoint(id)
+	topic := fmt.Sprintf("zigbee2mqtt/%s/set", zid)
 	var body map[string]interface{}
-	if device.Cap["light"] {
+	if device.Cap["switch"] {
 		command := ev.Command()
 		if command != "off" && command != "on" {
-			log.Println("light: command not recognised:", command)
+			log.Println("switch: command not recognised:", command)
 			return
 		}
 		body = map[string]interface{}{
@@ -272,20 +281,27 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		}
 	} else if device.Cap["thermostat"] {
 		// hive https://www.zigbee2mqtt.io/devices/SLR2b.html
+		if ep == "" {
+			ep = "heat"
+		}
 		target, ok := ev.Fields["target"].(float64)
 		if !ok {
 			log.Println("Error: thermostat event target field invalid:", ev)
 			return
 		}
+		mode := "heat"
+		if target <= 10 {
+			mode = "off"
+		}
 		body = map[string]interface{}{
-			"system_mode_heat":               "heat",
-			"temperature_setpoint_hold_heat": "1",
-			"occupied_heating_setpoint_heat": target,
+			"system_mode_" + ep:               mode,
+			"temperature_setpoint_hold_" + ep: "1",
+			"occupied_heating_setpoint_" + ep: target,
 		}
 		if boost, ok := ev.Fields["boost"].(float64); ok {
 			// boost (aka party mode) - so they show up on device
-			body["system_mode_heat"] = "emergency_heating"
-			body["temperature_setpoint_hold_duration_heat"] = int(boost / 60) // minutes
+			body["system_mode_"+ep] = "emergency_heating"
+			body["temperature_setpoint_hold_duration_"+ep] = int(boost / 60) // minutes
 		}
 	} else {
 		log.Println("command to unrecognised device:", device)

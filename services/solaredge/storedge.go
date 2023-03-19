@@ -1,8 +1,7 @@
 /*
-
 MIT License
 
-Copyright (c) 2022 Barnaby Gray
+# Copyright (c) 2022 Barnaby Gray
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +20,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 */
 package solaredge
 
@@ -104,15 +102,15 @@ func ParseControlInfo(data []byte) (ControlInfo, error) {
 		return ControlInfo{}, errors.New("improper data size")
 	}
 	b := ControlInfo{
-		ControlMode:          ControlMode(buf.Read16()),
-		ACChargePolicy:       ACChargePolicy[buf.Read16()],
-		ACChargeLimit:        decode_float32(buf),
-		BackupReserved:       decode_float32(buf),
-		DefaultMode:          ChargeDischargeMode(buf.Read16()),
-		RemoteTimeout:        decode_bele32(buf),
-		RemoteMode:           ChargeDischargeMode(buf.Read16()),
-		RemoteChargeLimit:    decode_float32(buf),
-		RemoteDischargeLimit: decode_float32(buf),
+		ControlMode:          ControlMode(buf.Read16()),         // 0xE004
+		ACChargePolicy:       ACChargePolicy[buf.Read16()],      // 0xE005
+		ACChargeLimit:        decode_float32(buf),               // 0xE006
+		BackupReserved:       decode_float32(buf),               // 0xE008
+		DefaultMode:          ChargeDischargeMode(buf.Read16()), // 0xE00A
+		RemoteTimeout:        decode_bele32(buf),                // 0xE00B
+		RemoteMode:           ChargeDischargeMode(buf.Read16()), // 0xE00D
+		RemoteChargeLimit:    decode_float32(buf),               // 0xE00E
+		RemoteDischargeLimit: decode_float32(buf),               // 0xE010
 	}
 
 	return b, nil
