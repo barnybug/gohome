@@ -22,11 +22,11 @@ const MaxExportLimit = 5400
 
 // Service solaredge
 type Service struct {
-	client            modbus.Client
-	remoteMode        ChargeDischargeMode
-	remoteTimeout     time.Time
-	remoteImportLimit float32
-	remoteExportLimit float32
+	client               modbus.Client
+	remoteMode           ChargeDischargeMode
+	remoteTimeout        time.Time
+	remoteChargeLimit    float32
+	remoteDischargeLimit float32
 }
 
 // ID of the service
@@ -236,8 +236,8 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		return
 	}
 	remoteMode := Unused
-	remoteImportLimit := ev.FloatField("import_limit")
-	remoteExportLimit := ev.FloatField("export_limit")
+	remoteChargeLimit := ev.FloatField("charge_limit")
+	remoteDischargeLimit := ev.FloatField("discharge_limit")
 
 	if mode != "" {
 		if m, ok := chargeModes[mode]; ok {
@@ -256,14 +256,14 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		}
 		self.remoteMode = remoteMode
 		self.remoteTimeout = time.Now().Add(time.Second * time.Duration(timeout))
-		self.remoteImportLimit = float32(remoteImportLimit)
-		self.remoteExportLimit = float32(remoteExportLimit)
+		self.remoteChargeLimit = float32(remoteChargeLimit)
+		self.remoteDischargeLimit = float32(remoteDischargeLimit)
 		self.sendRemoteMode()
 	} else {
 		// revert
 		self.client.WriteSingleRegister(AddressStoredgeControl, uint16(ControlModeMaximizeSelfConsumption))
-		self.remoteImportLimit = 0
-		self.remoteExportLimit = 0
+		self.remoteChargeLimit = 0
+		self.remoteDischargeLimit = 0
 	}
 
 	log.Println("Command sent to inverter")
@@ -281,24 +281,27 @@ func (self *Service) sendRemoteMode() {
 	if now.After(self.remoteTimeout) {
 		return
 	}
-	self.client.WriteSingleRegister(AddressStoredgeControl, uint16(ControlModeRemoteControl))
 	buf := uio.NewBigEndianBuffer([]byte{})
+	buf.Write16(uint16(ControlModeRemoteControl)) // 0xE004
+	buf.Write16(uint16(1))                        // 0xE005 Always allowed
+	encode_float32(buf, 0)                        // 0xE006 AC Charge Limit
+	encode_float32(buf, 0)                        // 0xE008 Backup Reserved Setting
 	defaultMode := MaximizeSelfConsumption
 	buf.Write16(uint16(defaultMode)) // 0xE00A
 	timeout := self.remoteTimeout.Sub(now).Seconds()
 	encode_bele32(buf, uint32(timeout))  // 0xE00B
 	buf.Write16(uint16(self.remoteMode)) // 0xE00D
-	remoteImportLimit := self.remoteImportLimit
-	if remoteImportLimit == 0 {
-		remoteImportLimit = MaxImportLimit
+	remoteChargeLimit := self.remoteChargeLimit
+	if remoteChargeLimit == 0 {
+		remoteChargeLimit = MaxImportLimit
 	}
-	encode_float32(buf, remoteImportLimit) // 0xE00E
-	remoteExportLimit := self.remoteExportLimit
-	if remoteExportLimit == 0 {
-		remoteExportLimit = MaxExportLimit
+	encode_float32(buf, remoteChargeLimit) // 0xE00E
+	remoteDischargeLimit := self.remoteDischargeLimit
+	if remoteDischargeLimit == 0 {
+		remoteDischargeLimit = MaxExportLimit
 	}
-	encode_float32(buf, remoteExportLimit) // 0xE010
-	self.client.WriteMultipleRegisters(0xE00A, uint16(buf.Len()/2), buf.Data())
+	encode_float32(buf, remoteDischargeLimit) // 0xE010
+	self.client.WriteMultipleRegisters(AddressStoredgeControl, uint16(buf.Len()/2), buf.Data())
 }
 
 func printControlInfo(ci ControlInfo) {
