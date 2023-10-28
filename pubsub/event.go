@@ -134,11 +134,7 @@ func (event *Event) State() string {
 }
 
 func (event *Event) Ack() *Event {
-	fields := Fields{
-		"device":  event.Device(),
-		"command": event.Command(),
-	}
-	return NewEvent("ack", fields)
+	return NewEvent("ack", event.Fields)
 }
 
 func Parse(msg, topic string) *Event {
