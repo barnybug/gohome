@@ -284,6 +284,11 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		if ep == "" {
 			ep = "heat"
 		}
+		// WATER endpoint doesn't seem to accept 10 anymore - contrlled purely by system_mode_water off/on ??
+		if ep == "water" {
+			log.Println("ignoring water temporarily")
+			return
+		}
 		target, ok := ev.Fields["target"].(float64)
 		if !ok {
 			log.Println("Error: thermostat event target field invalid:", ev)
@@ -296,7 +301,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		body = map[string]interface{}{
 			"system_mode_" + ep:               mode,
 			"temperature_setpoint_hold_" + ep: "1",
-			"occupied_heating_setpoint_" + ep: target,
+			"occupied_heating_setpoint_" + ep: fmt.Sprint(target),
 		}
 		if boost, ok := ev.Fields["boost"].(float64); ok {
 			// boost (aka party mode) - so they show up on device
