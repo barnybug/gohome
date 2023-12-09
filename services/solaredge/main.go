@@ -236,8 +236,16 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		return
 	}
 	remoteMode := Unused
-	remoteChargeLimit := ev.FloatField("charge_limit")
-	remoteDischargeLimit := ev.FloatField("discharge_limit")
+	if ev.IsSet("charge_limit") {
+		self.remoteChargeLimit = float32(ev.FloatField("charge_limit"))
+	} else {
+		self.remoteChargeLimit = MaxImportLimit
+	}
+	if ev.IsSet("discharge_limit") {
+		self.remoteDischargeLimit = float32(ev.FloatField("discharge_limit"))
+	} else {
+		self.remoteDischargeLimit = MaxExportLimit
+	}
 
 	if mode != "" {
 		if m, ok := chargeModes[mode]; ok {
@@ -256,14 +264,10 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		}
 		self.remoteMode = remoteMode
 		self.remoteTimeout = time.Now().Add(time.Second * time.Duration(timeout))
-		self.remoteChargeLimit = float32(remoteChargeLimit)
-		self.remoteDischargeLimit = float32(remoteDischargeLimit)
 		self.sendRemoteMode()
 	} else {
 		// revert
 		self.client.WriteSingleRegister(AddressStoredgeControl, uint16(ControlModeMaximizeSelfConsumption))
-		self.remoteChargeLimit = 0
-		self.remoteDischargeLimit = 0
 	}
 
 	log.Println("Command sent to inverter")
@@ -289,18 +293,10 @@ func (self *Service) sendRemoteMode() {
 	defaultMode := MaximizeSelfConsumption
 	buf.Write16(uint16(defaultMode)) // 0xE00A
 	timeout := self.remoteTimeout.Sub(now).Seconds()
-	encode_bele32(buf, uint32(timeout))  // 0xE00B
-	buf.Write16(uint16(self.remoteMode)) // 0xE00D
-	remoteChargeLimit := self.remoteChargeLimit
-	if remoteChargeLimit == 0 {
-		remoteChargeLimit = MaxImportLimit
-	}
-	encode_float32(buf, remoteChargeLimit) // 0xE00E
-	remoteDischargeLimit := self.remoteDischargeLimit
-	if remoteDischargeLimit == 0 {
-		remoteDischargeLimit = MaxExportLimit
-	}
-	encode_float32(buf, remoteDischargeLimit) // 0xE010
+	encode_bele32(buf, uint32(timeout))            // 0xE00B
+	buf.Write16(uint16(self.remoteMode))           // 0xE00D
+	encode_float32(buf, self.remoteChargeLimit)    // 0xE00E
+	encode_float32(buf, self.remoteDischargeLimit) // 0xE010
 	self.client.WriteMultipleRegisters(AddressStoredgeControl, uint16(buf.Len()/2), buf.Data())
 }
 
@@ -315,7 +311,6 @@ func printControlInfo(ci ControlInfo) {
 func (self *Service) QueryHandlers() services.QueryHandlers {
 	return services.QueryHandlers{
 		"status": services.TextHandler(self.queryStatus),
-		"mode":   services.TextHandler(self.queryMode),
 		"help": services.StaticHandler("" +
 			"status: get status\n" +
 			"mode: set mode\n"),
@@ -358,22 +353,6 @@ func parseMode(value string) (err error, mode ChargeDischargeMode, timeout int) 
 		return
 	}
 	return
-}
-
-func (self *Service) queryMode(q services.Question) string {
-	err, mode, timeout := parseMode(q.Args)
-	if err != nil {
-		var elems []string
-		for value := range chargeModes {
-			elems = append(elems, value)
-		}
-		modes := strings.Join(elems, ", ")
-		return fmt.Sprintf("usage: mode %s 60 (%s)", modes, err)
-	}
-	self.remoteMode = mode
-	self.remoteTimeout = time.Now().Add(time.Duration(timeout) * time.Second)
-	self.sendRemoteMode()
-	return "Command sent to inverter"
 }
 
 // Run the service
@@ -425,6 +404,8 @@ func (self *Service) Run() error {
 	log.Printf("Battery Serial: %s", battery.Serial)
 	log.Printf("Battery Rated Energy: %.1f kWh", battery.RatedEnergy/1000)
 	log.Printf("Battery Charge/Discharge (Continuous): %.1f/%.1f kW", battery.MaxPowerContinuousCharge/1000, battery.MaxPowerContinuousDischarge/1000)
+	self.remoteChargeLimit = battery.MaxPowerContinuousCharge
+	self.remoteDischargeLimit = battery.MaxPowerContinuousDischarge
 
 	ci, err := ReadControlInfo(self.client)
 	if err != nil {
