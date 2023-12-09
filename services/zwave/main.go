@@ -3,6 +3,7 @@ package zwave
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -103,6 +104,11 @@ var mapping = map[string]Field{
 		Field: "command",
 		Parse: parseMotionSensorStatus,
 	},
+	"currentValue": {
+		Topic: "ack",
+		Field: "command",
+		Parse: parseBool,
+	},
 }
 
 func (self *Service) translate(message MQTT.Message) *pubsub.Event {
@@ -110,8 +116,11 @@ func (self *Service) translate(message MQTT.Message) *pubsub.Event {
 	if ps[1] == "_CLIENTS" || ps[1] == "driver" {
 		return nil
 	}
+	source := fmt.Sprintf("zwave.%s", ps[1])
 	last := ps[len(ps)-1]
-	source := fmt.Sprintf("zwave.%s:%s", ps[1], last)
+	if last != "currentValue" {
+		source += ":" + last
+	}
 	field, ok := mapping[last]
 	if !ok {
 		return nil
@@ -146,8 +155,40 @@ func (self *Service) translate(message MQTT.Message) *pubsub.Event {
 	return ev
 }
 
+func (self *Service) handleCommand(ev *pubsub.Event) {
+	id, ok := services.Config.LookupDeviceProtocol(ev.Device(), "zwave")
+	if !ok {
+		return // command not for us
+	}
+	device := services.Config.Devices[ev.Device()]
+
+	// translate to zwave message
+	topic := fmt.Sprintf("zwave/%s/37/0/currentValue/set", id)
+	var body string
+	if device.Cap["switch"] {
+		command := ev.Command()
+		if command != "off" && command != "on" {
+			log.Println("switch: command not recognised:", command)
+			return
+		}
+		body = "false"
+		if command == "on" {
+			body = "true"
+		}
+	} else {
+		log.Println("command to unrecognised device:", device)
+		return
+	}
+	log.Println("Sending", topic, body)
+	token := mqtt.Client.Publish(topic, 1, false, []byte(body))
+	if token.Wait() && token.Error() != nil {
+		log.Println("Failed to publish message:", token.Error())
+	}
+}
+
 func (self *Service) Run() error {
 	self.timers = map[string]*time.Timer{}
+
 	mqtt.Client.Subscribe("zwave/#", 1, func(client MQTT.Client, msg MQTT.Message) {
 		ev := self.translate(msg)
 		if ev != nil {
@@ -155,5 +196,9 @@ func (self *Service) Run() error {
 		}
 	})
 
-	select {}
+	commandChannel := services.Subscriber.Subscribe(pubsub.Prefix("command"))
+	for command := range commandChannel {
+		self.handleCommand(command)
+	}
+	return nil
 }
