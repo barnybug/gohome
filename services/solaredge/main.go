@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -17,8 +15,6 @@ import (
 )
 
 const MaxRetries = 5
-const MaxImportLimit = 5400
-const MaxExportLimit = 5400
 
 // Service solaredge
 type Service struct {
@@ -27,6 +23,9 @@ type Service struct {
 	remoteTimeout        time.Time
 	remoteChargeLimit    float32
 	remoteDischargeLimit float32
+	maxPowerCharge       float32
+	maxPowerDischarge    float32
+	batteryData          BatteryData
 }
 
 // ID of the service
@@ -104,11 +103,11 @@ func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial st
 	}
 	// validate
 	if m.M_Exported == 0 {
-		err = errors.New("Invalid meter data (export 0)")
+		err = errors.New("invalid meter data (export 0)")
 		return
 	}
 
-	source := fmt.Sprintf("meter.grid") // serial unreliable read
+	source := "meter.grid" // serial unreliable read
 	power = scalei16(m.M_AC_Power, m.M_AC_Power_SF)
 	fields := map[string]interface{}{
 		"source":    source,
@@ -124,10 +123,10 @@ func readMeter(client modbus.Client, handler *modbus.TCPClientHandler, serial st
 	return event, power, nil
 }
 
-func readBatteryData(client modbus.Client, serial string) (*pubsub.Event, float32, error) {
+func readBatteryData(client modbus.Client, serial string) (BatteryData, *pubsub.Event, error) {
 	b, err := ReadBatteryData(client)
 	if err != nil {
-		return nil, 0, err
+		return BatteryData{}, nil, err
 	}
 	source := fmt.Sprintf("battery.%s", serial)
 	fields := map[string]interface{}{
@@ -147,7 +146,7 @@ func readBatteryData(client modbus.Client, serial string) (*pubsub.Event, float3
 	}
 	ev := pubsub.NewEvent("power", fields)
 	services.Config.AddDeviceToEvent(ev)
-	return ev, b.Power, nil
+	return b, ev, nil
 }
 
 type Serials struct {
@@ -165,14 +164,14 @@ func (self *Service) readCycle(handler *modbus.TCPClientHandler, serials Serials
 	if inv != nil {
 		services.Publisher.Emit(inv)
 	}
-	battery, battery_power, err := readBatteryData(self.client, serials.battery)
+	batteryData, batteryEvent, err := readBatteryData(self.client, serials.battery)
 	if err != nil {
 		log.Printf("Error reading battery: %s", err)
 		return
 	}
-	if battery != nil {
-		services.Publisher.Emit(battery)
-	}
+	self.batteryData = batteryData
+	services.Publisher.Emit(batteryEvent)
+
 	meter, power, err := readMeter(self.client, handler, serials.meter)
 	if err != nil {
 		log.Printf("Error reading meter: %s", err)
@@ -180,7 +179,7 @@ func (self *Service) readCycle(handler *modbus.TCPClientHandler, serials Serials
 	}
 	if meter != nil {
 		load := ac_power - power
-		solar := dc_power + float64(battery_power)
+		solar := dc_power + float64(batteryData.Power)
 		if solar < 0 {
 			solar = 0
 		}
@@ -239,12 +238,23 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 	if ev.IsSet("charge_limit") {
 		self.remoteChargeLimit = float32(ev.FloatField("charge_limit"))
 	} else {
-		self.remoteChargeLimit = MaxImportLimit
+		self.remoteChargeLimit = self.maxPowerCharge
 	}
+
+	// cap charge to stable rates
+	soc := self.batteryData.BatterySoC
+	if soc < 13 && self.remoteChargeLimit > 600 {
+		self.remoteChargeLimit = 600
+	} else if soc < 42 && self.remoteChargeLimit > 2500 {
+		self.remoteChargeLimit = 2500
+	} else if self.remoteChargeLimit > self.maxPowerCharge {
+		self.remoteChargeLimit = self.maxPowerCharge
+	}
+
 	if ev.IsSet("discharge_limit") {
 		self.remoteDischargeLimit = float32(ev.FloatField("discharge_limit"))
 	} else {
-		self.remoteDischargeLimit = MaxExportLimit
+		self.remoteDischargeLimit = self.maxPowerDischarge
 	}
 
 	if mode != "" {
@@ -270,7 +280,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		self.client.WriteSingleRegister(AddressStoredgeControl, uint16(ControlModeMaximizeSelfConsumption))
 	}
 
-	log.Println("Command sent to inverter")
+	log.Printf("Command sent to inverter")
 
 	ci, err := ReadControlInfo(self.client)
 	if err != nil {
@@ -335,26 +345,6 @@ func (self *Service) queryStatus(q services.Question) string {
 	return message
 }
 
-func parseMode(value string) (err error, mode ChargeDischargeMode, timeout int) {
-	vs := strings.Split(value, " ")
-	if len(vs) != 2 {
-		err = errors.New("mode 60")
-		return
-	}
-	if m, ok := chargeModes[vs[0]]; ok {
-		mode = m
-	} else {
-		err = errors.New("Invalid mode")
-		return
-	}
-	timeout, err = strconv.Atoi(vs[1])
-	if err != nil {
-		err = errors.New("Invalid timeout")
-		return
-	}
-	return
-}
-
 // Run the service
 func (self *Service) Run() error {
 	handler := modbus.NewTCPClientHandler(services.Config.Solaredge.Inverter)
@@ -398,20 +388,30 @@ func (self *Service) Run() error {
 	if err != nil {
 		log.Fatalf("Error reading Battery: %s", err.Error())
 	}
+	self.maxPowerCharge = 3300
+	self.maxPowerDischarge = battery.MaxPowerContinuousCharge
 	log.Printf("Battery Manufacturer: %s", battery.Manufacturer)
 	log.Printf("Battery Model: %s", battery.Model)
 	log.Printf("Battery Firmware: %s", battery.Firmware)
 	log.Printf("Battery Serial: %s", battery.Serial)
 	log.Printf("Battery Rated Energy: %.1f kWh", battery.RatedEnergy/1000)
 	log.Printf("Battery Charge/Discharge (Continuous): %.1f/%.1f kW", battery.MaxPowerContinuousCharge/1000, battery.MaxPowerContinuousDischarge/1000)
-	self.remoteChargeLimit = battery.MaxPowerContinuousCharge
-	self.remoteDischargeLimit = battery.MaxPowerContinuousDischarge
+
+	// get current state of battery
+	batteryData, err := ReadBatteryData(self.client)
+	if err != nil {
+		log.Fatalf("Error reading Battery data: %s", err.Error())
+	}
+	self.batteryData = batteryData
+	log.Printf("Battery SOC: %.1f%%", self.batteryData.BatterySoC)
 
 	ci, err := ReadControlInfo(self.client)
 	if err != nil {
 		log.Fatalf("Error reading Control: %s", err.Error())
 	}
 	printControlInfo(ci)
+	self.remoteChargeLimit = ci.RemoteChargeLimit
+	self.remoteDischargeLimit = ci.RemoteDischargeLimit
 
 	serials := Serials{
 		inverter: string(inv.C_SerialNumber),
