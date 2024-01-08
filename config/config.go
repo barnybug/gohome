@@ -97,6 +97,7 @@ type EspeakConf struct {
 	Args   string
 	Port   int
 	Prefix string
+	Volume float64
 }
 
 type GeneralEmailConf struct {
