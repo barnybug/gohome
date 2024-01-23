@@ -162,7 +162,7 @@ func (self *Service) translatePacket(packet gorfxtrx.Packet) *pubsub.Event {
 
 	case *gorfxtrx.Elec3:
 		// power sensor
-		if p.Power > 14400 {
+		if p.Power > 24000 {
 			log.Printf("Ignoring bad power value: %s", p)
 			return nil
 		}
