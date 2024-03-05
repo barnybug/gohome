@@ -72,7 +72,8 @@ func (c *ConfigWaiter) notify() {
 	case c.Updated <- true:
 		// log.Printf("ConfigWaiter %s notify sent", c.topic)
 	default:
-		log.Printf("ConfigWaiter %s notify failed", c.topic)
+		// This is normal - the service may not be listening
+		// log.Printf("ConfigWaiter %s notify failed", c.topic)
 	}
 }
 
