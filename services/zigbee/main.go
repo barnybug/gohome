@@ -48,6 +48,16 @@ func parseBrightness(value interface{}) interface{} {
 	return nil
 }
 
+func parseContact(value interface{}) interface{} {
+	// sense is inverted: contact true means switch closed, ie sensor off
+	if value == true {
+		return "off"
+	} else if value == false {
+		return "on"
+	}
+	return nil
+}
+
 var mapping = map[string]Field{
 	"state": {
 		Topic: "ack",
@@ -74,6 +84,11 @@ var mapping = map[string]Field{
 		Topic: "ack",
 		Field: "level",
 		Parse: parseBrightness,
+	},
+	"contact": {
+		Topic: "sensor",
+		Field: "command",
+		Parse: parseContact,
 	},
 }
 var ignoreMap = map[string]bool{
@@ -222,7 +237,9 @@ func translate(message MQTT.Message) *pubsub.Event {
 				fields[field.Field] = value
 			}
 		} else {
-			fields[key] = value // map unknowns as is
+			if value != nil {
+				fields[key] = value // map unknowns as is
+			}
 		}
 	}
 	fields["source"] = source
