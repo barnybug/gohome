@@ -34,54 +34,91 @@ func source(ps []string) string {
 	if !strings.Contains(source, ".") {
 		source = "esphome." + source
 	}
-	if ps[2] == "switch" {
+	// esphome/sonoff1/switch/relay/state
+	// esphome/yagala1/switch/relay1/state
+	if len(ps) > 3 && ps[2] == "switch" && ps[3] != "relay" && ps[3] != "start_measuring" {
 		source += ":" + ps[3]
 	}
 	return source
 }
 
+var rollup = map[string]bool{
+	"pm10":    true,
+	"pm25":    true,
+	"pm100":   true,
+	"voltage": true,
+	"current": true,
+}
+var rollupState = map[string]map[string]interface{}{}
+
 func translate(message MQTT.Message) *pubsub.Event {
 	// esphome/flora.garden3/sensor/conductivity/state
-	// esphome/sonoff1/switch/relay/state
 	ps := strings.Split(message.Topic(), "/")
-	last := ps[len(ps)-1]
-	if last == "debug" || last == "command" {
-		return nil
-	}
-	source := source(ps)
 	payload := string(message.Payload())
-	if last == "status" {
-		log.Printf("%s status %s", source, payload)
+	last := ps[len(ps)-1]
+	if len(ps) < 3 {
 		return nil
 	}
-	if last != "state" && last != "status" {
+	if ps[1] == "discover" {
+		announce(ps[2])
+		return nil
+	}
+	switch last {
+	case "debug", "command":
+		return nil // ignored
+	case "status":
+		log.Printf("%s status %s", source(ps), payload)
+		return nil
+	case "state":
+		// continue
+	default:
 		log.Printf("Ignoring unknown topic: %s", message.Topic())
 		return nil
 	}
 
-	var topic, field string
-	if ps[2] == "switch" {
+	if len(ps) < 5 {
+		return nil
+	}
+	source := source(ps)
+	// esphome/gosund1/sensor/power/state
+	topic := ps[3]
+	field := ps[3]
+	if topic == "start_measuring" {
+		if payload == "ON" {
+			return nil
+		}
+		topic = "pm"
+	}
+	if ps[2] == "switch" && strings.HasPrefix(field, "relay") {
+		// esphome/sonoff1/switch/relay/state
 		topic = "ack"
 		field = "command"
-	} else {
-		field = ps[3] // "conductivity"
-		topic = field
 	}
+	var value interface{} = payload
+	if payload == "ON" || payload == "OFF" {
+		value = strings.ToLower(payload)
+	} else if fval, err := strconv.ParseFloat(payload, 64); err == nil {
+		value = fval
+	}
+	if rollup[field] {
+		if _, exists := rollupState[source]; !exists {
+			rollupState[source] = map[string]interface{}{}
+		}
+		rollupState[source][field] = value
+		return nil
+	}
+
 	fields := pubsub.Fields{
 		"source": source,
+		field:    value,
 	}
-	if payload == "ON" || payload == "OFF" {
-		fields[field] = strings.ToLower(payload)
-	} else if value, err := strconv.ParseFloat(payload, 64); err == nil {
-		fields[field] = value
-	} else {
-		fields[field] = payload
+	if field == "power" || field == "start_measuring" {
+		for key, value := range rollupState[source] {
+			fields[key] = value
+		}
 	}
 	ev := pubsub.NewEvent(topic, fields)
 	services.Config.AddDeviceToEvent(ev)
-	// if topic == "ack" && ev.Device() != "" {
-	// 	log.Printf("Set device %s to %s", ev.Device(), ev.Command())
-	// }
 	return ev
 }
 
