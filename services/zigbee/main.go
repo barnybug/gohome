@@ -318,7 +318,7 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 		body = map[string]interface{}{
 			"system_mode_" + ep:               mode,
 			"temperature_setpoint_hold_" + ep: "1",
-			"occupied_heating_setpoint_" + ep: fmt.Sprint(target),
+			"occupied_heating_setpoint_" + ep: target,
 		}
 		if boost, ok := ev.Fields["boost"].(float64); ok {
 			// boost (aka party mode) - so they show up on device
