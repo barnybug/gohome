@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/barnybug/gohome/config"
 	"github.com/barnybug/gohome/pubsub/mqtt"
 
 	"github.com/barnybug/gohome/pubsub"
@@ -18,6 +19,7 @@ import (
 
 // Service zigbee
 type Service struct {
+	rollup map[string]map[string]interface{}
 }
 
 func (self *Service) ID() string {
@@ -58,10 +60,15 @@ func parseContact(value interface{}) interface{} {
 	return nil
 }
 
+func parseState(value interface{}) interface{} {
+	return strings.ToLower(value.(string))
+}
+
 var mapping = map[string]Field{
 	"state": {
 		Topic: "ack",
-		Field: "state",
+		Field: "command",
+		Parse: parseState,
 	},
 	"temperature": {
 		Topic: "temp",
@@ -80,6 +87,11 @@ var mapping = map[string]Field{
 		Field: "heating",
 		Parse: parseHeating,
 	},
+	"running_state_water": {
+		Topic: "temp",
+		Field: "water",
+		Parse: parseHeating,
+	},
 	"brightness": {
 		Topic: "ack",
 		Field: "level",
@@ -92,7 +104,18 @@ var mapping = map[string]Field{
 	},
 }
 var ignoreMap = map[string]bool{
-	"update_available": true,
+	"child_lock":                               true,
+	"indicator_mode":                           true,
+	"local_temperature_water":                  true,
+	"power_outage_memory":                      true,
+	"system_mode_heat":                         true,
+	"system_mode_water":                        true,
+	"temperature_setpoint_hold_duration_heat":  true,
+	"temperature_setpoint_hold_duration_water": true,
+	"temperature_setpoint_hold_heat":           true,
+	"temperature_setpoint_hold_water":          true,
+	"update_available":                         true,
+	"update":                                   true,
 }
 
 func getDevice(topic string) string {
@@ -209,8 +232,6 @@ func translate(message MQTT.Message) *pubsub.Event {
 		// map fields
 		if ignoreMap[key] {
 			continue
-		} else if key == "state" {
-			fields["command"] = strings.ToLower(value.(string))
 		} else if key == "action" {
 			if value == "off" || value == "on" {
 				fields["command"] = value
@@ -261,74 +282,22 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 	if !ok {
 		return // command not for us
 	}
-	device := services.Config.Devices[ev.Device()]
 
-	// translate to zigbee2mqtt message
-	zid, ep := splitEndpoint(id)
-	topic := fmt.Sprintf("zigbee2mqtt/%s/set", zid)
-	var body map[string]interface{}
+	device := services.Config.Devices[ev.Device()]
 	if device.Cap["switch"] {
-		command := ev.Command()
-		if command != "off" && command != "on" {
-			log.Println("switch: command not recognised:", command)
-			return
-		}
-		body = map[string]interface{}{
-			"state": strings.ToUpper(command),
-		}
-		if ev.IsSet("level") {
-			body["brightness"] = PercentageToDim(int(ev.IntField("level")))
-		}
-		temp := ev.IntField("temp")
-		if temp > 0 {
-			if device.Cap["colourtemp"] {
-				mirek := int(1_000_000 / temp)
-				body["color_temp"] = mirek
-			} else {
-				// emulate colour temperature with x/y/dim
-				x, y, dim := KelvinToColorXYDim(int(temp))
-				body["color"] = map[string]interface{}{"x": x, "y": y}
-				if !ev.IsSet("level") {
-					body["brightness"] = dim
-				}
-			}
-		}
-		if ev.IsSet("colour") {
-			body["color"] = map[string]interface{}{"hex": ev.StringField("colour")}
-		}
+		self.switchCommand(ev, id, device)
 	} else if device.Cap["thermostat"] {
-		// hive https://www.zigbee2mqtt.io/devices/SLR2b.html
-		if ep == "" {
-			ep = "heat"
-		}
-		// WATER endpoint doesn't seem to accept 10 anymore - contrlled purely by system_mode_water off/on ??
-		if ep == "water" {
-			log.Println("ignoring water temporarily")
-			return
-		}
-		target, ok := ev.Fields["target"].(float64)
-		if !ok {
-			log.Println("Error: thermostat event target field invalid:", ev)
-			return
-		}
-		mode := "heat"
-		if target <= 10 {
-			mode = "off"
-		}
-		body = map[string]interface{}{
-			"system_mode_" + ep:               mode,
-			"temperature_setpoint_hold_" + ep: "1",
-			"occupied_heating_setpoint_" + ep: target,
-		}
-		if boost, ok := ev.Fields["boost"].(float64); ok {
-			// boost (aka party mode) - so they show up on device
-			body["system_mode_"+ep] = "emergency_heating"
-			body["temperature_setpoint_hold_duration_"+ep] = int(boost / 60) // minutes
-		}
+		self.thermostatCommand(ev, id)
 	} else {
 		log.Println("command to unrecognised device:", device)
 		return
 	}
+}
+
+func (self *Service) publish(id string, body map[string]interface{}) {
+	// publish zigbee2mqtt message
+	zid, _ := splitEndpoint(id)
+	topic := fmt.Sprintf("zigbee2mqtt/%s/set", zid)
 	payload, _ := json.Marshal(body)
 	// log.Println("Sending", topic, string(payload))
 	token := mqtt.Client.Publish(topic, 1, false, payload)
@@ -337,7 +306,79 @@ func (self *Service) handleCommand(ev *pubsub.Event) {
 	}
 }
 
+func (self *Service) switchCommand(ev *pubsub.Event, id string, device config.DeviceConf) {
+	command := ev.Command()
+	if command != "off" && command != "on" {
+		log.Println("switch: command not recognised:", command)
+		return
+	}
+	body := map[string]interface{}{
+		"state": strings.ToUpper(command),
+	}
+	if ev.IsSet("level") {
+		body["brightness"] = PercentageToDim(int(ev.IntField("level")))
+	}
+	temp := ev.IntField("temp")
+	if temp > 0 {
+		if device.Cap["colourtemp"] {
+			mirek := int(1_000_000 / temp)
+			body["color_temp"] = mirek
+		} else {
+			// emulate colour temperature with x/y/dim
+			x, y, dim := KelvinToColorXYDim(int(temp))
+			body["color"] = map[string]interface{}{"x": x, "y": y}
+			if !ev.IsSet("level") {
+				body["brightness"] = dim
+			}
+		}
+	}
+	if ev.IsSet("colour") {
+		body["color"] = map[string]interface{}{"hex": ev.StringField("colour")}
+	}
+	self.publish(id, body)
+}
+
+func (self *Service) thermostatCommand(ev *pubsub.Event, id string) {
+	// hive https://www.zigbee2mqtt.io/devices/SLR2b.html
+	_, ep := splitEndpoint(id)
+	if ep == "" {
+		ep = "heat"
+	}
+	target, ok := ev.Fields["target"].(float64)
+	if !ok {
+		log.Println("Error: thermostat event target field invalid:", ev)
+		return
+	}
+	mode := "heat"
+	if target <= 10 {
+		mode = "off"
+	}
+	body := map[string]interface{}{
+		"system_mode_" + ep:               mode,
+		"temperature_setpoint_hold_" + ep: "1",
+		"occupied_heating_setpoint_" + ep: target,
+	}
+	if boost, ok := ev.Fields["boost"].(float64); ok {
+		// boost (aka party mode) - so they show up on device
+		body["system_mode_"+ep] = "emergency_heating"
+		body["temperature_setpoint_hold_duration_"+ep] = int(boost / 60) // minutes
+	}
+	if ep == "water" {
+		// water and heat updates must be combined as sending two breaks
+		self.rollup[id] = body
+		return
+	}
+	if kv, ok := self.rollup[id]; ok {
+		// copy water into single update
+		for key, value := range kv {
+			body[key] = value
+		}
+	}
+	self.publish(id, body)
+}
+
 func (self *Service) Run() error {
+	self.rollup = map[string]map[string]interface{}{}
 	mqtt.Client.Subscribe("zigbee2mqtt/#", 1, func(client MQTT.Client, msg MQTT.Message) {
 		ev := translate(msg)
 		if ev != nil {
