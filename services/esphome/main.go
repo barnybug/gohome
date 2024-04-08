@@ -29,11 +29,15 @@ func announce(source string) {
 	services.Publisher.Emit(ev)
 }
 
-func source(ps []string) string {
-	source := ps[1] // "flora.garden3"
+func qualifySource(source string) string {
 	if !strings.Contains(source, ".") {
-		source = "esphome." + source
+		return "esphome." + source
 	}
+	return source
+}
+
+func source(ps []string) string {
+	source := qualifySource(ps[1])
 	// esphome/sonoff1/switch/relay/state
 	// esphome/yagala1/switch/relay1/state
 	if len(ps) > 3 && ps[2] == "switch" && ps[3] != "relay" && ps[3] != "start_measuring" {
@@ -60,7 +64,8 @@ func translate(message MQTT.Message) *pubsub.Event {
 		return nil
 	}
 	if ps[1] == "discover" {
-		announce(ps[2])
+		source := qualifySource(ps[2])
+		announce(source)
 		return nil
 	}
 	switch last {
