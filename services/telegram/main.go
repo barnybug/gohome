@@ -10,7 +10,7 @@ import (
 	"github.com/barnybug/gohome/pubsub"
 	"github.com/barnybug/gohome/services"
 
-	tgbotapi "gopkg.in/telegram-bot-api.v4"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // Service telegram
@@ -25,7 +25,7 @@ func (self *Service) ID() string {
 func (self *Service) sendMessage(ev *pubsub.Event, remote int) {
 	if filename, ok := ev.Fields["filename"].(string); ok {
 		log.Printf("Sending telegram picture: %s", filename)
-		msg := tgbotapi.NewPhotoUpload(services.Config.Telegram.Chat_id, filename)
+		msg := tgbotapi.NewPhoto(services.Config.Telegram.Chat_id, tgbotapi.FilePath(filename))
 		msg.Caption = ev.StringField("message")
 		if remote != 0 {
 			msg.ReplyToMessageID = remote
@@ -57,7 +57,6 @@ func (self *Service) Run() error {
 		log.Fatalln(err)
 	}
 
-	// services.Config.Pushbullet.Token
 	self.bot = bot
 
 	go func() {
@@ -65,10 +64,7 @@ func (self *Service) Run() error {
 		u := tgbotapi.NewUpdate(0)
 		u.Timeout = 60
 
-		updates, err := bot.GetUpdatesChan(u)
-		if err != nil {
-			log.Fatalln(err)
-		}
+		updates := bot.GetUpdatesChan(u)
 
 		for update := range updates {
 			if update.Message == nil {
