@@ -12,6 +12,7 @@ import (
 	"net"
 	"os/exec"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -55,7 +56,7 @@ func (self Watches) Swap(i, j int) {
 }
 
 var watches = map[string]*Watch{}
-var unmapped = map[string]bool{}
+var unmapped = map[string]string{}
 var repeatInterval, _ = time.ParseDuration("12h")
 var conf *config.Config
 
@@ -97,7 +98,6 @@ func unmappedDevice(ev *pubsub.Event) {
 		// already alerted
 		return
 	}
-	unmapped[ev.Source()] = true
 	announce(ev, false)
 }
 
@@ -152,6 +152,7 @@ func announce(ev *pubsub.Event, mapped bool) {
 			name = guessDeviceName(ev.Topic)
 		}
 		message = fmt.Sprintf("🔎 Discovered: '%s' id: '%s' emitting '%s' events", name, source, ev.Topic)
+		unmapped[ev.Source()] = name
 	}
 	services.SendAlert(message, conf.Watchdog.Alert, "", 0)
 }
@@ -488,8 +489,13 @@ func (self *Service) queryStatus(q services.Question) string {
 
 func (self *Service) queryDiscovered(q services.Question) string {
 	out := fmt.Sprintf("%d new devices discovered\n", len(unmapped))
-	for source := range unmapped {
-		out += fmt.Sprintf("%s\n", source)
+	keys := make([]string, 0, len(unmapped))
+	for k := range unmapped {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	for _, k := range keys {
+		out += fmt.Sprintf("%s: %s\n", k, unmapped[k])
 	}
 	return out
 }

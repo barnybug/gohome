@@ -155,12 +155,23 @@ type LogMessage struct {
 	} `json:"meta"`
 }
 
+type BridgeDevices []struct {
+	Definition struct {
+		Description string `json:"description"`
+		Model       string `json:"model"`
+		Vendor      string `json:"vendor"`
+	} `json:"definition"`
+	FriendlyName string `json:"friendly_name"`
+	Supported    bool   `json:"supported"`
+}
+
 func checkLogMessage(message MQTT.Message) {
 	// announce
 	var msg LogMessage
 	err := json.Unmarshal(message.Payload(), &msg)
 	if err != nil {
 		log.Printf("Failed to parse message %s: '%s'", message.Topic(), message.Payload())
+		return
 	}
 	if msg.Message != "interview_successful" {
 		return
@@ -184,13 +195,56 @@ func checkLogMessage(message MQTT.Message) {
 	log.Printf("Announcing %s: %s", source, name)
 	fields := pubsub.Fields{"source": source, "name": name}
 	ev := pubsub.NewEvent("announce", fields)
+	ev.SetRetained(true)
 	services.Config.AddDeviceToEvent(ev)
 	services.Publisher.Emit(ev)
+}
+
+func checkBridgeDevices(message MQTT.Message) {
+	// announce all the devices
+	var devices BridgeDevices
+	err := json.Unmarshal(message.Payload(), &devices)
+	if err != nil {
+		log.Printf("Failed to parse message %s: '%s'", message.Topic(), message.Payload())
+		return
+	}
+	for _, device := range devices {
+		if device.FriendlyName == "Coordinator" {
+			continue
+		}
+		// announce device
+		log.Printf("%#v\n", device.FriendlyName)
+		source := fmt.Sprintf("zigbee.%s", device.FriendlyName)
+		supported := "unsupported"
+		if device.Supported {
+			supported = ""
+		}
+		name := ""
+		for _, s := range []string{device.Definition.Vendor, device.Definition.Model, device.Definition.Description, supported} {
+			if s == "" {
+				continue
+			}
+			if name != "" {
+				name += " "
+			}
+			name += s
+		}
+		log.Printf("Announcing %s: %s", source, name)
+		fields := pubsub.Fields{"source": source, "name": name}
+		ev := pubsub.NewEvent("announce", fields)
+		ev.SetRetained(true)
+		services.Config.AddDeviceToEvent(ev)
+		services.Publisher.Emit(ev)
+	}
 }
 
 func translate(message MQTT.Message) *pubsub.Event {
 	if message.Topic() == "zigbee2mqtt/bridge/log" {
 		checkLogMessage(message)
+		return nil
+	}
+	if message.Topic() == "zigbee2mqtt/bridge/devices" {
+		checkBridgeDevices(message)
 		return nil
 	}
 	if strings.HasPrefix(message.Topic(), "zigbee2mqtt/bridge/") || strings.HasPrefix(message.Topic(), "zigbee2mqtt/901/") {
