@@ -394,7 +394,7 @@ func (self *Service) switchCommand(ev *pubsub.Event, id string, device config.De
 
 func (self *Service) thermostatCommand(ev *pubsub.Event, id string) {
 	// hive https://www.zigbee2mqtt.io/devices/SLR2b.html
-	_, ep := splitEndpoint(id)
+	zid, ep := splitEndpoint(id)
 	if ep == "" {
 		ep = "heat"
 	}
@@ -419,10 +419,10 @@ func (self *Service) thermostatCommand(ev *pubsub.Event, id string) {
 	}
 	if ep == "water" {
 		// water and heat updates must be combined as sending two breaks
-		self.rollup[id] = body
+		self.rollup[zid] = body
 		return
 	}
-	if kv, ok := self.rollup[id]; ok {
+	if kv, ok := self.rollup[zid]; ok {
 		// copy water into single update
 		for key, value := range kv {
 			body[key] = value
