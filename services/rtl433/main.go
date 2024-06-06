@@ -80,9 +80,24 @@ func translateEvent(data map[string]interface{}) *pubsub.Event {
 	return ev
 }
 
+var dedup [10]string
+var dedup_position int
+
+func isDuplicate(message MQTT.Message) bool {
+	payload := string(message.Payload())
+
+	for i := 0; i < len(dedup); i++ {
+		if dedup[i] == payload {
+			return true
+		}
+	}
+	dedup[dedup_position] = payload
+	dedup_position = (dedup_position + 1) % len(dedup)
+	return false
+}
+
 func emit(data map[string]interface{}) {
 	ev := translateEvent(data)
-	// TODO deduplicate
 	services.Publisher.Emit(ev)
 }
 
@@ -97,8 +112,10 @@ func parse(payload []byte) map[string]interface{} {
 
 func (self *Service) Run() error {
 	mqtt.Client.Subscribe("rtl_433/#", 1, func(client MQTT.Client, msg MQTT.Message) {
-		data := parse(msg.Payload())
-		emit(data)
+		if !isDuplicate(msg) {
+			data := parse(msg.Payload())
+			emit(data)
+		}
 	})
 
 	select {}
