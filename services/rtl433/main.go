@@ -23,30 +23,31 @@ func (self *Service) ID() string {
 
 var modelMap = map[string]string{
 	"CurrentCost-EnviR": "power",
-	"Oregon-CM180":      "power",
 	"Oregon-THGR122N":   "temp",
 	"Oregon-THN132N":    "temp",
 	"Nexus-TH":          "temp",
 	"TFA-TwinPlus":      "temp",
 	"Nexa-Security":     "sensor",
+	// ignore common false positives
+	"Oregon-CM180":  "ignore",
+	"Oregon-CM180i": "ignore",
 }
 var fieldMap = map[string]string{
 	"battery_ok":    "battery",
 	"power0_W":      "power",
-	"power1_W":      "power2",
-	"power2_W":      "power3",
 	"energy_kWh":    "total",
 	"temperature_C": "temp",
 	"humidity":      "humidity",
 }
 var skipFields = map[string]bool{
-	"brand":  true,
-	"model":  true,
-	"id":     true,
-	"time":   true,
-	"mic":    true,
-	"power1": true,
-	"power2": true,
+	"brand":    true,
+	"channel":  true,
+	"id":       true,
+	"mic":      true,
+	"model":    true,
+	"power1_W": true, // unconnected phase
+	"power2_W": true, // unconnected phase
+	"time":     true,
 }
 
 func translateEvent(data map[string]interface{}) *pubsub.Event {
@@ -55,6 +56,9 @@ func translateEvent(data map[string]interface{}) *pubsub.Event {
 	source := fmt.Sprintf("%s.%d", model, id)
 	topic := "rtl433"
 	if t, ok := modelMap[model]; ok {
+		if t == "ignore" {
+			return nil
+		}
 		topic = t
 	}
 	fields := pubsub.Fields{
@@ -98,7 +102,9 @@ func isDuplicate(message MQTT.Message) bool {
 
 func emit(data map[string]interface{}) {
 	ev := translateEvent(data)
-	services.Publisher.Emit(ev)
+	if ev != nil {
+		services.Publisher.Emit(ev)
+	}
 }
 
 func parse(payload []byte) map[string]interface{} {
