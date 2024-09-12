@@ -404,13 +404,17 @@ func (self *Service) thermostatCommand(ev *pubsub.Event, id string) {
 		return
 	}
 	mode := "heat"
+	hold := 1
 	if target <= 10 {
 		mode = "off"
+		hold = 0
 	}
 	body := map[string]interface{}{
 		"system_mode_" + ep:               mode,
-		"temperature_setpoint_hold_" + ep: "1",
-		"occupied_heating_setpoint_" + ep: target,
+		"temperature_setpoint_hold_" + ep: hold,
+	}
+	if hold != 0 {
+		body["occupied_heating_setpoint_"+ep] = target
 	}
 	if boost, ok := ev.Fields["boost"].(float64); ok {
 		// boost (aka party mode) - so they show up on device
