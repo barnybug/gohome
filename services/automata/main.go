@@ -157,6 +157,7 @@ func (self *Service) defineFunctions() {
 		"Delay":       self.Delay,
 		"Flux":        self.Flux,
 		"Log":         self.Log,
+		"PhotoAlert":  self.PhotoAlert,
 		"Query":       self.Query,
 		"RandomTimer": self.RandomTimer,
 		"Script":      self.Script,
@@ -776,6 +777,29 @@ func (self *Service) Alert(args ...interface{}) (interface{}, error) {
 	msg = context.Format(msg)
 	log.Printf("%s: %s", strings.Title(target), msg)
 	services.SendAlert(msg, target, "", 0)
+	return nil, nil
+}
+
+func (self *Service) PhotoAlert(args ...interface{}) (interface{}, error) {
+	if err := checkArguments(args, "", "string", "string", "string"); err != nil {
+		return nil, err
+	}
+	context := args[0].(ChangeContext)
+	msg := args[1].(string)
+	url := args[2].(string)
+	target := args[3].(string)
+	msg = context.Format(msg)
+	url = context.Format(url)
+	log.Printf("%s: %s", strings.Title(target), msg)
+
+	fields := pubsub.Fields{
+		"url":      url,
+		"target":   "telegram",
+		"message":  msg,
+		"markdown": true,
+	}
+	ev := pubsub.NewEvent("alert", fields)
+	services.Publisher.Emit(ev)
 	return nil, nil
 }
 
