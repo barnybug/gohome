@@ -100,6 +100,10 @@ type EspeakConf struct {
 	Volume float64
 }
 
+type FrigateConf struct {
+	Url string
+}
+
 type GeneralEmailConf struct {
 	Admin  string
 	From   string
@@ -235,6 +239,7 @@ type Config struct {
 	Datalogger   DataloggerConf
 	Earth        EarthConf
 	Espeak       EspeakConf
+	Frigate      FrigateConf
 	General      GeneralConf
 	Googlehome   GooglehomeConf
 	Graphite     GraphiteConf

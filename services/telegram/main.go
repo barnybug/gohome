@@ -3,7 +3,9 @@ package telegram
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -22,22 +24,51 @@ func (self *Service) ID() string {
 	return "telegram"
 }
 
+func downloadUrl(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return io.ReadAll(resp.Body)
+}
+
 func (self *Service) sendMessage(ev *pubsub.Event, remote int) {
-	if filename, ok := ev.Fields["filename"].(string); ok {
-		log.Printf("Sending telegram picture: %s", filename)
-		msg := tgbotapi.NewPhoto(services.Config.Telegram.Chat_id, tgbotapi.FilePath(filename))
+	if url, ok := ev.Fields["url"].(string); ok {
+		log.Printf("Sending telegram picture: %s", url)
+		bytes, err := downloadUrl(url)
+		if err != nil {
+			log.Printf("Error downloading picture: %s", err)
+			return
+		}
+		file := tgbotapi.FileBytes{
+			Name: "snapshot.jpg", Bytes: bytes,
+		}
+		msg := tgbotapi.NewPhoto(services.Config.Telegram.Chat_id, file)
 		msg.Caption = ev.StringField("message")
 		if remote != 0 {
 			msg.ReplyToMessageID = remote
 		}
-		self.bot.Send(msg)
+		if ev.Fields["markdown"] == true {
+			msg.ParseMode = tgbotapi.ModeMarkdownV2
+		}
+		_, err = self.bot.Send(msg)
+		if err != nil {
+			log.Printf("Error sending picture: %s", err)
+		}
 	} else if message, ok := ev.Fields["message"].(string); ok {
 		log.Printf("Sending telegram message: %s", message)
 		msg := tgbotapi.NewMessage(services.Config.Telegram.Chat_id, message)
 		if remote != 0 {
 			msg.ReplyToMessageID = remote
 		}
-		self.bot.Send(msg)
+		if ev.Fields["markdown"] == true {
+			msg.ParseMode = tgbotapi.ModeMarkdownV2
+		}
+		_, err := self.bot.Send(msg)
+		if err != nil {
+			log.Printf("Error sending message: %s", err)
+		}
 	}
 }
 
