@@ -768,7 +768,7 @@ func asyncScript(command string) {
 // action functions
 
 func (self *Service) Alert(args ...interface{}) (interface{}, error) {
-	if err := checkArguments(args, "", "string", "string"); err != nil {
+	if err := checkArguments(args, "", "string", "string", "..."); err != nil {
 		return nil, err
 	}
 	context := args[0].(ChangeContext)
@@ -776,7 +776,19 @@ func (self *Service) Alert(args ...interface{}) (interface{}, error) {
 	target := args[2].(string)
 	msg = context.Format(msg)
 	log.Printf("%s: %s", strings.Title(target), msg)
-	services.SendAlert(msg, target, "", 0)
+	fields := pubsub.Fields{
+		"target":  target,
+		"message": msg,
+	}
+	for _, flag := range args[3:] {
+		if flag == "quiet" {
+			fields["quiet"] = true
+		} else if flag == "markdown" {
+			fields["markdown"] = true
+		}
+	}
+	ev := pubsub.NewEvent("alert", fields)
+	services.Publisher.Emit(ev)
 	return nil, nil
 }
 

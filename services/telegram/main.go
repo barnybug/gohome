@@ -52,6 +52,9 @@ func (self *Service) sendMessage(ev *pubsub.Event, remote int) {
 		if ev.Fields["markdown"] == true {
 			msg.ParseMode = tgbotapi.ModeMarkdownV2
 		}
+		if ev.Fields["quiet"] == true {
+			msg.DisableNotification = true
+		}
 		_, err = self.bot.Send(msg)
 		if err != nil {
 			log.Printf("Error sending picture: %s", err)
@@ -64,6 +67,9 @@ func (self *Service) sendMessage(ev *pubsub.Event, remote int) {
 		}
 		if ev.Fields["markdown"] == true {
 			msg.ParseMode = tgbotapi.ModeMarkdownV2
+		}
+		if ev.Fields["quiet"] == true {
+			msg.DisableNotification = true
 		}
 		_, err := self.bot.Send(msg)
 		if err != nil {
