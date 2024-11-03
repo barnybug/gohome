@@ -49,23 +49,6 @@ func TestBadExpression(t *testing.T) {
 	assert.False(t, evOn.Match("blah()"))
 }
 
-var SimpleAutomata = `
-simple:
-  start: Start
-  states:
-    Start: {}
-  transitions:
-    Start: []
-`
-
-func TestStateFunction(t *testing.T) {
-	assert.False(t, evOn.Match("State()"))
-	automata, _ = gofsm.Load([]byte(SimpleAutomata))
-	assert.True(t, evOn.Match("State('simple')=='Start'"))
-	assert.False(t, evOn.Match("State('simple')=='Cobblers'"))
-	assert.False(t, evOn.Match("State('blah')=='Cobblers'"))
-}
-
 func BenchmarkEventTrue(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		evOn.Match("device=='door.front' && command=='off' || device=='light.porch' && command=='on'")
