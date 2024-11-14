@@ -64,7 +64,11 @@
                       Wants = [ "network-online.service" ];
                     };
                     Service = {
-                      Environment = [ "GOHOME_MQTT=${cfg.mqtt}" "GOHOME_API=http://localhost:8723/" ];
+                      Environment = [
+                        "GOHOME_MQTT=${cfg.mqtt}"
+                        "GOHOME_API=http://localhost:8723/"
+                        "PATH=$PATH:${lib.makeBinPath [ pkgs.coreutils ]}"
+                      ];
                       ExecStart = "${pkg}/bin/gohome run ${n}";
                       Restart = "always";
                       RestartSec = "5s";
