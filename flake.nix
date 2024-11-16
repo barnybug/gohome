@@ -67,7 +67,7 @@
                       Environment = [
                         "GOHOME_MQTT=${cfg.mqtt}"
                         "GOHOME_API=http://localhost:8723/"
-                        "PATH=$PATH:${lib.makeBinPath [ pkgs.coreutils pkgs.systemd pkgs.tcpdump ]}"
+                        "PATH=$PATH:/run/wrappers/bin:${lib.makeBinPath [ pkgs.coreutils pkgs.systemd pkgs.tcpdump ]}"
                       ];
                       ExecStart = "${pkg}/bin/gohome run ${n}";
                       Restart = "always";
