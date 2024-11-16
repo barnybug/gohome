@@ -22,7 +22,7 @@
     ) // {
       # Flake-wide outputs
       homeManagerModules = {
-        default = { config, lib, pkgs, system, ... }:
+        default = { config, lib, pkgs, ... }:
         with lib;
         let
           cfg = config.programs.gohome;
@@ -46,7 +46,7 @@
           };
           config = mkMerge [
             (mkIf cfg.enable {
-              home.packages = [ pkg ];
+              home.packages = [ pkg pkgs.coreutils pkgs.systemd pkgs.tcpdump ];
             })
             (mkIf (length cfg.services != 0) {
               systemd.user.enable = true;
@@ -67,7 +67,7 @@
                       Environment = [
                         "GOHOME_MQTT=${cfg.mqtt}"
                         "GOHOME_API=http://localhost:8723/"
-                        "PATH=$PATH:${lib.makeBinPath [ pkgs.coreutils ]}"
+                        "PATH=$PATH:${lib.makeBinPath [ pkgs.coreutils pkgs.systemd pkgs.tcpdump ]}"
                       ];
                       ExecStart = "${pkg}/bin/gohome run ${n}";
                       Restart = "always";
