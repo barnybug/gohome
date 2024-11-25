@@ -88,7 +88,7 @@
                             Environment = [
                               "GOHOME_MQTT=${cfg.mqtt}"
                               "GOHOME_API=http://localhost:8723/"
-                              "PATH=$PATH:/run/wrappers/bin:$HOME/.nix-profile/bin:${
+                              "PATH=/run/wrappers/bin:%h/.nix-profile/bin:${
                                 lib.makeBinPath [
                                   pkgs.bash
                                   pkgs.coreutils
