@@ -41,11 +41,27 @@
           let
             cfg = config.programs.gohome;
             pkg = self.packages.${pkgs.hostPlatform.system}.default;
+            serviceOptionsType =
+              with types;
+              let
+                primitive = oneOf [
+                  bool
+                  int
+                  str
+                  path
+                ];
+              in
+              attrsOf (attrsOf (attrsOf (either primitive (listOf primitive))));
           in
           {
             options = {
               programs.gohome = {
                 enable = mkEnableOption "Gohome";
+                extraServiceOptions = mkOption {
+                  type = serviceOptionsType;
+                  default = { };
+                  description = "Extra systemd options";
+                };
                 mqtt = mkOption {
                   type = types.str;
                   default = "tcp://mqtt:1883";
@@ -86,8 +102,6 @@
                           Unit = {
                             Description = "gohome service ${n}";
                             StartLimitIntervalSec = "0";
-                            After = [ "network-online.service" ];
-                            Wants = [ "network-online.service" ];
                           };
                           Service = {
                             Environment = [
@@ -102,7 +116,7 @@
                             Type = "notify";
                             NotifyAccess = "main";
                           };
-                        };
+                        } // cfg.extraServiceOptions;
                       }
                     );
                   in
