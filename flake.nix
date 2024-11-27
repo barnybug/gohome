@@ -51,6 +51,11 @@
                   default = "tcp://mqtt:1883";
                   description = "mqtt url";
                 };
+                path = mkOption {
+                  type = types.str;
+                  default = "";
+                  description = "Set PATH environment variable";
+                };
                 services = mkOption {
                   type = types.listOf types.str;
                   default = [ ];
@@ -88,14 +93,7 @@
                             Environment = [
                               "GOHOME_MQTT=${cfg.mqtt}"
                               "GOHOME_API=http://localhost:8723/"
-                              "PATH=/run/wrappers/bin:%h/.nix-profile/bin:${
-                                lib.makeBinPath [
-                                  pkgs.bash
-                                  pkgs.coreutils
-                                  pkgs.systemd
-                                  pkgs.tcpdump
-                                ]
-                              }"
+                              "PATH=${cfg.path}"
                             ];
                             ExecStart = "${pkg}/bin/gohome run ${n}";
                             Restart = "always";
