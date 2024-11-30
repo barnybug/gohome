@@ -259,6 +259,10 @@ func translate(message MQTT.Message) *pubsub.Event {
 		// ignore action
 		return nil
 	}
+	if strings.HasSuffix(message.Topic(), "/availability") {
+		// ignore availability
+		return nil
+	}
 	if !deviceUpdate.MatchString(message.Topic()) {
 		log.Printf("Ignoring topic: %s", message.Topic())
 		return nil
@@ -405,16 +409,15 @@ func (self *Service) thermostatCommand(ev *pubsub.Event, id string) {
 	}
 	mode := "heat"
 	hold := 1
-	if target <= 10 {
+	if ep == "water" && target <= 22 {
+		// 22 is the trigger point for water - see hive link above
 		mode = "off"
 		hold = 0
 	}
 	body := map[string]interface{}{
 		"system_mode_" + ep:               mode,
 		"temperature_setpoint_hold_" + ep: hold,
-	}
-	if hold != 0 {
-		body["occupied_heating_setpoint_"+ep] = target
+		"occupied_heating_setpoint_" + ep: target,
 	}
 	if boost, ok := ev.Fields["boost"].(float64); ok {
 		// boost (aka party mode) - so they show up on device
