@@ -101,10 +101,11 @@ func handleQuery(ev *pubsub.Event, queryables []Queryable) {
 		}
 		if handler, ok := service.QueryHandlers()[verb]; ok {
 			queries.Add(1)
+			id := service.ID()
 			go func() {
 				defer queries.Done()
 				a := handler(q)
-				sendAnswer(ev, service.ID(), a)
+				sendAnswer(ev, id, a)
 			}()
 		}
 	}

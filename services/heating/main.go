@@ -4,6 +4,7 @@
 package heating
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -31,14 +32,14 @@ const (
 const Midnight = 24 * 60
 
 type Zone struct {
-	Thermostat string
-	Temp       float64
-	Target     float64
-	Rate       float64
-	At         time.Time
-	PartyTemp  float64
-	PartyUntil time.Time
-	Sensor     string
+	Thermostat string    `json:"thermostat"`
+	Temp       float64   `json:"temp"`
+	Target     float64   `json:"target"`
+	Rate       float64   `json:"rate"`
+	At         time.Time `json:"at"`
+	PartyTemp  float64   `json:"party_temp"`
+	PartyUntil time.Time `json:"party_until"`
+	Sensor     string    `json:"sensor"`
 }
 
 func (self *Zone) Update(temp float64, at time.Time) {
@@ -80,26 +81,56 @@ type Service struct {
 
 func (self *Service) Heartbeat() {
 	self.Check(true)
-	if self.HeatingDevice == "auto" {
-		// no specific device to switch on or off, the hive thermostat directly controls
-		// the call for heat from the boiler controller.
-		return
-	}
-	// emit event for datalogging
+
+	// emit event to retained heating topic
 	fields := pubsub.Fields{
-		"device":  self.HeatingDevice,
-		"source":  "ch",
+		"device":  "heating",
 		"heating": self.State,
 		"status":  self.Json(Clock()),
 	}
 	ev := pubsub.NewEvent("heating", fields)
+	ev.SetRetained(true)
 	self.Publisher.Emit(ev)
-	// repeat current state
-	self.Command()
+
+	if self.HeatingDevice != "auto" {
+		// repeat control command
+		self.Command()
+	}
 }
 
-func (self *Service) Event(ev *pubsub.Event) {
+func (self *Service) restoreState(ev *pubsub.Event) {
+	// marshal into zones
+	zones := map[string]*Zone{}
+	if state, ok := ev.Fields["status"].(map[string]interface{}); ok {
+		zoneJson, _ := json.Marshal(state["zones"])
+		err := json.Unmarshal(zoneJson, &zones)
+		if err != nil {
+			log.Println("Failed to unmarshal state: %s", err)
+			return
+		}
+
+		for zone, z := range self.Zones {
+			if old, ok := zones[zone]; ok {
+				z.Temp = old.Temp
+				z.Target = old.Target
+				z.Rate = old.Rate
+				z.At = old.At
+				z.PartyTemp = old.PartyTemp
+				z.PartyUntil = old.PartyUntil
+				log.Printf("Restored zone '%s' temp: %v target: %v", zone, z.Temp, z.Target)
+			}
+		}
+	}
+}
+
+func (self *Service) handleEvent(ev *pubsub.Event) {
 	switch ev.Topic {
+	case "heating":
+		if ev.Retained {
+			// restore heating state on restart
+			self.restoreState(ev)
+		}
+
 	case "temp":
 		// temperature device update
 		device := ev.Device()
@@ -227,28 +258,10 @@ func (self *Service) Status(now time.Time) string {
 
 func (self *Service) Json(now time.Time) interface{} {
 	data := map[string]interface{}{}
-	data["heating"] = self.State
-	if !self.StateChanged.IsZero() {
-		data["changed"] = self.StateChanged
-	}
-	devices := map[string]interface{}{}
-	for name, zone := range self.Zones {
-		target := self.Target(zone, now)
-		if zone.At.IsZero() {
-			devices[name] = map[string]interface{}{
-				"temp":   nil,
-				"target": target,
-			}
-		} else {
-			devices[name] = map[string]interface{}{
-				"temp":   zone.Temp,
-				"rate":   zone.Rate,
-				"at":     zone.At.Format(time.RFC3339),
-				"target": target,
-			}
-		}
-	}
-	data["devices"] = devices
+	zones := map[string]interface{}{}
+	zoneJson, _ := json.Marshal(self.Zones)
+	json.Unmarshal(zoneJson, &zones)
+	data["zones"] = zones
 	return data
 }
 
@@ -272,11 +285,11 @@ func (self *Service) Init() error {
 func (self *Service) Run() error {
 	// Run at 2s past the minute to give automata time to send targets
 	ticker := util.NewScheduler(time.Duration(2), time.Minute)
-	events := services.Subscriber.Subscribe(pubsub.Prefix("temp"), pubsub.Prefix("command"))
+	events := services.Subscriber.Subscribe(pubsub.Prefix("temp"), pubsub.Prefix("heating"))
 	for {
 		select {
 		case ev := <-events:
-			self.Event(ev)
+			self.handleEvent(ev)
 		case <-ticker.C:
 			self.Heartbeat()
 		case <-self.config.Updated:
@@ -367,6 +380,7 @@ func (self *Service) queryTarget(q services.Question) services.Answer {
 	if zone, ok := self.Zones[name]; ok {
 		if zone.Target != target {
 			log.Printf("Set %s to target: %v°C", name, target)
+			self.Check(true)
 		}
 		zone.Target = target
 	} else {
