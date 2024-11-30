@@ -105,7 +105,7 @@ func (self *Service) restoreState(ev *pubsub.Event) {
 		zoneJson, _ := json.Marshal(state["zones"])
 		err := json.Unmarshal(zoneJson, &zones)
 		if err != nil {
-			log.Println("Failed to unmarshal state: %s", err)
+			log.Printf("Failed to unmarshal state: %s", err)
 			return
 		}
 
