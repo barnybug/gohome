@@ -213,7 +213,6 @@ func checkBridgeDevices(message MQTT.Message) {
 			continue
 		}
 		// announce device
-		log.Printf("%#v\n", device.FriendlyName)
 		source := fmt.Sprintf("zigbee.%s", device.FriendlyName)
 		supported := "unsupported"
 		if device.Supported {
@@ -409,7 +408,7 @@ func (self *Service) thermostatCommand(ev *pubsub.Event, id string) {
 	}
 	mode := "heat"
 	hold := 1
-	if ep == "water" && target <= 22 {
+	if ep == "water" && target < 22 {
 		// 22 is the trigger point for water - see hive link above
 		mode = "off"
 		hold = 0
@@ -417,7 +416,9 @@ func (self *Service) thermostatCommand(ev *pubsub.Event, id string) {
 	body := map[string]interface{}{
 		"system_mode_" + ep:               mode,
 		"temperature_setpoint_hold_" + ep: hold,
-		"occupied_heating_setpoint_" + ep: target,
+	}
+	if mode != "off" {
+		body["occupied_heating_setpoint_"+ep] = target
 	}
 	if boost, ok := ev.Fields["boost"].(float64); ok {
 		// boost (aka party mode) - so they show up on device
