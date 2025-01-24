@@ -28,6 +28,10 @@ release-amd64:
 release-386:
 	GOOS=linux GOARCH=386 go build -o dist/gohome-linux-386/gohome-linux-386 $(exe)
 
+release-bthome:
+	# armv6 for Pi zero
+	GOOS=linux GOARCH=arm GOARM=6 go build -o dist/bthome-linux-armv6l/bthome ./cmd/bthome
+
 upx:
 	upx dist/gohome-*/gohome-*
 

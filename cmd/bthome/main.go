@@ -35,6 +35,7 @@ type Reading struct {
 	voltage  *float32
 	power    *bool
 	battery  *byte
+	button   *string
 }
 
 func readInt16(data []byte, scale int16) float32 {
@@ -47,6 +48,23 @@ func readUint16(data []byte, scale uint16) float32 {
 	var i uint16
 	binary.Read(bytes.NewReader(data), binary.LittleEndian, &i)
 	return float32(i) / float32(scale)
+}
+
+var buttonValues = map[byte]string{
+	0x01: "press",
+	0x02: "double_press",
+	0x03: "triple_press",
+	0x04: "long_press",
+	0x05: "long_double_press",
+	0x06: "long_triple_press",
+	0x80: "hold_press",
+}
+
+func readButton(value byte) *string {
+	if s, ok := buttonValues[value]; ok {
+		return &s
+	}
+	return nil
 }
 
 func decodeV1Reading(data []byte) Reading {
@@ -97,7 +115,7 @@ OUTER:
 			reading.packetId = offset[1]
 		case 0x1: // battery
 			reading.battery = &offset[1]
-		case 0x2: // temp
+		case 0x2: // temp (factor 0.01)
 			temp := readInt16(offset[1:3], 100)
 			reading.temp = &temp
 			length = 2
@@ -115,8 +133,17 @@ OUTER:
 				power = false
 			}
 			reading.power = &power
+		case 0x2E: // humidity
+			humidity := float32(offset[1])
+			reading.humidity = &humidity
+		case 0x3A: // button
+			reading.button = readButton(offset[1])
+		case 0x45: // temp (factor 0.1)
+			temp := readInt16(offset[1:3], 10)
+			reading.temp = &temp
+			length = 2
 		default:
-			fmt.Println("unknown object id:", datatype, data)
+			fmt.Println("v2: unknown object id:", datatype, data)
 			break OUTER
 		}
 		offset = offset[length+1:]
@@ -155,6 +182,9 @@ func readings() {
 			}
 			if reading.battery != nil {
 				event["battery"] = *reading.battery
+			}
+			if reading.button != nil {
+				event["button"] = *reading.button
 			}
 			data, _ := json.Marshal(event)
 			fmt.Println(string(data))
