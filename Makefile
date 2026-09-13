@@ -17,7 +17,7 @@ coverage:
 	xdg-open /tmp/coverage.html
 
 release-arm:
-	GOOS=linux GOARCH=arm go build -o dist/gohome-linux-arm/gohome-linux-arm $(exe)
+	GOOS=linux GOARCH=arm CGO_ENABLED=0 go build -o dist/gohome-linux-arm/gohome-linux-arm $(exe)
 
 release-arm64:
 	GOOS=linux GOARCH=arm64 go build -o dist/gohome-linux-arm64/gohome-linux-arm64 $(exe)
@@ -30,7 +30,7 @@ release-386:
 
 release-bthome:
 	# armv6 for Pi zero
-	GOOS=linux GOARCH=arm GOARM=6 go build -o dist/bthome-linux-armv6l/bthome ./cmd/bthome
+	GOOS=linux GOARCH=arm GOARM=6 CGO_ENABLED=0 go build -o dist/bthome-linux-armv6l/bthome ./cmd/bthome
 
 upx:
 	upx dist/gohome-*/gohome-*
