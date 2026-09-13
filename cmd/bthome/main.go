@@ -36,6 +36,7 @@ type Reading struct {
 	power    *bool
 	battery  *byte
 	button   *string
+	opening  *bool
 }
 
 func readInt16(data []byte, scale int16) float32 {
@@ -133,6 +134,12 @@ OUTER:
 				power = false
 			}
 			reading.power = &power
+		case 0x11: // opening
+			opening := false
+			if offset[1] == 1 {
+				opening = true
+			}
+			reading.opening = &opening
 		case 0x2E: // humidity
 			humidity := float32(offset[1])
 			reading.humidity = &humidity
@@ -185,6 +192,9 @@ func readings() {
 			}
 			if reading.button != nil {
 				event["button"] = *reading.button
+			}
+			if reading.opening != nil {
+				event["opening"] = *reading.opening
 			}
 			data, _ := json.Marshal(event)
 			fmt.Println(string(data))
