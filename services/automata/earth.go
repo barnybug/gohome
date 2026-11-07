@@ -16,7 +16,7 @@ type Location struct {
 const (
 	DegToRad           = math.Pi / 180
 	RadToDeg           = 180 / math.Pi
-	ZenithLight        = 88
+	ZenithLight        = 87
 	ZenithOfficial     = 90 + 50.0/60
 	ZenithCivil        = 96
 	ZenithNautical     = 102
