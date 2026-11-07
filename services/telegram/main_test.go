@@ -2,7 +2,7 @@ package telegram
 
 import "github.com/barnybug/gohome/services"
 
-func ExampleInterfaces() {
+func ExampleService() {
 	var _ services.Service = (*Service)(nil)
 	// Output:
 }

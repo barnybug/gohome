@@ -140,13 +140,13 @@ func TestPartyModeTempOnly(t *testing.T) {
 	assert.True(t, service.State)
 }
 
-func ExampleInterfaces() {
+func ExampleService() {
 	var _ services.Service = (*Service)(nil)
 	var _ services.Queryable = (*Service)(nil)
 	// Output:
 }
 
-func ExampleStatus() {
+func ExampleService_Status() {
 	SetupTests()
 	fmt.Println(service.Status(evCold.Timestamp))
 	fire(evCold)
@@ -158,7 +158,7 @@ func ExampleStatus() {
 	// hallway 10.1°C +0.0°C/hr at Jan  4 16:00:00 [18.0°C]*
 }
 
-func ExampleQueryStatusText() {
+func ExampleService_queryStatusText() {
 	SetupTests()
 	fire(evCold)
 	setClock(evBorderline.Timestamp)

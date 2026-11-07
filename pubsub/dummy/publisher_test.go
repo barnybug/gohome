@@ -2,7 +2,7 @@ package dummy
 
 import "github.com/barnybug/gohome/pubsub"
 
-func ExampleInterfaces() {
+func ExamplePublisher() {
 	var _ pubsub.Publisher = (*Publisher)(nil)
 	// Output:
 }

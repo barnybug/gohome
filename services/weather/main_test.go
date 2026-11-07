@@ -8,7 +8,7 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
-func ExampleWeatherStatsNoData() {
+func ExampleService_weatherStats_noData() {
 	services.Config = config.ExampleConfig
 	response := `
 [
@@ -27,7 +27,7 @@ func ExampleWeatherStatsNoData() {
 	// Weather: I didn't get any outside temperature data yesterday!
 }
 
-func ExampleWeatherStats() {
+func ExampleService_weatherStats() {
 	services.Config = config.ExampleConfig
 	response := `
 [

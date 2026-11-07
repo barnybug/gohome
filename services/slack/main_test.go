@@ -1,5 +1,5 @@
 package slack
 
-func ExampleInterfaces() {
+func ExampleService() {
 	// Output:
 }

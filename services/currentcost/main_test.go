@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func ExampleUnparseables() {
+func Example_parse_unparseables() {
 	fmt.Println(parse(""))
 	fmt.Println(parse("xyz"))
 	fmt.Println(parse("<ch1><watts>abcde</watts></ch1><tmpr>19.1</tmpr>"))
@@ -15,7 +15,7 @@ func ExampleUnparseables() {
 	// <nil>
 }
 
-func ExampleParseable() {
+func Example_parse_parseable() {
 	// TODO full message
 	ev := parse("<ch1><watts>01234</watts></ch1><tmpr>19.1</tmpr>")
 	loc, _ := time.LoadLocation("UTC")

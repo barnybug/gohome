@@ -5,7 +5,7 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
-func ExampleInterfaces() {
+func ExampleService() {
 	var _ services.Service = (*Service)(nil)
 	var _ services.Queryable = (*Service)(nil)
 	// Output:

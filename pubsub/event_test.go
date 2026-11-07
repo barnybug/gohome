@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func ExampleString() {
+func ExampleEvent_String() {
 	ev := NewEvent("test", nil)
 	loc, _ := time.LoadLocation("UTC")
 	ev.Timestamp = time.Date(2014, 1, 2, 3, 4, 5, 987654321, loc)
@@ -13,7 +13,7 @@ func ExampleString() {
 	//Output: {"timestamp":"2014-01-02 03:04:05.987","topic":"test"}
 }
 
-func ExampleParseWithTimestamp() {
+func ExampleParse_withTimestamp() {
 	ev := Parse(`{"timestamp":"2014-01-02 03:04:05.987","topic":"test","field":"value"}`, "")
 	fmt.Println(ev.Topic)
 	fmt.Println(ev.Timestamp)
@@ -24,7 +24,7 @@ func ExampleParseWithTimestamp() {
 	// map[field:value]
 }
 
-func ExampleParseWithoutTimestamp() {
+func ExampleParse_withoutTimestamp() {
 	ev := Parse(`{"topic":"test","field":"value"}`, "")
 	fmt.Println(ev.Topic)
 	fmt.Println(ev.Fields)
@@ -33,7 +33,7 @@ func ExampleParseWithoutTimestamp() {
 	// map[field:value]
 }
 
-func ExampleParseBad() {
+func ExampleParse_bad() {
 	ev := Parse(`{`, "")
 	fmt.Println(ev)
 	// Output:

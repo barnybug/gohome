@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-func ExampleInterfaces() {
+func ExampleService() {
 	// Output:
 }
 
-func ExampleParseShowOutput() {
+func Example_parseShowOutput() {
 	reader := strings.NewReader(`MainPID=0
 ExecMainStartTimestamp=Thu 2015-08-27 19:19:13 BST
 Id=gohome@pubsub.service

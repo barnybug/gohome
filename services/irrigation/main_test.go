@@ -8,7 +8,7 @@ import (
 	"github.com/barnybug/gohome/services"
 )
 
-func ExampleColdDay() {
+func ExampleService_coldDay() {
 	services.Config = config.ExampleConfig
 	response := `[{"target": "summarize(sensor.temp.garden.temp.avg, \"1y\", \"avg\")", "datapoints": [[5.8, 1387584000]]}]`
 	g := &graphite.MockGraphite{Response: response}
@@ -18,7 +18,7 @@ func ExampleColdDay() {
 	// Irrigation: Watering garden for 10s (12h av was 5.8C)
 }
 
-func ExampleHotDay() {
+func ExampleService_hotDay() {
 	services.Config = config.ExampleConfig
 	// services.Config = config.Open()
 	// fmt.Println(services.Config.Irrigation)

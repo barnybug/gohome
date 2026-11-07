@@ -20,7 +20,7 @@ var (
 	evMissing = NewEventContext(service, pubsub.NewEvent("ack", pubsub.Fields{"timestamp": "2017-09-26 19:24:22.069"}))
 )
 
-func ExampleInterfaces() {
+func ExampleService() {
 	var _ services.Service = (*Service)(nil)
 	var _ services.Queryable = (*Service)(nil)
 	// Output:

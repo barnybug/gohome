@@ -29,7 +29,7 @@ func ExampleOpenRaw() {
 	// test@example.com
 }
 
-func ExampleCaps() {
+func ExampleDeviceConf_caps() {
 	config, _ := OpenRaw([]byte(yml))
 	fmt.Println(config.Devices["alarm.house"].Id)
 	fmt.Println(config.Devices["alarm.house"].Caps)
@@ -46,7 +46,7 @@ func ExampleCaps() {
 	// [switch dimmer]
 }
 
-func ExampleDeviceSourceId() {
+func ExampleDeviceConf_SourceId() {
 	fmt.Println(ExampleConfig.Devices["light.kitchen"].SourceId())
 	fmt.Println(ExampleConfig.Devices["light.glowworm"].SourceId())
 	// Output:
@@ -54,7 +54,7 @@ func ExampleDeviceSourceId() {
 	// 00123453
 }
 
-func ExampleLookupDeviceProtocol() {
+func ExampleConfig_LookupDeviceProtocol() {
 	fmt.Println(ExampleConfig.LookupDeviceProtocol("light.kitchen", "x10"))
 	fmt.Println(ExampleConfig.LookupDeviceProtocol("light.kitchen", "homeeasy"))
 	fmt.Println(ExampleConfig.LookupDeviceProtocol("light.glowworm", "homeeasy"))
@@ -64,7 +64,7 @@ func ExampleLookupDeviceProtocol() {
 	// 00123453 true
 }
 
-func ExampleDevicesByProtocol() {
+func ExampleConfig_DevicesByProtocol() {
 	for _, device := range ExampleConfig.DevicesByProtocol("x10") {
 		fmt.Println(device.Id)
 	}

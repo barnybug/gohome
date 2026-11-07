@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func ExampleInterfaces() {
+func ExampleService() {
 	var _ services.Service = (*Service)(nil)
 	// Output:
 }

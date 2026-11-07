@@ -25,7 +25,7 @@ func ExampleProcess() {
 	// Output: slimdev-slimserv.FrontroomTouch 1
 }
 
-func ExampleProcessOther() {
+func ExampleProcess_other() {
 	source, power := Process(otherMessage)
 	fmt.Println(source, power)
 	// Output: slimdev-slimserv.FrontroomTouch
