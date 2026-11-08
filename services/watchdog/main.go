@@ -27,6 +27,7 @@ import (
 type Watch struct {
 	Name      string
 	Id        string
+	Source    string
 	Timeout   time.Duration
 	Problem   bool
 	NextAlert time.Time
@@ -305,6 +306,7 @@ func (self *Service) setupDevices() {
 		watches[d.Id] = &Watch{
 			Id:        d.Id,
 			Name:      name,
+			Source:    d.Source,
 			Timeout:   d.Watchdog.Duration,
 			NextAlert: now.Add(d.Watchdog.Duration),
 			Silent:    d.Cap["silent"],
@@ -535,7 +537,10 @@ func (self *Alerter) sendAlert() {
 	var names []string
 	var lastWatch *Watch
 	for watch := range self.watches {
-		name := fmt.Sprintf("%s [%s]", watch.Name, watch.Id)
+		name := watch.Name
+		if watch.Source != "" {
+			name += fmt.Sprintf(" [%s]", watch.Source)
+		}
 		names = append(names, name)
 		lastWatch = watch
 	}
