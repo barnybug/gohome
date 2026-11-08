@@ -300,7 +300,7 @@ func (self *Service) setupDevices() {
 		name := d.Name
 		if name == "" {
 			// attempt a reasonable device name if missing from config
-			name = strings.Title(strings.Replace(d.Id, ".", " ", -1))
+			name = strings.Title(strings.ReplaceAll(d.Id, ".", " "))
 		}
 		watches[d.Id] = &Watch{
 			Id:        d.Id,
@@ -535,12 +535,13 @@ func (self *Alerter) sendAlert() {
 	var names []string
 	var lastWatch *Watch
 	for watch := range self.watches {
-		names = append(names, watch.Name)
+		name := fmt.Sprintf("%s [%s]", watch.Name, watch.Id)
+		names = append(names, name)
 		lastWatch = watch
 	}
 	message := fmt.Sprintf("%s %s", listOfLots(names, 10), self.suffix)
 	if self.suffix == "PROBLEM" && len(names) == 1 && !lastWatch.LastEvent.IsZero() {
-		duration := time.Now().Sub(lastWatch.LastEvent)
+		duration := time.Since(lastWatch.LastEvent)
 		message += " for " + util.FriendlyDuration(duration)
 	}
 	sendAlert(message)
